@@ -2,23 +2,34 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createGenerationPlan } from '../../src/annexes/26/generator.js';
 import { prepareAnnex } from '../../src/application/prepare-annex.js';
-import { extractAnnex26Contract } from '../../src/domain/contract-extraction.js';
+import {
+  extractAgreementDateFromContractNumber,
+  extractAnnex26Contract
+} from '../../src/domain/contract-extraction.js';
 
-test('parser odczytuje datę z rzeczywistego zapisu umowy o świadczenie usług', () => {
-  const contract = extractAnnex26Contract(
-    'Umowa o świadczenie usług edukacyjnych zawarta w dniu 10.06.2025 r. w Warszawie'
+test('data zawarcia umowy pochodzi z trzech ostatnich segmentów numeru', () => {
+  assert.equal(extractAgreementDateFromContractNumber('EL/JF/811/192956/3/9/2025'), '2025-09-03');
+  assert.equal(extractAgreementDateFromContractNumber('ABC/10/6/2025'), '2025-06-10');
+});
+
+test('nieprawidłowy miesiąc w numerze umowy powoduje jednoznaczny błąd', () => {
+  assert.throws(
+    () => extractAgreementDateFromContractNumber('ABC/10/13/2025'),
+    /Końcówka numeru umowy nie tworzy poprawnej daty: 10\/13\/2025/
   );
+});
 
-  assert.equal(Object.hasOwn(contract, 'agreementDate'), true);
-  assert.equal(contract.agreementDate, '2025-06-10');
-  assert.equal(Object.hasOwn(contract, 'dataZawarciaUmowy'), false);
-  assert.equal(Object.hasOwn(contract, 'contractDate'), false);
+test('brak daty w numerze umowy powoduje jednoznaczny błąd', () => {
+  assert.throws(
+    () => extractAgreementDateFromContractNumber('ABC/BEZ/DATY'),
+    /Numer umowy nie zawiera daty w formacie dzień\/miesiąc\/rok/
+  );
 });
 
 test('parser przekazuje datę zawarcia umowy do generowania aneksu 26', () => {
   const contract = extractAnnex26Contract(`
-    Numer umowy: TU/2025/26
-    Data zawarcia umowy: 10.06.2025
+    Numer umowy: EL/JF/811/192956/10/6/2025
+    Umowa o świadczenie usług edukacyjnych zawarta w dniu 01.01.1999
     Imię i nazwisko: Jan Kowalski;
     Adres: ul. Testowa 1, 00-001 Warszawa PESEL: 90010112345
     Liczba lekcji: 101
