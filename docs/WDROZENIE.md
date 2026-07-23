@@ -10,7 +10,7 @@
 
 1. Utwórz jeden firmowy projekt Apps Script i wklej `apps-scirpt/Code.gs`.
 2. W **Wdróż → Nowe wdrożenie → Aplikacja internetowa** ustaw wykonywanie jako właściciel i dostęp wyłącznie dla właściwej domeny/grupy Workspace.
-3. Autoryzuj Dokumenty i Dysk, wdróż, a adres kończący się `/exec` wpisz w `dist/config.js`.
+3. Autoryzuj Dokumenty i Dysk, wdróż, a adres kończący się `/exec` wpisz w źródłowym `config.js` przed wykonaniem `npm run build`. Build umieszcza konfigurację w klasycznym bundle `dist/app.js`.
 4. Przy aktualizacji wklej nowy kod, wybierz **Zarządzaj wdrożeniami → Edytuj → Nowa wersja → Wdróż**. Zachowaj adres `/exec`, sprawdź numer wersji odpowiedzi GET i wykonaj próbny aneks syntetyczny.
 
 ## Test dwóch konsultantów

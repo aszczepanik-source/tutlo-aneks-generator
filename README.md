@@ -1,4 +1,4 @@
-# Team Utrzymanie Generator — 1.0.0
+# Team Utrzymanie Generator — 1.0.1
 
 Ta wersja jest oparta bezpośrednio na wcześniejszym projekcie **Tutlo Router Główny v2** — zachowuje jego żółty interfejs, układ, klasyfikację PDF i listę dostępnych aneksów.
 
@@ -27,7 +27,7 @@ Wymagany jest Node.js 20 lub nowszy. Testy uruchamia polecenie:
 npm test
 ```
 
-Pakiet lokalny buduje `npm run build`. Instrukcje znajdują się w
+Pakiet lokalny buduje `npm run build`. Gotowy release zawiera klasyczny bundle JavaScript i można go uruchomić przez dwuklik na `index.html`, bez serwera lokalnego i Node.js. Instrukcje znajdują się w
 [`docs/INSTRUKCJA_KONSULTANTA.md`](docs/INSTRUKCJA_KONSULTANTA.md) i
 [`docs/WDROZENIE.md`](docs/WDROZENIE.md).
 

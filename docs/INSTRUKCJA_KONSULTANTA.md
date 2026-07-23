@@ -1,6 +1,6 @@
-# Tutlo Annex Generator 1.0.0 — instrukcja konsultanta
+# Tutlo Annex Generator 1.0.1 — instrukcja konsultanta
 
-1. Pobierz `tutlo-aneks-generator-1.0.0.zip` z firmowego źródła.
+1. Pobierz `tutlo-aneks-generator-1.0.1.zip` z firmowego źródła.
 2. Rozpakuj ZIP do nowego folderu (nie uruchamiaj aplikacji wewnątrz ZIP).
 3. Otwórz `index.html` w Chrome. Nie instaluj Node.js i nie uruchamiaj serwera.
 

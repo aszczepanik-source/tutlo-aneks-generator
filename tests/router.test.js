@@ -36,3 +36,15 @@ test('the existing interface and user path remain connected unchanged', async ()
   assert.match(html, /const route=getAnnexRoute\(no\)/);
   assert.match(html, /window\.open\(url,'_blank'\)/);
 });
+
+test('release is a classic-script bundle that can be loaded over file://', async () => {
+  const releaseHtml = await readFile(new URL('../dist/index.html', import.meta.url), 'utf8');
+  const releaseScript = await readFile(new URL('../dist/app.js', import.meta.url), 'utf8');
+
+  assert.doesNotMatch(releaseHtml, /type="module"/);
+  assert.doesNotMatch(releaseHtml, /(?:src|from)=["']?\.\/(?:config|router|src\/infrastructure)/);
+  assert.match(releaseHtml, /<script src="app\.js"><\/script>/);
+  assert.match(releaseScript, /function getAnnexRoute/);
+  assert.match(releaseScript, /class AppsScriptClient/);
+  assert.match(releaseScript, /id='pdfInput'|getElementById\('pdfInput'\)/);
+});
