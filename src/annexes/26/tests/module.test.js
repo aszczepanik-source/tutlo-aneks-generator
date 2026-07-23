@@ -2,16 +2,32 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import manifest from '../manifest.json' with { type: 'json' };
 import { prepareAnnex26 } from '../index.js';
+import { extractAnnex26Contract } from '../extractor.js';
 
 const RAW_TEXT = `
 UMOWA ELASTYCZNA nr EL/JF/811/192956/3/9/2025
 DANE NABYWCY Imię i nazwisko: Monika Wójcik Adres: Galileusza 10/13, 67-200 Głogów PESEL: 82111304868
 SPECYFIKACJA KURSU Liczba lekcji: 450 Limit miesięczny: 57
 ZAWARTOŚĆ KURSU Typy lektorów: Lektor Polski, English Expert, Native Speaker
-WARUNKI PŁATNOŚCI Cena kursu: 11250,00 zł Rata miesięczna: 468,80 zł`;
+WARUNKI PŁATNOŚCI Cena kursu: Całkowita cena kursu wynosi 11250,00 zł brutto. Rata miesięczna: 468,80 zł`;
 const contract = { rawText: RAW_TEXT, agreementNumber: 'EL/JF/811/192956/3/9/2025' };
 const account = '12345678901234567890123456';
 const form = { newInstallment: '400,00', bank: 'Inbank', bankAccount: account };
+
+for (const [amount, expected] of [
+  ['9576,00', 9576_00],
+  ['11 250,00', 11250_00],
+  ['12 999,99', 12999_99]
+]) {
+  test(`aneks 26 odczytuje całkowitą cenę kursu ${amount}`, () => {
+    const extracted = extractAnnex26Contract(
+      `§ 2 WARUNKI PŁATNOŚCI Całkowita cena kursu wynosi ${amount} zł brutto.`,
+      contract.agreementNumber
+    );
+
+    assert.equal(extracted.coursePriceCents, expected);
+  });
+}
 
 test('aneks 26 odczytuje stały wzór, datę z numeru i buduje komplet placeholderów', () => {
   const prepared = prepareAnnex26(contract, form);
