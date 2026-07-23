@@ -9,9 +9,35 @@ export class AppsScriptClient {
     const options = { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action: 'generate', requestId, ...prepared })
     };
-    const operation = (this.request ? this.request(this.endpoint, options) : window.fetch(this.endpoint, options))
-      .then(async response => { if (!response.ok) throw new Error('Usługa generowania jest niedostępna.'); return response.json(); })
+    console.log('[AppsScript fetch] URL:', this.endpoint);
+    console.log('[AppsScript fetch] Metoda:', options.method);
+    console.log('[AppsScript fetch] Body:', options.body);
+
+    let request;
+    try {
+      request = this.request ? this.request(this.endpoint, options) : window.fetch(this.endpoint, options);
+      console.log('[AppsScript fetch] Fetch został wysłany:', true);
+    } catch (error) {
+      console.error('[AppsScript fetch] Fetch został wysłany:', false);
+      console.error('[AppsScript fetch] Linia rzucająca wyjątek:', error?.stack?.split('\n')[1]?.trim() || 'brak informacji w stack trace');
+      console.error('[AppsScript fetch] Pełny stack trace (koniec diagnostyki):\n' + (error?.stack || error));
+      throw error;
+    }
+
+    const operation = Promise.resolve(request)
+      .then(async response => {
+        console.log('[AppsScript fetch] Status HTTP:', response.status);
+        const responseBody = response.clone ? await response.clone().text() : '[brak response.clone() w użytym transporcie]';
+        console.log('[AppsScript fetch] Treść odpowiedzi:', responseBody);
+        if (!response.ok) throw new Error('Usługa generowania jest niedostępna.');
+        return response.json();
+      })
       .then(result => { if (!result.ok || !result.documentUrl) throw new Error(result.message || 'Nie udało się utworzyć dokumentu.'); return result; })
+      .catch(error => {
+        console.error('[AppsScript fetch] Fetch został wysłany:', true);
+        console.error('[AppsScript fetch] Pełny stack trace (koniec diagnostyki):\n' + (error?.stack || error));
+        throw error;
+      })
       .finally(() => this.inFlight.delete(requestId));
     this.inFlight.set(requestId, operation);
     return operation;
