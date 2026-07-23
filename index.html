@@ -374,15 +374,15 @@
   </div>
 </dialog>
 
-<script>
-  const GENERATOR_URLS = {'11':'','25':'','26':'','29':'','29a':''};
-</script>
-
 <script type="module">
+  import { APPS_SCRIPT_URL } from './config.js';
   import { getAnnexRoute } from './router.js';
+  import { AppsScriptClient } from './src/infrastructure/apps-script-client.js';
   import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
+
+  const appsScriptClient = new AppsScriptClient(APPS_SCRIPT_URL);
 
   const ANNEX_RULES = {
     flexible_credit: [
@@ -500,11 +500,11 @@
       alert(`Generowanie aneksu ${no} jest zablokowane.\n\n${route.blockingReason}`);
       return;
     }
-    const url=route&&GENERATOR_URLS[route.number];
+    const url=route&&appsScriptClient.endpoint;
     if(url){
       window.open(url,'_blank');
     }else{
-      alert(`Generator aneksu ${no} nie ma jeszcze wpisanego adresu wdrożenia.\n\nDla aneksów 25 i 26 wklej ich adresy w pliku Code.gs.`);
+      alert(`Generator aneksu ${no} nie ma jeszcze wpisanego adresu wdrożenia.`);
     }
   }
 
