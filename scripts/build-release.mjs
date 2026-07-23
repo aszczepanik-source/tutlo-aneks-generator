@@ -20,7 +20,7 @@ const configSource = await readFile(new URL('../config.js', import.meta.url), 'u
 const endpoint = configSource.match(/APPS_SCRIPT_URL\s*=\s*\n?\s*['"]([^'"]+)['"]/i)?.[1];
 if (!endpoint) throw new Error('Nie znaleziono APPS_SCRIPT_URL w config.js.');
 
-const annexIds = ['11', '25', '26', '29', '29a'];
+const annexIds = ['11', '25', '26', '29', '29a', '43'];
 const manifests = await Promise.all(annexIds.map(async id =>
   JSON.parse(await readFile(new URL(`../src/annexes/${id}/manifest.json`, import.meta.url), 'utf8'))
 ));
@@ -38,6 +38,10 @@ const annex26GeneratorSource = (await readFile(new URL('../src/annexes/26/genera
   .replace(/^import .*;\s*$/gm, '')
   .replace(/^export\s+/gm, '')
   .replace(/manifest\.(id|template|templateVersion)/g, (_, key) => `annexManifests.get('26').${key}`);
+const annex43GeneratorSource = (await readFile(new URL('../src/annexes/43/generator.js', import.meta.url), 'utf8'))
+  .replace(/^import .*;\s*$/gm, '')
+  .replace(/^export\s+/gm, '')
+  .replace(/manifest\.(id|template|templateVersion|requiredFields)/g, (_, key) => `annexManifests.get('43').${key}`);
 const preparationSource = (await readFile(new URL('../src/application/prepare-annex.js', import.meta.url), 'utf8'))
   .replace(/^import .*;\s*$/gm, '')
   .replace("const manifests = { '11': manifest11, '26': manifest26, '29': manifest29, '29a': manifest29a };", 'const manifests = Object.fromEntries(annexManifests);')
@@ -49,9 +53,11 @@ const runtime = `/* Wygenerowany bundle release ${version}. Bez ES Modules. */
   const APPS_SCRIPT_URL = ${JSON.stringify(endpoint)};
   const annexManifests = new Map(${JSON.stringify(manifests.map(manifest => [manifest.id, manifest]))});
 
-  function getAnnexRoute(annexId) {
+  function getAnnexRoute(annexId, contract) {
     const manifest = annexManifests.get(String(annexId));
     if (!manifest || manifest.available !== true) return undefined;
+    if (manifest.id === '43'
+      && !String(contract?.rawText || '').toLowerCase().includes(manifest.availabilityText)) return undefined;
     const createGenerationPlan = input => {
       const source = input && typeof input === 'object' ? input : {};
       const issues = manifest.requiredFields.flatMap(field => {
@@ -97,6 +103,7 @@ ${annex26ExtractionSource}
 ${validationSource}
 ${annex26ValidationSource}
 ${annex26GeneratorSource}
+${annex43GeneratorSource}
 ${preparationSource}
 ${uiScript}
 })();
