@@ -1,0 +1,31 @@
+{
+  "id": "26",
+  "label": "Zmniejszenie rat kredytowych",
+  "policy": "credit-installment-reduction",
+  "template": "template.docx",
+  "templateVersion": "1.0.0",
+  "allowedContractVariants": [
+    "flexible/credit"
+  ],
+  "requiredFields": [
+    "ADRES",
+    "BANK",
+    "DATA_ANEKSU",
+    "DATA_UMOWY_KREDYTU",
+    "DATA_WEJSCIA_W_ZYCIE",
+    "DATA_ZAWARCIA_UMOWY",
+    "IMIE_NAZWISKO",
+    "KWOTA_DO_ZWROTU_BANKOWI",
+    "KWOTA_KREDYTU",
+    "LIMIT_MIESIECZNY",
+    "NOWA_CENA",
+    "NOWA_LICZBA_LEKCJI",
+    "NOWA_SREDNIA_RATA",
+    "NUMER_RACHUNKU_BANKU",
+    "NUMER_UMOWY",
+    "PESEL",
+    "SPLACONO_DO_DNIA_ANEKSU",
+    "TYPY_LEKTOROW"
+  ],
+  "status": "foundation"
+}

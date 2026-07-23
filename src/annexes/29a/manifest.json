@@ -1,0 +1,21 @@
+{
+  "id": "29a",
+  "label": "Obniżenie o 2 raty",
+  "policy": "two-free-installments",
+  "template": "template.docx",
+  "templateVersion": "1.0.0",
+  "allowedContractVariants": [
+    "flexible/internal"
+  ],
+  "requiredFields": [
+    "ADRES",
+    "DATA_ANEKSU",
+    "DATA_WEJSCIA_W_ZYCIE",
+    "DATA_ZAWARCIA_UMOWY",
+    "IMIE_NAZWISKO",
+    "NOWA_CENA",
+    "NUMER_UMOWY",
+    "PESEL"
+  ],
+  "status": "foundation"
+}
