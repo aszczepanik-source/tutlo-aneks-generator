@@ -1,0 +1,44 @@
+name: Build main
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Check project
+        run: npm run check
+
+      - name: Build release
+        run: npm run build
+
+      - name: Generate ZIP archive
+        run: |
+          rm -f tutlo-aneks-generator-1.0.0.zip
+          zip -qr tutlo-aneks-generator-1.0.0.zip dist
+
+      - name: Upload ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tutlo-aneks-generator-1.0.0
+          path: tutlo-aneks-generator-1.0.0.zip
+          if-no-files-found: error
