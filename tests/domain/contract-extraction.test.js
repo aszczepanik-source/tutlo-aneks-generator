@@ -7,7 +7,7 @@ import { prepareAnnex26 } from '../../src/annexes/26/generator.js';
 const rawText = `UMOWA ELASTYCZNA nr EL/JF/811/192956/3/9/2025
 DANE NABYWCY Imię i nazwisko: Monika Wójcik Adres: Galileusza 10/13, 67-200 Głogów PESEL: 82111304868
 SPECYFIKACJA KURSU Liczba Lekcji Indywidualnych: 450 Maksymalna miesięczna liczba Lekcji Indywidualnych do wykorzystania: 57
-ZAWARTOŚĆ KURSU Typy lektorów: Lektor Polski, English Expert, Native Speaker
+ZAWARTOŚĆ KURSU 1. Zajęcia w formie spotkań indywidualnych z Lektorem Polskim, English Expert, Native Speaker
 WARUNKI PŁATNOŚCI Całkowita cena kursu wynosi 9576,00 zł brutto.`;
 
 test('wspólny extractor zwraca komplet podstawowych danych umowy', () => {
@@ -19,11 +19,43 @@ test('wspólny extractor zwraca komplet podstawowych danych umowy', () => {
   });
 });
 
+test('odczytuje trzy zaznaczone typy lektorów wyłącznie z sekcji ZAWARTOŚĆ KURSU', () => {
+  const contract = extractContractData(`Native Speaker poza właściwą sekcją
+ZAWARTOŚĆ KURSU
+1. Zajęcia w formie spotkań indywidualnych z Lektorem Polskim, English Expert, Native Speaker
+WARUNKI PŁATNOŚCI`);
+
+  assert.equal(contract.teacherTypes, 'Lektor Polski, English Expert, Native Speaker');
+});
+
+test('odczytuje dwa zaznaczone typy lektorów wyłącznie z sekcji ZAWARTOŚĆ KURSU', () => {
+  const contract = extractContractData(`Lektor Polski poza właściwą sekcją
+ZAWARTOŚĆ KURSU
+1. Zajęcia w formie spotkań indywidualnych z English Expert, Native Speaker
+WARUNKI PŁATNOŚCI`);
+
+  assert.equal(contract.teacherTypes, 'English Expert, Native Speaker');
+});
+
+test('odczytuje Native Speaker jako jedyny typ lektora w pierwszym punkcie sekcji', () => {
+  const contract = extractContractData(`ZAWARTOŚĆ KURSU
+1. Zajęcia w formie spotkań indywidualnych z Native Speaker
+WARUNKI PŁATNOŚCI`);
+
+  assert.equal(contract.teacherTypes, 'Native Speaker');
+});
+
+test('zwraca komunikat dopiero przy braku sekcji ZAWARTOŚĆ KURSU', () => {
+  const contract = extractContractData('Typy lektorów: Lektor Polski, English Expert, Native Speaker');
+
+  assert.equal(contract.teacherTypes, 'Nie odczytano typów lektorów.');
+});
+
 const withSpecification = specification => `UMOWA ELASTYCZNA nr EL/JF/811/192956/3/9/2025
 DANE NABYWCY Imię i nazwisko: Monika Wójcik Adres: Galileusza 10/13, 67-200 Głogów PESEL: 82111304868
 SPECYFIKACJA KURSU
 ${specification}
-ZAWARTOŚĆ KURSU Typy lektorów: Lektor Polski, English Expert, Native Speaker
+ZAWARTOŚĆ KURSU 1. Zajęcia w formie spotkań indywidualnych z Lektorem Polskim, English Expert, Native Speaker
 WARUNKI PŁATNOŚCI Całkowita cena kursu wynosi 9576,00 zł brutto.`;
 
 test('odczytuje liczbę lekcji i limit z umowy elastycznej', () => {

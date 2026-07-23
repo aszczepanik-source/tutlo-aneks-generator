@@ -6,6 +6,23 @@ export function extractAgreementNumber(text) {
 
 const capture = (text, pattern) => text.match(pattern)?.[1]?.trim();
 
+const TEACHER_TYPE_PHRASES = [
+  ['Lektorem Polskim', 'Lektor Polski'],
+  ['English Expert', 'English Expert'],
+  ['Native Speaker', 'Native Speaker']
+];
+
+/** Reads only the selected teacher labels printed in the course-content section. */
+function extractTeacherTypes(text) {
+  const contents = capture(text, /zawartość kursu\s+(.+?)(?=\s+(?:warunki płatności|całkowita cena kursu)\b)/i);
+  if (contents === undefined) return 'Nie odczytano typów lektorów.';
+
+  const selectedTypes = TEACHER_TYPE_PHRASES
+    .filter(([phrase]) => contents.includes(phrase))
+    .map(([, teacherType]) => teacherType);
+  return selectedTypes.length > 0 ? selectedTypes.join(', ') : undefined;
+}
+
 /** Normalizes whitespace introduced while PDF.js combines text items and lines. */
 export function normalizeContractText(rawText) {
   return String(rawText || '').replace(/[\n\r\t]+/g, ' ').replace(/\s+/g, ' ').trim();
@@ -31,7 +48,6 @@ export function extractContractData(rawText, agreementNumber = extractAgreementN
   const text = normalizeContractText(rawText);
   const buyer = capture(text, /dane nabywcy\s+(.+?)(?=\s+specyfikacja kursu\b)/i) || '';
   const specification = capture(text, /specyfikacja kursu\s+(.+?)(?=\s+zawartość kursu\b)/i) || '';
-  const contents = capture(text, /zawartość kursu\s+(.+?)(?=\s+(?:warunki płatności|całkowita cena kursu)\b)/i) || '';
   const amount = capture(text, /całkowita cena kursu wynosi\s+([\d ]+(?:,\d{1,2})?)\s*zł\s+brutto/i);
   const coursePrice = amount === undefined ? undefined : Number(amount.replace(/\s/g, '').replace(',', '.'));
   // Read the longer label first so it can never be confused with the lesson-count label.
@@ -48,6 +64,6 @@ export function extractContractData(rawText, agreementNumber = extractAgreementN
     monthlyInstallment: Number.isFinite(coursePrice) ? Math.round((coursePrice / 24) * 100) / 100 : undefined,
     lessonCount,
     monthlyLimit,
-    teacherTypes: capture(contents, /typy lektorów\s*:\s*(.+)$/i)
+    teacherTypes: extractTeacherTypes(text)
   };
 }
