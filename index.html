@@ -283,7 +283,7 @@
     .version{font-size:12px;font-weight:800;margin-top:8px}
     .annex-form{display:grid;gap:14px}
     .annex-form label{display:grid;gap:6px;font-size:13px;font-weight:800}
-    .annex-form input{border:1px solid var(--line);border-radius:10px;padding:12px;font:inherit}
+    .annex-form input,.annex-form select{border:1px solid var(--line);border-radius:10px;padding:12px;font:inherit;background:#fff}
     @media(max-width:900px){
       .grid{grid-template-columns:1fr}
       .annex-grid{grid-template-columns:1fr 1fr}
@@ -391,7 +391,17 @@
   <div class="modal-body">
     <form id="annex26Form" class="annex-form">
       <label>Nowa rata (zł)<input id="annex26NewInstallment" inputmode="decimal" required></label>
-      <label>Bank<input id="annex26Bank" required></label>
+      <label>Bank
+        <select id="annex26Bank" required>
+          <option value="" selected disabled>Wybierz bank...</option>
+          <option value="Inbank">Inbank</option>
+          <option value="Oney">Oney</option>
+          <option value="BGŻ BNP Paribas">BGŻ BNP Paribas</option>
+          <option value="mBank">mBank</option>
+          <option value="Ikano Bank">Ikano Bank</option>
+          <option value="Alior Bank">Alior Bank</option>
+        </select>
+      </label>
       <label>Numer rachunku bankowego<input id="annex26BankAccount" inputmode="numeric" maxlength="26" pattern="[0-9]{26}" required></label>
       <button class="btn" type="submit">Wygeneruj aneks 26</button>
       <div id="annex26Status" class="status"></div>

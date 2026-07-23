@@ -11,7 +11,7 @@ ZAWARTOŚĆ KURSU Typy lektorów: Lektor Polski, English Expert, Native Speaker
 WARUNKI PŁATNOŚCI Cena kursu: 11250,00 zł Rata miesięczna: 468,80 zł`;
 const contract = { rawText: RAW_TEXT, agreementNumber: 'EL/JF/811/192956/3/9/2025' };
 const account = '12345678901234567890123456';
-const form = { newInstallment: '400,00', bank: 'Test Bank', bankAccount: account };
+const form = { newInstallment: '400,00', bank: 'Inbank', bankAccount: account };
 
 test('aneks 26 odczytuje stały wzór, datę z numeru i buduje komplet placeholderów', () => {
   const prepared = prepareAnnex26(contract, form);
@@ -52,6 +52,12 @@ test('aneks 26 waliduje nową ratę', () => {
   assert.throws(() => prepareAnnex26(contract, { ...form, newInstallment: 0 }), /większą od 0/);
   assert.throws(() => prepareAnnex26(contract, { ...form, newInstallment: '468,80' }), /niższa/);
   assert.throws(() => prepareAnnex26(contract, { ...form, newInstallment: 500 }), /niższa/);
+});
+
+test('aneks 26 akceptuje wyłącznie bank wybrany z listy', () => {
+  assert.equal(prepareAnnex26(contract, form).values.BANK, 'Inbank');
+  assert.throws(() => prepareAnnex26(contract, { ...form, bank: '' }), /Nie podano banku/);
+  assert.throws(() => prepareAnnex26(contract, { ...form, bank: 'Własny Bank' }), /Wybierz bank z listy/);
 });
 
 test('aneks 26 normalizuje i waliduje rachunek', () => {

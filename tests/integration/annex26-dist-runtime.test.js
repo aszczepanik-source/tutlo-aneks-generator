@@ -23,7 +23,7 @@ test('dist file:// wykonuje formularz 26 aż do AppsScriptClient bez ReferenceEr
     return elements.get(id);
   };
   element('annex26NewInstallment').value = '400,00';
-  element('annex26Bank').value = 'Test Bank';
+  element('annex26Bank').value = 'BGŻ BNP Paribas';
   element('annex26BankAccount').value = '12345678901234567890123456';
 
   let request;
@@ -51,6 +51,7 @@ test('dist file:// wykonuje formularz 26 aż do AppsScriptClient bez ReferenceEr
   assert.equal(request.annexId, '26');
   assert.equal(request.values.NUMER_UMOWY, 'EL/JF/811/192956/3/9/2025');
   assert.equal(request.values.NUMER_RACHUNKU_BANKU, '12345678901234567890123456');
+  assert.equal(request.values.BANK, 'BGŻ BNP Paribas');
   assert.equal(opened, 'https://docs.google.com/document/d/runtime-26');
   assert.equal(element('annex26Status').textContent, 'Aneks został wygenerowany.');
 });
