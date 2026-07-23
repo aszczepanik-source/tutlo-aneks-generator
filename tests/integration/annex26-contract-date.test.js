@@ -19,13 +19,20 @@ test('parser przekazuje datę zawarcia umowy do generowania aneksu 26', () => {
     Umowa kredytowa 11.06.2025
   `);
 
+  assert.deepEqual(Object.keys(contract).filter(key => /date/i.test(key)), [
+    'agreementDate',
+    'creditAgreementDate'
+  ]);
   assert.equal(contract.agreementDate, '2025-06-10');
 
-  const prepared = prepareAnnex('26', contract, {
-    newInstallmentCents: 4000,
-    bank: 'Test Bank',
-    bankAccount: '00 1111 2222'
-  }, '2026-07-23');
+  let prepared;
+  assert.doesNotThrow(() => {
+    prepared = prepareAnnex('26', contract, {
+      newInstallmentCents: 4000,
+      bank: 'Test Bank',
+      bankAccount: '00 1111 2222'
+    }, '2026-07-23');
+  }, /Nieprawidłowa data zawarcia umowy: undefined/);
   const generation = createGenerationPlan(prepared.values);
 
   assert.equal(prepared.values.DATA_ZAWARCIA_UMOWY, '10.06.2025');
