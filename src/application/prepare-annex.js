@@ -2,6 +2,7 @@ import manifest11 from '../annexes/11/manifest.json' with { type: 'json' };
 import manifest26 from '../annexes/26/manifest.json' with { type: 'json' };
 import manifest29 from '../annexes/29/manifest.json' with { type: 'json' };
 import manifest29a from '../annexes/29a/manifest.json' with { type: 'json' };
+import { validateSourceData as validateAnnex26SourceData } from '../annexes/26/validator.js';
 import { BLOCKED_RULES, calculateAnnex11, calculateAnnex26, calculateAnnex29, calculateAnnex29a, formatDate, money } from '../domain/annex-calculations.js';
 
 const manifests = { '11': manifest11, '26': manifest26, '29': manifest29, '29a': manifest29a };
@@ -29,16 +30,8 @@ export function prepareAnnex(annexId, contract, inputs = {}, today = new Date().
       START_ZAWIESZENIA: formatDate(calculation.suspensionStart), KONIEC_ZAWIESZENIA: formatDate(calculation.suspensionEnd),
       NOWY_KONIEC_UMOWY: formatDate(calculation.newContractEndDate), ...scheduleValues(calculation.installments) };
   } else if (annexId === '26') {
-    const requiredContractData = {
-      creditAgreementDate: contract.creditAgreementDate,
-      creditAmountCents: contract.creditAmountCents,
-      monthlyLimit: contract.monthlyLimit,
-      teacherTypes: contract.teacherTypes
-    };
-    const missingContractData = Object.entries(requiredContractData)
-      .filter(([, value]) => value === undefined || value === null || value === '')
-      .map(([field]) => field);
-    if (missingContractData.length) throw new Error(`Brak wymaganych danych umowy: ${missingContractData.join(', ')}`);
+    const sourceIssues = validateAnnex26SourceData({ ...contract, ...inputs });
+    if (sourceIssues.length) throw new Error(`Brak wymaganych pól aneksu 26: ${sourceIssues.map(issue => issue.field).join(', ')}`);
     calculation = calculateAnnex26(contract, today, Number(inputs.newInstallmentCents));
     values = { ...values,
       BANK: inputs.bank,
