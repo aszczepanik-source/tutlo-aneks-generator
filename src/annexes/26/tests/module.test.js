@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import manifest from '../manifest.json' with { type: 'json' };
 import { createGenerationPlan } from '../generator.js';
-import { validate } from '../validator.js';
+import { validate, validateSourceData } from '../validator.js';
 import { prepareAnnex } from '../../../application/prepare-annex.js';
 
 const completeInput = Object.fromEntries(manifest.requiredFields.map((field) => [field, `wartość ${field}`]));
@@ -16,6 +16,12 @@ test('aneks 26: manifest opisuje niezależny moduł', () => {
 test('aneks 26: walidator zgłasza wszystkie brakujące pola', () => {
   const issues = validate({});
   assert.deepEqual(issues.map((issue) => issue.field), manifest.requiredFields);
+});
+
+test('aneks 26: walidator danych źródłowych wskazuje konkretne brakujące pole', () => {
+  const issues = validateSourceData({ creditAmountCents: 120000 });
+  assert.ok(issues.some(issue => issue.field === 'creditAgreementDate'));
+  assert.ok(!issues.some(issue => issue.field === 'creditAmountCents'));
 });
 
 test('aneks 26: generator tworzy plan bez modyfikowania wartości', () => {

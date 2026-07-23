@@ -3,10 +3,12 @@ import test from 'node:test';
 import { createGenerationPlan } from '../../src/annexes/26/generator.js';
 import { prepareAnnex } from '../../src/application/prepare-annex.js';
 import {
-  extractAgreementDateFromNumber,
-  extractAgreementNumber,
-  extractContract
+  extractAgreementNumber
 } from '../../src/domain/contract-extraction.js';
+import {
+  extractAgreementDateFromNumber,
+  extractAnnex26Contract
+} from '../../src/annexes/26/extractor.js';
 
 const PDF_TEXT = `
   UMOWA O ŚWIADCZENIE USŁUG KURSU JĘZYKA ANGIELSKIEGO
@@ -25,25 +27,19 @@ const PDF_TEXT = `
 test('data zawarcia umowy pochodzi z trzech ostatnich segmentów numeru', () => {
   assert.equal(extractAgreementNumber(PDF_TEXT), 'EL/JF/811/192956/3/9/2025');
   assert.equal(extractAgreementDateFromNumber('EL/JF/811/192956/3/9/2025'), '2025-09-03');
-  assert.equal(extractContract(PDF_TEXT).agreementDate, '2025-09-03');
+  assert.equal(extractAnnex26Contract(PDF_TEXT, extractAgreementNumber(PDF_TEXT)).agreementDate, '2025-09-03');
 });
 
-test('nieprawidłowy miesiąc w numerze umowy powoduje jednoznaczny błąd', () => {
-  assert.throws(
-    () => extractAgreementDateFromNumber('ABC/10/13/2025'),
-    /Końcówka numeru umowy nie tworzy poprawnej daty: 10\/13\/2025/
-  );
+test('nieprawidłowy miesiąc w numerze umowy pozostawia pole do walidacji aneksu 26', () => {
+  assert.equal(extractAgreementDateFromNumber('ABC/10/13/2025'), undefined);
 });
 
-test('brak daty w numerze umowy powoduje jednoznaczny błąd', () => {
-  assert.throws(
-    () => extractAgreementDateFromNumber('ABC/BEZ/DATY'),
-    /Numer umowy nie zawiera daty w formacie dzień\/miesiąc\/rok/
-  );
+test('brak daty w numerze umowy pozostawia pole do walidacji aneksu 26', () => {
+  assert.equal(extractAgreementDateFromNumber('ABC/BEZ/DATY'), undefined);
 });
 
 test('pełny przepływ tekst PDF -> contract -> aneks 26 zachowuje datę umowy', () => {
-  const contract = extractContract(PDF_TEXT);
+  const contract = extractAnnex26Contract(PDF_TEXT, extractAgreementNumber(PDF_TEXT));
 
   assert.deepEqual(Object.keys(contract).filter(key => /date/i.test(key)), [
     'agreementDate',
@@ -71,7 +67,7 @@ test('pełny przepływ tekst PDF -> contract -> aneks 26 zachowuje datę umowy',
 test('poprawny tekst PDF nie uruchamia komunikatu błędu odczytu PDF', () => {
   let status = '';
   try {
-    extractContract(PDF_TEXT);
+    extractAnnex26Contract(PDF_TEXT, extractAgreementNumber(PDF_TEXT));
   } catch {
     status = 'Nie udało się odczytać PDF';
   }
