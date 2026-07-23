@@ -19,6 +19,7 @@
       --warn:#8d6200;
       --warn-bg:#fff5cf;
       --danger:#b42318;
+      --danger-bg:#fdecec;
       --shadow:0 10px 30px rgba(17,17,17,.06);
       --radius:20px;
     }
@@ -192,6 +193,9 @@
       gap:12px;
       min-width:0;
     }
+    .annex.generator-tutlo{border-color:#e7b200;background:#fffdfa}
+    .annex.external-generator{border-color:#9bd5bd;background:#f7fcfa}
+    .annex.in-preparation{border-color:#efaaa5;background:#fffafa}
     .annex-top{display:flex;gap:11px;align-items:flex-start}
     .annex-number{
       min-width:42px;height:42px;border-radius:12px;
@@ -199,9 +203,19 @@
       background:var(--tutlo);
       color:#111;font-weight:950;
     }
+    .external-generator .annex-number{background:#39b77c;color:#fff}
+    .in-preparation .annex-number{background:#dc4c41;color:#fff}
     .annex h3{font-size:15px;margin:1px 0 5px}
     .annex p{margin:0;color:var(--muted);font-size:12px;line-height:1.45}
     .annex button{margin-top:auto;width:100%}
+    .annex-status{display:inline-flex;width:fit-content;border-radius:999px;padding:4px 8px;margin-bottom:7px;font-size:10px;line-height:1;font-weight:900;letter-spacing:.01em}
+    .generator-tutlo .annex-status{background:var(--warn-bg);color:var(--warn)}
+    .external-generator .annex-status{background:var(--ok-bg);color:var(--ok)}
+    .in-preparation .annex-status{background:var(--danger-bg);color:var(--danger)}
+    .external-generator .btn{background:#39b77c;color:#fff}
+    .external-generator .btn:hover{background:#31a970}
+    .in-preparation .btn{background:#dc4c41;color:#fff}
+    .in-preparation .btn:hover{background:#c94137}
     .lower-tools{
       margin-top:22px;
       display:flex;
@@ -263,6 +277,9 @@
     }
     .manual-item strong{display:block;margin-bottom:5px}
     .manual-item small{color:var(--muted)}
+    .manual-item.generator-tutlo{border-color:#e7b200;background:#fffdfa}
+    .manual-item.external-generator{border-color:#9bd5bd;background:#f7fcfa}
+    .manual-item.in-preparation{border-color:#efaaa5;background:#fffafa}
     .version{font-size:12px;font-weight:800;margin-top:8px}
     .annex-form{display:grid;gap:14px}
     .annex-form label{display:grid;gap:6px;font-size:13px;font-weight:800}
@@ -405,44 +422,32 @@
 
   const appsScriptClient = new AppsScriptClient(APPS_SCRIPT_URL);
 
-  const ANNEX_RULES = {
-    flexible_credit: [
-      {no:'26', name:'Zmniejszenie rat kredytowych', desc:'Obniżenie rat przy zachowaniu finansowania kredytowego.'},
-      {no:'27', name:'Zmniejszenie rat + raty wewnętrzne', desc:'Zmiana z kredytu na raty wewnętrzne i obniżenie rat.'},
-      {no:'11', name:'Zawieszenie dostępu i płatności', desc:'Czasowe zawieszenie kursu i płatności.'},
-      {no:'28', name:'Rata gratis', desc:'Obniżenie wartości kursu o jedną ratę kredytową.'},
-      {no:'45', name:'Limit tygodniowy', desc:'Zmiana kursu na wariant z limitem tygodniowym.'}
-    ],
-    flexible_internal: [
-      {no:'25', name:'Zmniejszenie rat wewnętrznych', desc:'Zmniejszenie miesięcznej raty i wartości kursu.'},
-      {no:'11', name:'Zawieszenie dostępu i płatności', desc:'Czasowe zawieszenie kursu i płatności.'},
-      {no:'29', name:'Obniżenie o 1 ratę', desc:'Obniżenie wartości kursu o jedną ratę wewnętrzną.'},
-      {no:'29a', name:'Obniżenie o 2 raty', desc:'Obniżenie wartości kursu o dwie raty wewnętrzne.'},
-      {no:'45', name:'Limit tygodniowy', desc:'Limit tygodniowy dla rat wewnętrznych.'}
-    ],
-    limit_credit: [
-      {no:'45', name:'Limit tygodniowy', desc:'Kurs z limitem tygodniowym w wariancie kredytowym.'},
-      {no:'48', name:'Zdjęcie limitu', desc:'Usunięcie ograniczenia liczby lekcji.'},
-      {no:'9', name:'Zmiana formy płatności', desc:'Zmiana sposobu finansowania kursu.'}
-    ],
-    limit_internal: [
-      {no:'45', name:'Limit tygodniowy', desc:'Kurs z limitem tygodniowym dla rat wewnętrznych.'},
-      {no:'48', name:'Zdjęcie limitu', desc:'Usunięcie ograniczenia liczby lekcji.'},
-      {no:'11', name:'Zawieszenie', desc:'Czasowe zawieszenie dostępu i płatności.'}
-    ]
+  const ANNEX_STATUSES = {
+    tutlo:{label:'Generator Tutlo',className:'generator-tutlo'},
+    external:{label:'Aneks w generatorze',className:'external-generator'},
+    planned:{label:'W przygotowaniu',className:'in-preparation'}
   };
 
   const ALL_ANNEXES = [
-    {no:'9',name:'Zmiana formy płatności'},
-    {no:'11',name:'Zawieszenie'},
-    {no:'25',name:'Zmniejszenie rat wewnętrznych'},
-    {no:'26',name:'Zmniejszenie rat kredytowych'},
-    {no:'27',name:'Zmniejszenie rat + raty wewnętrzne'},
-    {no:'28',name:'Rata gratis'},
-    {no:'29',name:'Obniżenie o 1 ratę'},
-    {no:'29a',name:'Obniżenie o 2 raty'},
-    {no:'45',name:'Limit tygodniowy'},
-    {no:'48',name:'Zdjęcie limitu'}
+    {no:'11',name:'Aneks 11',status:'tutlo'},
+    {no:'26',name:'Aneks 26',status:'tutlo'},
+    {no:'29',name:'Aneks 29',status:'tutlo'},
+    {no:'29a',name:'Aneks 29a',status:'tutlo'},
+    {no:'wydluzenie-dostepu',marker:'↗',name:'Wydłużenie dostępu',desc:'Dostępny dla każdej umowy.',status:'external'},
+    {no:'20-lekcji-gratis',marker:'20',name:'20 lekcji gratis',desc:'Tylko dla umów elastycznych.',status:'external',when:c=>c?.type==='flexible'},
+    {no:'rozlozenie-platnosci',marker:'R',name:'Rozłożenie płatności',desc:'Tylko dla rat wewnętrznych.',status:'external',when:c=>c?.payment==='internal'},
+    {no:'tutlo-premium',marker:'P',name:'Aneks Tutlo Premium',desc:'Dostępny dla każdej umowy.',status:'external'},
+    {no:'lektorzy-pl',marker:'PL',name:'Rozszerzenie pakietu lektorów',desc:'Dostępny, gdy umowa nie obejmuje lektorów PL.',status:'external',when:c=>c?.hasPolishLecturers===false},
+    {no:'45',name:'Aneks 45',desc:'Tylko dla umowy z limitem finansowanej kredytem.',status:'external',when:c=>c?.type==='limit'&&c?.payment==='credit'},
+    {no:'10',name:'Aneks 10',desc:'Zmiana formy płatności.',status:'planned'},
+    {no:'43',name:'Aneks 43',desc:'Dodanie grupy rodzinnej.',status:'planned'},
+    {no:'47',name:'Aneks 47',desc:'Przejście z limitu na umowę elastyczną.',status:'planned'},
+    {no:'grupa-rodzinna',marker:'GR',name:'Grupa rodzinna',status:'planned'},
+    {no:'9',name:'Aneks 9',desc:'Niewdrożony aneks.',status:'planned'},
+    {no:'25',name:'Aneks 25',desc:'Zmniejszenie rat wewnętrznych.',status:'planned'},
+    {no:'27',name:'Aneks 27',desc:'Zmniejszenie rat i przejście na raty wewnętrzne.',status:'planned'},
+    {no:'28',name:'Aneks 28',desc:'Rata gratis.',status:'planned'},
+    {no:'48',name:'Aneks 48',desc:'Zdjęcie limitu.',status:'planned'}
   ];
 
   const els = {
@@ -462,7 +467,7 @@
     annexGrid:document.getElementById('annexGrid')
   };
 
-  let currentFile=null,currentContract=null;
+  let currentFile=null,currentContract=null,currentClassification=null;
 
   function setStatus(text,kind='ok'){
     els.status.textContent=text;
@@ -515,6 +520,18 @@
   function humanType(v){return v==='flexible'?'Umowa elastyczna':v==='limit'?'Umowa z limitem':'Nie rozpoznano';}
   function humanPayment(v){return v==='credit'?'Kredyt / pożyczka':v==='internal'?'Raty wewnętrzne':'Nie rozpoznano';}
 
+  function selectAnnex(item){
+    if(item.status==='external'){
+      alert('Ten aneks jest obsługiwany w dedykowanym generatorze.');
+      return;
+    }
+    if(item.status==='planned'){
+      alert('Ten aneks nie został jeszcze wdrożony.');
+      return;
+    }
+    openGenerator(item.no);
+  }
+
   function openGenerator(no){
     const route=getAnnexRoute(no);
     if(route?.status==='blocked'){
@@ -537,20 +554,26 @@
   function renderAnnexCards(items,target){
     target.innerHTML='';
     items.forEach(item=>{
+      const status=ANNEX_STATUSES[item.status];
       const div=document.createElement('div');
-      div.className='annex';
+      div.className=`annex ${status.className}`;
       div.innerHTML=`
         <div class="annex-top">
-          <div class="annex-number">${item.no}</div>
+          <div class="annex-number">${item.marker||item.no}</div>
           <div>
+            <span class="annex-status">${status.label}</span>
             <h3>${item.name}</h3>
-            <p>${item.desc||'Otwórz właściwy generator aneksu.'}</p>
+            <p>${item.desc||'Otwórz formularz aneksu w Generatorze Tutlo.'}</p>
           </div>
         </div>
-        <button class="btn">Wybierz aneks ${item.no}</button>`;
-      div.querySelector('button').addEventListener('click',()=>openGenerator(item.no));
+        <button class="btn">Wybierz</button>`;
+      div.querySelector('button').addEventListener('click',()=>selectAnnex(item));
       target.appendChild(div);
     });
+  }
+
+  function availableAnnexes(contract){
+    return ALL_ANNEXES.filter(item=>!item.when||item.when(contract));
   }
 
   function renderResult(c){
@@ -562,8 +585,7 @@
     els.confidence.textContent=c.score>=90?'Wysoka':c.score>=60?'Średnia':'Niska';
     els.reasons.innerHTML=c.reasons.map(x=>`<li>${x}</li>`).join('');
 
-    const key=`${c.type}_${c.payment}`;
-    const items=ANNEX_RULES[key]||[];
+    const items=availableAnnexes(c);
     if(items.length){
       renderAnnexCards(items,els.annexGrid);
       els.annexSection.style.display='block';
@@ -578,7 +600,10 @@
     setStatus('Odczytuję PDF i klasyfikuję umowę…','warn');
     try{
       const text=await extractText(currentFile);
-      const c=classify(normalize(text));
+      const normalizedText=normalize(text);
+      const c=classify(normalizedText);
+      c.hasPolishLecturers=/lektor(?:zy|ów|ami)?\s+(?:języka\s+)?polsk(?:iego|ich|imi)|polscy\s+lektorzy|lektorzy\s+pl/.test(normalizedText);
+      currentClassification=c;
       currentContract=extractAnnex26Contract(text);
       renderResult(c);
       setStatus(c.type&&c.payment?'Umowa została rozpoznana. Wybierz aneks.':'Nie udało się rozpoznać dokumentu. Użyj opcji „Wybierz aneks ręcznie”.',c.type&&c.payment?'ok':'warn');
@@ -603,13 +628,16 @@
   els.dropzone.addEventListener('drop',e=>{e.preventDefault();els.dropzone.classList.remove('drag');selectFile(e.dataTransfer.files[0])});
   els.analyze.addEventListener('click',analyze);
   els.reset.addEventListener('click',()=>{
-    currentFile=null;currentContract=null;els.input.value='';els.analyze.disabled=true;els.status.className='status';
+    currentFile=null;currentContract=null;currentClassification=null;els.input.value='';els.analyze.disabled=true;els.status.className='status';
     els.empty.style.display='flex';els.result.classList.remove('show');els.annexSection.style.display='none';
   });
 
   const manualDialog=document.getElementById('manualAnnexDialog');
   const verifyDialog=document.getElementById('verifyDialog');
-  document.getElementById('manualAnnexBtn').addEventListener('click',()=>manualDialog.showModal());
+  document.getElementById('manualAnnexBtn').addEventListener('click',()=>{
+    renderManualAnnexes();
+    manualDialog.showModal();
+  });
   document.getElementById('verifyAnnexBtn').addEventListener('click',()=>verifyDialog.showModal());
   document.querySelectorAll('[data-close]').forEach(btn=>btn.addEventListener('click',()=>document.getElementById(btn.dataset.close).close()));
 
@@ -631,13 +659,17 @@
   });
 
   const manualGrid=document.getElementById('manualAnnexGrid');
-  ALL_ANNEXES.forEach(item=>{
-    const button=document.createElement('button');
-    button.className='manual-item';
-    button.innerHTML=`<strong>Aneks ${item.no}</strong><small>${item.name}</small>`;
-    button.addEventListener('click',()=>openGenerator(item.no));
-    manualGrid.appendChild(button);
-  });
+  function renderManualAnnexes(){
+    manualGrid.innerHTML='';
+    availableAnnexes(currentClassification).forEach(item=>{
+      const status=ANNEX_STATUSES[item.status];
+      const button=document.createElement('button');
+      button.className=`manual-item ${status.className}`;
+      button.innerHTML=`<span class="annex-status">${status.label}</span><strong>${item.name}</strong><small>${item.desc||''}</small>`;
+      button.addEventListener('click',()=>selectAnnex(item));
+      manualGrid.appendChild(button);
+    });
+  }
 </script>
 </body>
 </html>

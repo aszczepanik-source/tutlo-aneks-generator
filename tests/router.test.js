@@ -37,6 +37,22 @@ test('the existing interface and user path remain connected unchanged', async ()
   assert.match(html, /window\.open\(url,'_blank'\)/);
 });
 
+test('interface presents the requested annex statuses and click messages', async () => {
+  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+
+  assert.match(html, /Generator Tutlo/);
+  assert.match(html, /Aneks w generatorze/);
+  assert.match(html, /W przygotowaniu/);
+  assert.match(html, /Ten aneks jest obsługiwany w dedykowanym generatorze\./);
+  assert.match(html, /Ten aneks nie został jeszcze wdrożony\./);
+
+  for (const id of ['11', '26', '29', '29a']) {
+    assert.match(html, new RegExp(`no:'${id}',name:'Aneks ${id}',status:'tutlo'`));
+  }
+  assert.match(html, /name:'Rozszerzenie pakietu lektorów'.*hasPolishLecturers===false/);
+  assert.match(html, /name:'Aneks 45'.*type==='limit'.*payment==='credit'/);
+});
+
 test('release is a classic-script bundle that can be loaded over file://', async () => {
   const releaseHtml = await readFile(new URL('../dist/index.html', import.meta.url), 'utf8');
   const releaseScript = await readFile(new URL('../dist/app.js', import.meta.url), 'utf8');
