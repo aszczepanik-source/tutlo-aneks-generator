@@ -426,7 +426,7 @@
   import { AppsScriptClient } from './src/infrastructure/apps-script-client.js';
   import { prepareAnnex26 } from './src/annexes/26/index.js';
   import { prepareAnnex43 } from './src/annexes/43/index.js';
-  import { extractAgreementNumber } from './src/domain/contract-extraction.js';
+  import { extractAgreementNumber, extractContractData } from './src/domain/contract-extraction.js';
   import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
@@ -625,11 +625,11 @@
       c.hasFamilyAdditionalFee=normalizedText.includes('za dodatkową opłatą');
       currentClassification=c;
       currentContract={
-        agreementNumber:extractAgreementNumber(text),
-        rawText:text,
+        ...extractContractData(text,extractAgreementNumber(text)),
         contractType:c.type,
         paymentType:c.payment,
-        paymentVariant:c.variant
+        paymentVariant:c.variant,
+        rawText:text
       };
       renderResult(c);
       setStatus(c.type&&c.payment?'Umowa została rozpoznana. Wybierz aneks.':'Nie udało się rozpoznać dokumentu. Użyj opcji „Wybierz aneks ręcznie”.',c.type&&c.payment?'ok':'warn');

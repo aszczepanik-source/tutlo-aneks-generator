@@ -67,7 +67,8 @@ test('release is a classic-script bundle that can be loaded over file://', async
   assert.match(releaseHtml, /<script src="app\.js"><\/script>/);
   assert.match(releaseScript, /function getAnnexRoute/);
   assert.match(releaseScript, /class AppsScriptClient/);
-  assert.match(releaseScript, /function extractAnnex26Contract/);
+  assert.match(releaseScript, /function extractContractData/);
+  assert.doesNotMatch(releaseScript, /function extractAnnex26Contract/);
   assert.match(releaseScript, /function validateAnnex26Data/);
   assert.match(releaseScript, /function prepareAnnex26/);
   assert.doesNotMatch(releaseScript, /extractAnnex26Contract is not defined|validateAnnex26SourceData is not defined|logAnnex26Diagnostic is not defined/);

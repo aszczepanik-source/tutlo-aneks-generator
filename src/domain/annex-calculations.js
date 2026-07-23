@@ -58,9 +58,10 @@ function requireInstallments(contract, minimum, annexDate) {
 
 export function calculateFreeInstallments(contract, annexDate, count) {
   parseIsoDate(annexDate, 'data aneksu');
-  if (!Number.isInteger(contract.coursePriceCents)) throw new Error('Brak ceny kursu.');
+  const coursePriceCents = Math.round(Number(contract.coursePrice) * 100);
+  if (!Number.isInteger(coursePriceCents)) throw new Error('Brak ceny kursu.');
   const freeInstallments = requireInstallments(contract, count, annexDate);
-  const newPriceCents = contract.coursePriceCents - freeInstallments.reduce((sum, item) => sum + item.amountCents, 0);
+  const newPriceCents = coursePriceCents - freeInstallments.reduce((sum, item) => sum + item.amountCents, 0);
   if (newPriceCents < 0) throw new Error('Nowa cena nie może być ujemna.');
   return { annexDate, effectiveDate: addDays(annexDate, 3), newPriceCents, freeInstallments };
 }
@@ -73,7 +74,7 @@ const ANNEX_26_INSTALLMENTS = 24;
 export function calculateAnnex26(contract, annexDate, newInstallmentCents) {
   parseIsoDate(annexDate, 'data aneksu');
   const paidInstallments = Number(contract.paidInstallments);
-  const coursePriceCents = Number(contract.coursePriceCents);
+  const coursePriceCents = Math.round(Number(contract.coursePrice) * 100);
   const lessonCount = Number(contract.lessonCount);
 
   if (!Number.isInteger(coursePriceCents) || coursePriceCents <= 0) throw new Error('Brak ceny kursu.');
