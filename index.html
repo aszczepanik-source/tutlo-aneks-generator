@@ -647,7 +647,10 @@
     const amount=Number(document.getElementById('annex26NewInstallment').value.replace(',','.'));
     status.textContent='Tworzę dokument…';status.className='status show warn';
     try{
-      const prepared=prepareAnnex('26',currentContract,{
+      const prepareAnnexContract=currentContract;
+      console.log('[Aneks 26] currentContract',currentContract);
+      console.log("[Aneks 26] cały obiekt przekazywany do prepareAnnex('26')",prepareAnnexContract);
+      const prepared=prepareAnnex('26',prepareAnnexContract,{
         newInstallmentCents:Math.round(amount*100),
         bank:document.getElementById('annex26Bank').value.trim(),
         bankAccount:document.getElementById('annex26BankAccount').value.trim()
