@@ -30,6 +30,12 @@ const extractionSource = (await readFile(new URL('../src/domain/contract-extract
   .replace(/^export\s+/gm, '');
 const annex26ExtractionSource = (await readFile(new URL('../src/annexes/26/extractor.js', import.meta.url), 'utf8'))
   .replace(/^export\s+/gm, '');
+const validationSource = (await readFile(new URL('../src/annexes/shared/validation.js', import.meta.url), 'utf8'))
+  .replace(/^export\s+/gm, '');
+const annex26ValidationSource = (await readFile(new URL('../src/annexes/26/validator.js', import.meta.url), 'utf8'))
+  .replace(/^import .*;\s*$/gm, '')
+  .replace(/^export\s+/gm, '')
+  .replace('manifest.requiredFields', "annexManifests.get('26').requiredFields");
 const preparationSource = (await readFile(new URL('../src/application/prepare-annex.js', import.meta.url), 'utf8'))
   .replace(/^import .*;\s*$/gm, '')
   .replace("const manifests = { '11': manifest11, '26': manifest26, '29': manifest29, '29a': manifest29a };", 'const manifests = Object.fromEntries(annexManifests);')
@@ -86,6 +92,8 @@ const runtime = `/* Wygenerowany bundle release ${version}. Bez ES Modules. */
 ${calculationSource}
 ${extractionSource}
 ${annex26ExtractionSource}
+${validationSource}
+${annex26ValidationSource}
 ${preparationSource}
 ${uiScript}
 })();

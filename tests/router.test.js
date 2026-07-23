@@ -67,5 +67,7 @@ test('release is a classic-script bundle that can be loaded over file://', async
   assert.match(releaseHtml, /<script src="app\.js"><\/script>/);
   assert.match(releaseScript, /function getAnnexRoute/);
   assert.match(releaseScript, /class AppsScriptClient/);
+  assert.match(releaseScript, /function extractAnnex26Contract/);
+  assert.match(releaseScript, /const validateSourceData = createRequiredFieldsValidator/);
   assert.match(releaseScript, /id='pdfInput'|getElementById\('pdfInput'\)/);
 });
