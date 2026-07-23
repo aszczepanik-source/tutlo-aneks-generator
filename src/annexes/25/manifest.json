@@ -1,6 +1,7 @@
 {
   "id": "25",
   "label": "Zmniejszenie rat wewnętrznych",
+  "available": true,
   "policy": "internal-installment-reduction",
   "template": "template.docx",
   "templateVersion": "1.0.0",

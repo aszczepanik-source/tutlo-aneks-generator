@@ -1,6 +1,7 @@
 {
   "id": "29",
   "label": "Obniżenie o 1 ratę",
+  "available": true,
   "policy": "one-free-installment",
   "template": "template.docx",
   "templateVersion": "1.0.0",
