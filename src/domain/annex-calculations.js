@@ -28,7 +28,9 @@ export const parseIsoDate = parseDate;
 
 export function iso(date) { return date.toISOString().slice(0, 10); }
 export function formatDate(value, field) {
-  return new Intl.DateTimeFormat('pl-PL', { timeZone: 'UTC' }).format(parseDate(value, field));
+  return new Intl.DateTimeFormat('pl-PL', {
+    day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC'
+  }).format(parseDate(value, field));
 }
 export function addDays(value, count) {
   const date = parseIsoDate(value);

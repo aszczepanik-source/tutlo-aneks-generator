@@ -29,7 +29,7 @@ test('aneks 26: generator tworzy plan bez modyfikowania wartości', () => {
 test('aneks 26: przygotowanie wypełnia wszystkie placeholdery szablonu', () => {
   const prepared = prepareAnnex('26', {
     address: 'Testowa 1', agreementDate: '2025-01-02', customerName: 'Jan Kowalski',
-    contractNumber: 'U/26', pesel: '90010112345', creditAgreementDate: '2025-01-03',
+    agreementNumber: 'U/26', pesel: '90010112345', creditAgreementDate: '2025-01-03',
     creditAmountCents: 120000, monthlyLimit: 8, teacherTypes: 'PL i native speaker',
     currentInstallmentCents: 5000, paidInstallments: 4, coursePriceCents: 120000, lessonCount: 101
   }, { newInstallmentCents: 4000, bank: 'Test Bank', bankAccount: '00 1111 2222' }, '2026-07-23');
@@ -47,23 +47,23 @@ test('aneks 26: formatuje wszystkie obsługiwane postacie dat z PDF', () => {
   for (const value of formats) {
     const prepared = prepareAnnex('26', {
       address: 'Testowa 1', agreementDate: value, customerName: 'Jan Kowalski',
-      contractNumber: 'U/26', pesel: '90010112345', creditAgreementDate: value,
+      agreementNumber: 'U/26', pesel: '90010112345', creditAgreementDate: value,
       creditAmountCents: 120000, monthlyLimit: 8, teacherTypes: 'PL',
       currentInstallmentCents: 5000, paidInstallments: 4, coursePriceCents: 120000, lessonCount: 101
     }, { newInstallmentCents: 4000, bank: 'Bank', bankAccount: '00 1111' }, value);
 
-    const expected = value === '1.6.2025' ? '1.06.2025' : '10.06.2025';
+    const expected = value === '1.6.2025' ? '01.06.2025' : '10.06.2025';
     assert.equal(prepared.values.DATA_ZAWARCIA_UMOWY, expected);
     assert.equal(prepared.values.DATA_UMOWY_KREDYTU, expected);
     assert.equal(prepared.values.DATA_ANEKSU, expected);
-    assert.equal(prepared.values.DATA_WEJSCIA_W_ZYCIE, '1.07.2025');
+    assert.equal(prepared.values.DATA_WEJSCIA_W_ZYCIE, '01.07.2025');
   }
 });
 
 test('aneks 26: błąd daty wskazuje nazwę pola i otrzymaną wartość', () => {
   assert.throws(() => prepareAnnex('26', {
     address: 'Testowa 1', agreementDate: '2025-06-10', customerName: 'Jan Kowalski',
-    contractNumber: 'U/26', pesel: '90010112345', creditAgreementDate: '31.02.2025',
+    agreementNumber: 'U/26', pesel: '90010112345', creditAgreementDate: '31.02.2025',
     creditAmountCents: 120000, monthlyLimit: 8, teacherTypes: 'PL',
     currentInstallmentCents: 5000, paidInstallments: 4, coursePriceCents: 120000, lessonCount: 101
   }, { newInstallmentCents: 4000, bank: 'Bank', bankAccount: '00 1111' }, '2025-06-10'), {

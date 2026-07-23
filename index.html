@@ -415,7 +415,7 @@
   import { getAnnexRoute } from './router.js';
   import { AppsScriptClient } from './src/infrastructure/apps-script-client.js';
   import { prepareAnnex } from './src/application/prepare-annex.js';
-  import { extractAnnex26Contract } from './src/domain/contract-extraction.js';
+  import { extractContract } from './src/domain/contract-extraction.js';
   import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
@@ -604,7 +604,12 @@
       const c=classify(normalizedText);
       c.hasPolishLecturers=/lektor(?:zy|ów|ami)?\s+(?:języka\s+)?polsk(?:iego|ich|imi)|polscy\s+lektorzy|lektorzy\s+pl/.test(normalizedText);
       currentClassification=c;
-      currentContract=extractAnnex26Contract(text);
+      currentContract={
+        ...extractContract(text),
+        contractType:c.type,
+        paymentType:c.payment,
+        paymentVariant:c.variant
+      };
       renderResult(c);
       setStatus(c.type&&c.payment?'Umowa została rozpoznana. Wybierz aneks.':'Nie udało się rozpoznać dokumentu. Użyj opcji „Wybierz aneks ręcznie”.',c.type&&c.payment?'ok':'warn');
     }catch(err){
@@ -647,10 +652,7 @@
     const amount=Number(document.getElementById('annex26NewInstallment').value.replace(',','.'));
     status.textContent='Tworzę dokument…';status.className='status show warn';
     try{
-      const prepareAnnexContract=currentContract;
-      console.log('[Aneks 26] currentContract',currentContract);
-      console.log("[Aneks 26] cały obiekt przekazywany do prepareAnnex('26')",prepareAnnexContract);
-      const prepared=prepareAnnex('26',prepareAnnexContract,{
+      const prepared=prepareAnnex('26',currentContract,{
         newInstallmentCents:Math.round(amount*100),
         bank:document.getElementById('annex26Bank').value.trim(),
         bankAccount:document.getElementById('annex26BankAccount').value.trim()
