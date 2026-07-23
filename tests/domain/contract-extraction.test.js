@@ -2,10 +2,11 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { extractContractData } from '../../src/domain/contract-extraction.js';
+import { prepareAnnex26 } from '../../src/annexes/26/generator.js';
 
 const rawText = `UMOWA ELASTYCZNA nr EL/JF/811/192956/3/9/2025
 DANE NABYWCY Imię i nazwisko: Monika Wójcik Adres: Galileusza 10/13, 67-200 Głogów PESEL: 82111304868
-SPECYFIKACJA KURSU Liczba lekcji: 450 Limit miesięczny: 57
+SPECYFIKACJA KURSU Liczba Lekcji Indywidualnych: 450 Maksymalna miesięczna liczba Lekcji Indywidualnych do wykorzystania: 57
 ZAWARTOŚĆ KURSU Typy lektorów: Lektor Polski, English Expert, Native Speaker
 WARUNKI PŁATNOŚCI Całkowita cena kursu wynosi 9576,00 zł brutto.`;
 
@@ -16,6 +17,67 @@ test('wspólny extractor zwraca komplet podstawowych danych umowy', () => {
     coursePrice: 9576, monthlyInstallment: 399, lessonCount: 450, monthlyLimit: 57,
     teacherTypes: 'Lektor Polski, English Expert, Native Speaker'
   });
+});
+
+const withSpecification = specification => `UMOWA ELASTYCZNA nr EL/JF/811/192956/3/9/2025
+DANE NABYWCY Imię i nazwisko: Monika Wójcik Adres: Galileusza 10/13, 67-200 Głogów PESEL: 82111304868
+SPECYFIKACJA KURSU
+${specification}
+ZAWARTOŚĆ KURSU Typy lektorów: Lektor Polski, English Expert, Native Speaker
+WARUNKI PŁATNOŚCI Całkowita cena kursu wynosi 9576,00 zł brutto.`;
+
+test('odczytuje liczbę lekcji i limit z umowy elastycznej', () => {
+  const contract = extractContractData(withSpecification(`Data rozpoczęcia kursu: 01-09-2025
+Data zakończenia kursu: 01-09-2027
+Okres trwania kursu w Tutlo: 24 miesiące
+Minimalny czas zobowiązania Nabywcy wynikający z Umowy: 12 miesięcy
+Liczba Lekcji Indywidualnych: 192
+Maksymalna miesięczna liczba
+Lekcji Indywidualnych do wykorzystania: 24`));
+  assert.equal(contract.lessonCount, 192);
+  assert.equal(contract.monthlyLimit, 24);
+});
+
+test('odczytuje liczbę lekcji i limit z umowy z limitem', () => {
+  const contract = extractContractData(withSpecification(`Data rozpoczęcia kursu: 23-06-2026
+Data zakończenia kursu: 23-06-2028
+Okres trwania kursu w Tutlo: 24 miesiące/miesięcy
+Liczba Lekcji Indywidualnych: 288
+Maksymalna miesięczna liczba
+Lekcji Indywidualnych do wykorzystania: 12`));
+  assert.equal(contract.lessonCount, 288);
+  assert.equal(contract.monthlyLimit, 12);
+});
+
+test('obsługuje podziały i odstępy generowane przez PDF.js', () => {
+  const cases = [
+    ['Liczba Lekcji Indywidualnych:\n192', 'lessonCount', 192],
+    ['Liczba Lekcji Indywidualnych:        288', 'lessonCount', 288],
+    ['Maksymalna miesięczna liczba\nLekcji Indywidualnych do wykorzystania:\n24', 'monthlyLimit', 24],
+    ['Maksymalna miesięczna liczba Lekcji Indywidualnych do wykorzystania: 12', 'monthlyLimit', 12]
+  ];
+  for (const [specification, field, expected] of cases) {
+    assert.equal(extractContractData(withSpecification(specification))[field], expected);
+  }
+});
+
+test('nie myli liczby lekcji z limitem ani 24-miesięcznym okresem kursu', () => {
+  const withoutLessonCount = extractContractData(withSpecification(`Okres trwania kursu w Tutlo: 24 miesiące
+Maksymalna miesięczna liczba Lekcji Indywidualnych do wykorzystania: 12`));
+  assert.equal(withoutLessonCount.lessonCount, undefined);
+  assert.equal(withoutLessonCount.monthlyLimit, 12);
+});
+
+test('przekazuje odczytane pola przez currentContract do aneksu 26', () => {
+  const currentContract = extractContractData(withSpecification(`Liczba Lekcji Indywidualnych: 192
+Maksymalna miesięczna liczba Lekcji Indywidualnych do wykorzystania: 24`));
+  const prepared = prepareAnnex26(currentContract, {
+    newInstallment: 300, bank: 'Inbank', bankAccount: '12345678901234567890123456'
+  });
+  assert.equal(currentContract.lessonCount, 192);
+  assert.equal(currentContract.monthlyLimit, 24);
+  assert.equal(prepared.values.LIMIT_MIESIECZNY, '24');
+  assert.ok(Number(prepared.values.NOWA_LICZBA_LEKCJI) > 0);
 });
 
 test('analyze odczytuje PDF raz i zapisuje pełny currentContract', async () => {

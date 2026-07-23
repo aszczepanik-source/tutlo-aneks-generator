@@ -6,6 +6,11 @@ export function extractAgreementNumber(text) {
 
 const capture = (text, pattern) => text.match(pattern)?.[1]?.trim();
 
+/** Normalizes whitespace introduced while PDF.js combines text items and lines. */
+export function normalizeContractText(rawText) {
+  return String(rawText || '').replace(/[\n\r\t]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
 /** Extracts the contract date from the final day/month/year agreement-number segments. */
 export function extractAgreementDate(agreementNumber) {
   const parts = String(agreementNumber || '').split('/').slice(-3);
@@ -23,12 +28,15 @@ export function extractAgreementDate(agreementNumber) {
  * Annex modules receive this result and must not parse these fields from raw text.
  */
 export function extractContractData(rawText, agreementNumber = extractAgreementNumber(rawText)) {
-  const text = String(rawText || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+  const text = normalizeContractText(rawText);
   const buyer = capture(text, /dane nabywcy\s+(.+?)(?=\s+specyfikacja kursu\b)/i) || '';
   const specification = capture(text, /specyfikacja kursu\s+(.+?)(?=\s+zawartość kursu\b)/i) || '';
   const contents = capture(text, /zawartość kursu\s+(.+?)(?=\s+(?:warunki płatności|całkowita cena kursu)\b)/i) || '';
   const amount = capture(text, /całkowita cena kursu wynosi\s+([\d ]+(?:,\d{1,2})?)\s*zł\s+brutto/i);
   const coursePrice = amount === undefined ? undefined : Number(amount.replace(/\s/g, '').replace(',', '.'));
+  // Read the longer label first so it can never be confused with the lesson-count label.
+  const monthlyLimit = Number(capture(specification, /maksymalna miesięczna liczba lekcji indywidualnych do wykorzystania\s*:\s*(\d+)/i)) || undefined;
+  const lessonCount = Number(capture(specification, /liczba lekcji indywidualnych\s*:\s*(\d+)/i)) || undefined;
 
   return {
     agreementNumber,
@@ -38,8 +46,8 @@ export function extractContractData(rawText, agreementNumber = extractAgreementN
     pesel: capture(buyer, /(?:PESEL|NIP)\s*:\s*([\d-]+)\b/i),
     coursePrice: Number.isFinite(coursePrice) ? coursePrice : undefined,
     monthlyInstallment: Number.isFinite(coursePrice) ? Math.round((coursePrice / 24) * 100) / 100 : undefined,
-    lessonCount: Number(capture(specification, /liczba lekcji\s*:\s*(\d+)/i)) || undefined,
-    monthlyLimit: Number(capture(specification, /limit miesięczny\s*:\s*(\d+)/i)) || undefined,
+    lessonCount,
+    monthlyLimit,
     teacherTypes: capture(contents, /typy lektorów\s*:\s*(.+)$/i)
   };
 }
