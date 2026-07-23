@@ -1,78 +1,67 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import manifest from '../manifest.json' with { type: 'json' };
-import { createGenerationPlan } from '../generator.js';
-import { validate, validateSourceData } from '../validator.js';
-import { prepareAnnex } from '../../../application/prepare-annex.js';
+import { prepareAnnex26 } from '../index.js';
 
-const completeInput = Object.fromEntries(manifest.requiredFields.map((field) => [field, `wartość ${field}`]));
+const RAW_TEXT = `
+UMOWA ELASTYCZNA nr EL/JF/811/192956/3/9/2025
+DANE NABYWCY Imię i nazwisko: Monika Wójcik Adres: Galileusza 10/13, 67-200 Głogów PESEL: 82111304868
+SPECYFIKACJA KURSU Liczba lekcji: 450 Limit miesięczny: 57
+ZAWARTOŚĆ KURSU Typy lektorów: Lektor Polski, English Expert, Native Speaker
+WARUNKI PŁATNOŚCI Cena kursu: 11250,00 zł Rata miesięczna: 468,80 zł`;
+const contract = { rawText: RAW_TEXT, agreementNumber: 'EL/JF/811/192956/3/9/2025' };
+const account = '12345678901234567890123456';
+const form = { newInstallment: '400,00', bank: 'Test Bank', bankAccount: account };
 
-test('aneks 26: manifest opisuje niezależny moduł', () => {
-  assert.equal(manifest.id, '26');
-  assert.equal(manifest.template, 'template.docx');
-  assert.ok(manifest.requiredFields.length > 0);
-});
-
-test('aneks 26: walidator zgłasza wszystkie brakujące pola', () => {
-  const issues = validate({});
-  assert.deepEqual(issues.map((issue) => issue.field), manifest.requiredFields);
-});
-
-test('aneks 26: walidator danych źródłowych wskazuje konkretne brakujące pole', () => {
-  const issues = validateSourceData({ creditAmountCents: 120000 });
-  assert.ok(issues.some(issue => issue.field === 'creditAgreementDate'));
-  assert.ok(!issues.some(issue => issue.field === 'creditAmountCents'));
-});
-
-test('aneks 26: generator tworzy plan bez modyfikowania wartości', () => {
-  const result = createGenerationPlan(completeInput);
-  assert.equal(result.ok, true);
-  assert.equal(result.annexId, '26');
-  assert.deepEqual(result.values, completeInput);
-  assert.match(result.templateUrl.pathname, /26\/template\.docx$/);
-});
-
-test('aneks 26: przygotowanie wypełnia wszystkie placeholdery szablonu', () => {
-  const prepared = prepareAnnex('26', {
-    address: 'Testowa 1', agreementDate: '2025-01-02', customerName: 'Jan Kowalski',
-    agreementNumber: 'U/26', pesel: '90010112345', creditAgreementDate: '2025-01-03',
-    creditAmountCents: 120000, monthlyLimit: 8, teacherTypes: 'PL i native speaker',
-    currentInstallmentCents: 5000, paidInstallments: 4, coursePriceCents: 120000, lessonCount: 101
-  }, { newInstallmentCents: 4000, bank: 'Test Bank', bankAccount: '00 1111 2222' }, '2026-07-23');
-
+test('aneks 26 odczytuje stały wzór, datę z numeru i buduje komplet placeholderów', () => {
+  const prepared = prepareAnnex26(contract, form);
   assert.deepEqual(Object.keys(prepared.values).sort(), [...manifest.requiredFields].sort());
-  assert.equal(prepared.values.NOWA_CENA, '1000,00 zł');
-  assert.equal(prepared.values.NOWA_LICZBA_LEKCJI, '84');
-  assert.equal(prepared.values.NOWA_SREDNIA_RATA, '41,67 zł');
-  assert.equal(prepared.values.SPLACONO_DO_DNIA_ANEKSU, '200,00 zł');
-  assert.equal(prepared.values.KWOTA_DO_ZWROTU_BANKOWI, '200,00 zł');
-});
-
-test('aneks 26: formatuje wszystkie obsługiwane postacie dat z PDF', () => {
-  const formats = ['10.06.2025', '10-06-2025', '2025-06-10', '1.6.2025'];
-  for (const value of formats) {
-    const prepared = prepareAnnex('26', {
-      address: 'Testowa 1', agreementDate: value, customerName: 'Jan Kowalski',
-      agreementNumber: 'U/26', pesel: '90010112345', creditAgreementDate: value,
-      creditAmountCents: 120000, monthlyLimit: 8, teacherTypes: 'PL',
-      currentInstallmentCents: 5000, paidInstallments: 4, coursePriceCents: 120000, lessonCount: 101
-    }, { newInstallmentCents: 4000, bank: 'Bank', bankAccount: '00 1111' }, value);
-
-    const expected = value === '1.6.2025' ? '01.06.2025' : '10.06.2025';
-    assert.equal(prepared.values.DATA_ZAWARCIA_UMOWY, expected);
-    assert.equal(prepared.values.DATA_UMOWY_KREDYTU, expected);
-    assert.equal(prepared.values.DATA_ANEKSU, expected);
-    assert.equal(prepared.values.DATA_WEJSCIA_W_ZYCIE, '01.07.2025');
-  }
-});
-
-test('aneks 26: błąd daty wskazuje nazwę pola i otrzymaną wartość', () => {
-  assert.throws(() => prepareAnnex('26', {
-    address: 'Testowa 1', agreementDate: '2025-06-10', customerName: 'Jan Kowalski',
-    agreementNumber: 'U/26', pesel: '90010112345', creditAgreementDate: '31.02.2025',
-    creditAmountCents: 120000, monthlyLimit: 8, teacherTypes: 'PL',
-    currentInstallmentCents: 5000, paidInstallments: 4, coursePriceCents: 120000, lessonCount: 101
-  }, { newInstallmentCents: 4000, bank: 'Bank', bankAccount: '00 1111' }, '2025-06-10'), {
-    message: 'Nieprawidłowa data umowy kredytu: 31.02.2025'
+  assert.deepEqual({
+    number: prepared.values.NUMER_UMOWY,
+    date: prepared.values.DATA_ZAWARCIA_UMOWY,
+    creditDate: prepared.values.DATA_UMOWY_KREDYTU,
+    name: prepared.values.IMIE_NAZWISKO,
+    address: prepared.values.ADRES,
+    pesel: prepared.values.PESEL,
+    lessons: prepared.calculation.newLessonCount,
+    limit: prepared.values.LIMIT_MIESIECZNY,
+    teachers: prepared.values.TYPY_LEKTOROW,
+    credit: prepared.values.KWOTA_KREDYTU
+  }, {
+    number: 'EL/JF/811/192956/3/9/2025', date: '03.09.2025', creditDate: '03.09.2025',
+    name: 'Monika Wójcik', address: 'Galileusza 10/13, 67-200 Głogów', pesel: '82111304868',
+    lessons: 414, limit: '57', teachers: 'Lektor Polski, English Expert, Native Speaker', credit: '11250,00 zł'
   });
+});
+
+test('aneks 26 stosuje wszystkie wzory', () => {
+  const { calculation, values } = prepareAnnex26(contract, form);
+  assert.equal(calculation.installmentCount, 24);
+  assert.equal(calculation.oldInstallments, 11);
+  assert.equal(calculation.newInstallments, 13);
+  assert.equal(calculation.discountCents, 89440);
+  assert.equal(values.NOWA_CENA, '10355,60 zł');
+  assert.equal(values.NOWA_SREDNIA_RATA, '431,48 zł');
+  assert.equal(values.SPLACONO_DO_DNIA_ANEKSU, '5156,80 zł');
+  assert.equal(values.KWOTA_DO_ZWROTU_BANKOWI, '894,40 zł');
+  assert.equal(values.DATA_WEJSCIA_W_ZYCIE, '01.08.2026');
+});
+
+test('aneks 26 waliduje nową ratę', () => {
+  assert.doesNotThrow(() => prepareAnnex26(contract, form));
+  assert.throws(() => prepareAnnex26(contract, { ...form, newInstallment: 0 }), /większą od 0/);
+  assert.throws(() => prepareAnnex26(contract, { ...form, newInstallment: '468,80' }), /niższa/);
+  assert.throws(() => prepareAnnex26(contract, { ...form, newInstallment: 500 }), /niższa/);
+});
+
+test('aneks 26 normalizuje i waliduje rachunek', () => {
+  assert.throws(() => prepareAnnex26(contract, { ...form, bankAccount: account.slice(1) }),
+    { message: 'Numer rachunku musi zawierać dokładnie 26 cyfr.' });
+  assert.equal(prepareAnnex26(contract, form).values.NUMER_RACHUNKU_BANKU, account);
+  assert.equal(prepareAnnex26(contract, { ...form, bankAccount: `${account}7` }).values.NUMER_RACHUNKU_BANKU, account);
+  assert.equal(prepareAnnex26(contract, { ...form, bankAccount: '12 3456 7890 1234 5678 9012 3456' }).values.NUMER_RACHUNKU_BANKU, account);
+});
+
+test('publiczne API aneksu 26 zawiera wyłącznie manifest i prepareAnnex26', async () => {
+  assert.deepEqual(Object.keys(await import('../index.js')).sort(), ['manifest', 'prepareAnnex26']);
 });

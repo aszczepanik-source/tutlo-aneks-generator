@@ -392,7 +392,7 @@
     <form id="annex26Form" class="annex-form">
       <label>Nowa rata (zł)<input id="annex26NewInstallment" inputmode="decimal" required></label>
       <label>Bank<input id="annex26Bank" required></label>
-      <label>Numer rachunku bankowego<input id="annex26BankAccount" inputmode="numeric" required></label>
+      <label>Numer rachunku bankowego<input id="annex26BankAccount" inputmode="numeric" maxlength="26" pattern="[0-9]{26}" required></label>
       <button class="btn" type="submit">Wygeneruj aneks 26</button>
       <div id="annex26Status" class="status"></div>
     </form>
@@ -414,9 +414,8 @@
   import { APPS_SCRIPT_URL } from './config.js';
   import { getAnnexRoute } from './router.js';
   import { AppsScriptClient } from './src/infrastructure/apps-script-client.js';
-  import { prepareAnnex } from './src/application/prepare-annex.js';
+  import { prepareAnnex26 } from './src/annexes/26/index.js';
   import { extractAgreementNumber } from './src/domain/contract-extraction.js';
-  import { extractAnnex26Contract } from './src/annexes/26/index.js';
   import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
@@ -607,7 +606,7 @@
       currentClassification=c;
       currentContract={
         agreementNumber:extractAgreementNumber(text),
-        sourceText:text,
+        rawText:text,
         contractType:c.type,
         paymentType:c.payment,
         paymentVariant:c.variant
@@ -648,16 +647,23 @@
   document.getElementById('verifyAnnexBtn').addEventListener('click',()=>verifyDialog.showModal());
   document.querySelectorAll('[data-close]').forEach(btn=>btn.addEventListener('click',()=>document.getElementById(btn.dataset.close).close()));
 
+  const annex26BankAccount=document.getElementById('annex26BankAccount');
+  annex26BankAccount.addEventListener('input',()=>{
+    annex26BankAccount.value=annex26BankAccount.value.replace(/\D/g,'').slice(0,26);
+    annex26BankAccount.setCustomValidity(annex26BankAccount.value.length===26?'':'Numer rachunku musi zawierać dokładnie 26 cyfr.');
+  });
+
   document.getElementById('annex26Form').addEventListener('submit',async event=>{
     event.preventDefault();
     const status=document.getElementById('annex26Status');
     const amount=Number(document.getElementById('annex26NewInstallment').value.replace(',','.'));
     status.textContent='Tworzę dokument…';status.className='status show warn';
     try{
-      const prepared=prepareAnnex('26',extractAnnex26Contract(currentContract.sourceText,currentContract.agreementNumber),{
-        newInstallmentCents:Math.round(amount*100),
+      if(annex26BankAccount.value.length!==26) throw new Error('Numer rachunku musi zawierać dokładnie 26 cyfr.');
+      const prepared=prepareAnnex26(currentContract,{
+        newInstallment:amount,
         bank:document.getElementById('annex26Bank').value.trim(),
-        bankAccount:document.getElementById('annex26BankAccount').value.trim()
+        bankAccount:annex26BankAccount.value
       });
       const result=await appsScriptClient.generate(prepared);
       status.textContent='Aneks został wygenerowany.';status.className='status show ok';
