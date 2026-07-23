@@ -9,7 +9,7 @@ UMOWA ELASTYCZNA nr EL/JF/811/192956/3/9/2025
 DANE NABYWCY Imię i nazwisko: Monika Wójcik Adres: Galileusza 10/13, 67-200 Głogów PESEL: 82111304868
 SPECYFIKACJA KURSU Liczba lekcji: 450 Limit miesięczny: 57
 ZAWARTOŚĆ KURSU Typy lektorów: Lektor Polski, English Expert, Native Speaker
-WARUNKI PŁATNOŚCI Cena kursu: Całkowita cena kursu wynosi 11250,00 zł brutto. Rata miesięczna: 468,80 zł`;
+WARUNKI PŁATNOŚCI Cena kursu: Całkowita cena kursu wynosi 11250,00 zł brutto. Rata miesięczna: 999,99 zł`;
 const contract = { rawText: RAW_TEXT, agreementNumber: 'EL/JF/811/192956/3/9/2025' };
 const account = '12345678901234567890123456';
 const form = { newInstallment: '400,00', bank: 'Inbank', bankAccount: account };
@@ -50,16 +50,21 @@ test('aneks 26 odczytuje stały wzór, datę z numeru i buduje komplet placehold
   });
 });
 
+test('aneks 26 wylicza starą ratę z ceny kursu i nie odczytuje jej z warunków płatności', () => {
+  const extracted = extractAnnex26Contract(RAW_TEXT, contract.agreementNumber);
+  assert.equal(extracted.currentInstallmentCents, 468_75);
+});
+
 test('aneks 26 stosuje wszystkie wzory', () => {
   const { calculation, values } = prepareAnnex26(contract, form);
   assert.equal(calculation.installmentCount, 24);
   assert.equal(calculation.oldInstallments, 11);
   assert.equal(calculation.newInstallments, 13);
-  assert.equal(calculation.discountCents, 89440);
-  assert.equal(values.NOWA_CENA, '10355,60 zł');
-  assert.equal(values.NOWA_SREDNIA_RATA, '431,48 zł');
-  assert.equal(values.SPLACONO_DO_DNIA_ANEKSU, '5156,80 zł');
-  assert.equal(values.KWOTA_DO_ZWROTU_BANKOWI, '894,40 zł');
+  assert.equal(calculation.discountCents, 89375);
+  assert.equal(values.NOWA_CENA, '10356,25 zł');
+  assert.equal(values.NOWA_SREDNIA_RATA, '431,51 zł');
+  assert.equal(values.SPLACONO_DO_DNIA_ANEKSU, '5156,25 zł');
+  assert.equal(values.KWOTA_DO_ZWROTU_BANKOWI, '893,75 zł');
   assert.equal(values.DATA_WEJSCIA_W_ZYCIE, '01.08.2026');
 });
 

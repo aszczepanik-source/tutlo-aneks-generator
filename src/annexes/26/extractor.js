@@ -1,3 +1,5 @@
+const ANNEX_26_INSTALLMENT_COUNT = 24;
+
 function amountToCents(value) {
   if (!value) return undefined;
   const amount = Number(value.replace(/\s/g, '').replace(',', '.'));
@@ -23,8 +25,8 @@ export function extractAgreementDateFromNumber(agreementNumber) {
 /** Odczyt stałych pól wariantu „umowa elastyczna + kredyt / pożyczka”. */
 export function extractAnnex26Contract(rawText, agreementNumber) {
   const text = String(rawText || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
-  const money = label => amountToCents(capture(text,
-    new RegExp(`${label}\\s*:?\\s*([\\d ]+(?:[,.]\\d{1,2})?)\\s*(?:zł|PLN)`, 'i')));
+  const coursePriceCents = amountToCents(capture(text,
+    /Całkowita cena kursu wynosi\s+([\d ]+(?:,\d{1,2})?)\s*zł/i));
 
   return {
     agreementNumber,
@@ -35,8 +37,9 @@ export function extractAnnex26Contract(rawText, agreementNumber) {
     lessonCount: Number(capture(text, /liczba lekcji\s*:\s*(\d+)/i)) || undefined,
     monthlyLimit: Number(capture(text, /limit miesięczny\s*:\s*(\d+)/i)) || undefined,
     teacherTypes: capture(text, /typy lektorów\s*:\s*(.+?)(?=\s+(?:WARUNKI PŁATNOŚCI\s+)?cena kursu\s*:)/i),
-    coursePriceCents: amountToCents(capture(text,
-      /Całkowita cena kursu wynosi\s+([\d ]+(?:,\d{1,2})?)\s*zł/i)),
-    currentInstallmentCents: money('rata miesięczna')
+    coursePriceCents,
+    currentInstallmentCents: coursePriceCents === undefined
+      ? undefined
+      : Math.round(coursePriceCents / ANNEX_26_INSTALLMENT_COUNT)
   };
 }

@@ -35,7 +35,7 @@ test('aneks 25 pozostaje zablokowany', () => { assert.match(BLOCKED_RULES['25'],
 
 test('aneks 26 stosuje wszystkie wzory i pierwszy dzień następnego miesiąca', () => {
   const result = calculateAnnex26({
-    currentInstallmentCents: 50_00, paidInstallments: 4,
+    currentInstallmentCents: 99_99, paidInstallments: 4,
     coursePriceCents: 1200_00, lessonCount: 101
   }, '2026-07-23', 40_00);
   assert.deepEqual({
@@ -55,9 +55,10 @@ test('aneks 26 stosuje wszystkie wzory i pierwszy dzień następnego miesiąca',
   });
 });
 
-test('aneks 26 zaokrągla matematycznie lekcje oraz średnią ratę do groszy', () => {
-  const result = calculateAnnex26({ currentInstallmentCents: 1000, paidInstallments: 23, coursePriceCents: 2001, lessonCount: 3 }, '2026-01-31', 999);
-  assert.equal(result.newPriceCents, 2000);
+test('aneks 26 zaokrągla starą i średnią ratę do groszy', () => {
+  const result = calculateAnnex26({ currentInstallmentCents: 1000, paidInstallments: 23, coursePriceCents: 24025, lessonCount: 3 }, '2026-01-31', 1000);
+  assert.equal(result.newPriceCents, 24024);
   assert.equal(result.newLessonCount, 3);
-  assert.equal(result.newAverageInstallmentCents, 83);
+  assert.equal(result.newAverageInstallmentCents, 1001);
+  assert.equal(result.paidToAnnexDateCents, 23023);
 });
