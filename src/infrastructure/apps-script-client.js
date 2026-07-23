@@ -3,11 +3,13 @@ export function createRequestId(cryptoApi = globalThis.crypto) {
 }
 
 export class AppsScriptClient {
-  constructor(endpoint, fetchImpl = globalThis.fetch) { this.endpoint = endpoint; this.fetch = fetchImpl; this.inFlight = new Map(); }
+  constructor(endpoint, request) { this.endpoint = endpoint; this.request = request; this.inFlight = new Map(); }
   generate(prepared, requestId = createRequestId()) {
     if (this.inFlight.has(requestId)) return this.inFlight.get(requestId);
-    const operation = this.fetch(this.endpoint, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'generate', requestId, ...prepared }) })
+    const options = { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'generate', requestId, ...prepared })
+    };
+    const operation = (this.request ? this.request(this.endpoint, options) : window.fetch(this.endpoint, options))
       .then(async response => { if (!response.ok) throw new Error('Usługa generowania jest niedostępna.'); return response.json(); })
       .then(result => { if (!result.ok || !result.documentUrl) throw new Error(result.message || 'Nie udało się utworzyć dokumentu.'); return result; })
       .finally(() => this.inFlight.delete(requestId));

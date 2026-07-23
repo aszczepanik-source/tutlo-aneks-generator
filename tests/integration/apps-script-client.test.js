@@ -1,6 +1,23 @@
 import assert from 'node:assert/strict'; import test from 'node:test';
 import { AppsScriptClient, createGenerateHandler } from '../../src/infrastructure/apps-script-client.js';
 const prepared = { annexId:'29', values:{ NOWA_CENA:'100,00 zł' } };
+test('domyślny transport wywołuje fetch bezpośrednio na window', async () => {
+  const originalWindow = globalThis.window;
+  let receiver;
+  globalThis.window = {
+    fetch: async function () {
+      receiver = this;
+      return { ok: true, json: async () => ({ ok: true, documentUrl: 'https://docs.google.com/document/d/window-fetch' }) };
+    }
+  };
+  try {
+    const result = await new AppsScriptClient('mock').generate(prepared, 'request-window-fetch');
+    assert.equal(receiver, globalThis.window);
+    assert.match(result.documentUrl, /window-fetch/);
+  } finally {
+    globalThis.window = originalWindow;
+  }
+});
 test('klient komunikuje się z Apps Script i przekazuje requestId', async () => { let sent; const client=new AppsScriptClient('mock',async(_u,o)=>{sent=JSON.parse(o.body);return{ok:true,json:async()=>({ok:true,documentUrl:'https://docs.google.com/document/d/x'})}}); const result=await client.generate(prepared,'request-123'); assert.equal(sent.requestId,'request-123');assert.match(result.documentUrl,/docs.google/); });
 test('ten sam requestId podczas lotu wykonuje tylko jedno żądanie', async () => { let calls=0;const client=new AppsScriptClient('mock',async()=>{calls++;await new Promise(r=>setTimeout(r,10));return{ok:true,json:async()=>({ok:true,documentUrl:'https://docs.google.com/x'})}});await Promise.all([client.generate(prepared,'request-dup'),client.generate(prepared,'request-dup')]);assert.equal(calls,1); });
 test('obsługuje 10 równoległych niezależnych żądań bez mieszania danych', async () => { const bodies=[];const client=new AppsScriptClient('mock',async(_u,o)=>{bodies.push(JSON.parse(o.body));return{ok:true,json:async()=>({ok:true,documentUrl:'https://docs.google.com/x'})}});await Promise.all(Array.from({length:10},(_,i)=>client.generate({...prepared,marker:i},`request-${i}`)));assert.equal(new Set(bodies.map(x=>x.requestId)).size,10);assert.deepEqual(bodies.map(x=>x.marker).sort((a,b)=>a-b),[0,1,2,3,4,5,6,7,8,9]); });
