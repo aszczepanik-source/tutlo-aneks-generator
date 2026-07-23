@@ -1,6 +1,18 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { BLOCKED_RULES, calculateAnnex11, calculateAnnex26, calculateAnnex29, calculateAnnex29a } from '../../src/domain/annex-calculations.js';
+import { BLOCKED_RULES, calculateAnnex11, calculateAnnex26, calculateAnnex29, calculateAnnex29a, parseDate } from '../../src/domain/annex-calculations.js';
+
+test('wspólny parser obsługuje wszystkie formaty dat z PDF', () => {
+  for (const value of ['10.06.2025', '10-06-2025', '2025-06-10', '1.6.2025']) {
+    assert.equal(parseDate(value).toISOString().slice(0, 10), value === '1.6.2025' ? '2025-06-01' : '2025-06-10');
+  }
+});
+
+test('wspólny parser odrzuca nieistniejącą datę i podaje pole oraz wartość', () => {
+  assert.throws(() => parseDate('31.02.2025', 'data umowy kredytu'), {
+    message: 'Nieprawidłowa data umowy kredytu: 31.02.2025'
+  });
+});
 
 const installments = Array.from({ length: 24 }, (_, i) => ({ dueDate: `${2026 + Math.floor(i / 12)}-${String(i % 12 + 1).padStart(2, '0')}-15`, amountCents: 10000 + i }));
 test('aneks 29 odejmuje najbliższą kwalifikującą się ratę i dodaje 3 dni', () => {

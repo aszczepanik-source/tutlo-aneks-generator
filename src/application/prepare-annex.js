@@ -6,7 +6,7 @@ import { BLOCKED_RULES, calculateAnnex11, calculateAnnex26, calculateAnnex29, ca
 
 const manifests = { '11': manifest11, '26': manifest26, '29': manifest29, '29a': manifest29a };
 const base = contract => ({
-  ADRES: contract.address, DATA_ZAWARCIA_UMOWY: formatDate(contract.contractDate),
+  ADRES: contract.address, DATA_ZAWARCIA_UMOWY: formatDate(contract.contractDate, 'data zawarcia umowy'),
   IMIE_NAZWISKO: contract.customerName, NUMER_UMOWY: contract.contractNumber, PESEL: contract.pesel
 });
 const scheduleValues = installments => Object.fromEntries(installments.flatMap((item, index) => {
@@ -38,9 +38,9 @@ export function prepareAnnex(annexId, contract, inputs = {}, today = new Date().
     calculation = calculateAnnex26(contract, today, Number(inputs.newInstallmentCents));
     values = { ...values,
       BANK: inputs.bank,
-      DATA_ANEKSU: formatDate(today),
-      DATA_UMOWY_KREDYTU: formatDate(contract.creditAgreementDate),
-      DATA_WEJSCIA_W_ZYCIE: formatDate(calculation.effectiveDate),
+      DATA_ANEKSU: formatDate(today, 'data aneksu'),
+      DATA_UMOWY_KREDYTU: formatDate(contract.creditAgreementDate, 'data umowy kredytu'),
+      DATA_WEJSCIA_W_ZYCIE: formatDate(calculation.effectiveDate, 'data wejścia w życie'),
       KWOTA_DO_ZWROTU_BANKOWI: money(calculation.bankRefundCents),
       KWOTA_KREDYTU: money(contract.creditAmountCents),
       LIMIT_MIESIECZNY: String(contract.monthlyLimit),

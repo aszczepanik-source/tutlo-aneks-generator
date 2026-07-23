@@ -1,15 +1,34 @@
 const DAY = 86_400_000;
 
-export function parseIsoDate(value, field = 'data') {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) throw new Error(`Nieprawidłowa ${field}.`);
-  const date = new Date(`${value}T12:00:00Z`);
-  if (Number.isNaN(date.valueOf())) throw new Error(`Nieprawidłowa ${field}.`);
+export function parseDate(value, field = 'data') {
+  const text = typeof value === 'string' ? value.trim() : '';
+  let year;
+  let month;
+  let day;
+  let match = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (match) {
+    [, year, month, day] = match;
+  } else {
+    match = text.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/)
+      || text.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+    if (match) [, day, month, year] = match;
+  }
+
+  const invalid = () => { throw new Error(`Nieprawidłowa ${field}: ${String(value)}`); };
+  if (!match) invalid();
+  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), 12));
+  if (date.getUTCFullYear() !== Number(year)
+    || date.getUTCMonth() !== Number(month) - 1
+    || date.getUTCDate() !== Number(day)) invalid();
   return date;
 }
 
+// Kept as an alias for callers that already use the old public name.
+export const parseIsoDate = parseDate;
+
 export function iso(date) { return date.toISOString().slice(0, 10); }
-export function formatDate(value) {
-  return new Intl.DateTimeFormat('pl-PL', { timeZone: 'UTC' }).format(parseIsoDate(value));
+export function formatDate(value, field) {
+  return new Intl.DateTimeFormat('pl-PL', { timeZone: 'UTC' }).format(parseDate(value, field));
 }
 export function addDays(value, count) {
   const date = parseIsoDate(value);
