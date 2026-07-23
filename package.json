@@ -6,7 +6,7 @@
   "scripts": {
     "test": "node --test",
     "build": "node scripts/build-release.mjs",
-    "check": "npm test && npm run build && git diff --check"
+    "check": "npm run build && npm test && git diff --check"
   },
   "engines": {
     "node": ">=20"
