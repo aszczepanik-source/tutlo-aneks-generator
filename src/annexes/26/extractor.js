@@ -35,7 +35,8 @@ export function extractAnnex26Contract(rawText, agreementNumber) {
     lessonCount: Number(capture(text, /liczba lekcji\s*:\s*(\d+)/i)) || undefined,
     monthlyLimit: Number(capture(text, /limit miesięczny\s*:\s*(\d+)/i)) || undefined,
     teacherTypes: capture(text, /typy lektorów\s*:\s*(.+?)(?=\s+(?:WARUNKI PŁATNOŚCI\s+)?cena kursu\s*:)/i),
-    coursePriceCents: money('cena kursu'),
+    coursePriceCents: amountToCents(capture(text,
+      /Całkowita cena kursu wynosi\s+([\d ]+(?:,\d{1,2})?)\s*zł/i)),
     currentInstallmentCents: money('rata miesięczna')
   };
 }

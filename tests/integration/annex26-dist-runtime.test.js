@@ -7,7 +7,7 @@ test('dist file:// wykonuje formularz 26 aż do AppsScriptClient bez ReferenceEr
   let script = await readFile(new URL('../../dist/app.js', import.meta.url), 'utf8');
   const rawText = `Imię i nazwisko: Monika Wójcik Adres: Galileusza 10/13, 67-200 Głogów PESEL: 82111304868
     Liczba lekcji: 450 Limit miesięczny: 57 Typy lektorów: Lektor Polski, English Expert, Native Speaker
-    Cena kursu: 11250,00 zł Rata miesięczna: 468,80 zł`;
+    Cena kursu: Całkowita cena kursu wynosi 11250,00 zł brutto. Rata miesięczna: 468,80 zł`;
   script = script.replace('let currentFile=null,currentContract=null,currentClassification=null;',
     `let currentFile=null,currentContract=${JSON.stringify({ rawText, agreementNumber: 'EL/JF/811/192956/3/9/2025' })},currentClassification=null;`);
 
