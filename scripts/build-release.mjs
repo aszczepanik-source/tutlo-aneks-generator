@@ -28,8 +28,6 @@ const calculationSource = (await readFile(new URL('../src/domain/annex-calculati
   .replace(/^export\s+/gm, '');
 const extractionSource = (await readFile(new URL('../src/domain/contract-extraction.js', import.meta.url), 'utf8'))
   .replace(/^export\s+/gm, '');
-const annex26ExtractionSource = (await readFile(new URL('../src/annexes/26/extractor.js', import.meta.url), 'utf8'))
-  .replace(/^export\s+/gm, '');
 const validationSource = (await readFile(new URL('../src/annexes/shared/validation.js', import.meta.url), 'utf8'))
   .replace(/^export\s+/gm, '');
 const annex26ValidationSource = (await readFile(new URL('../src/annexes/26/validator.js', import.meta.url), 'utf8'))
@@ -99,7 +97,6 @@ const runtime = `/* Wygenerowany bundle release ${version}. Bez ES Modules. */
   }
 ${calculationSource}
 ${extractionSource}
-${annex26ExtractionSource}
 ${validationSource}
 ${annex26ValidationSource}
 ${annex26GeneratorSource}

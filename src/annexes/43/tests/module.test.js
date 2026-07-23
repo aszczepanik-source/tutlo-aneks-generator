@@ -2,12 +2,16 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import manifest from '../manifest.json' with { type: 'json' };
 import { prepareAnnex43 } from '../index.js';
+import { extractContractData } from '../../../domain/contract-extraction.js';
 
 const rawText = `
 UMOWA ELASTYCZNA nr EL/JF/811/192956/3/9/2025
 DANE NABYWCY Imię i nazwisko: Monika Wójcik Adres: Galileusza 10/13, 67-200 Głogów PESEL: 82111304868
+SPECYFIKACJA KURSU Liczba lekcji: 450 Limit miesięczny: 57
+ZAWARTOŚĆ KURSU Typy lektorów: Native Speaker
+WARUNKI PŁATNOŚCI Całkowita cena kursu wynosi 9576,00 zł brutto.
 Kurs Tutlo Plus: możliwość korzystania z kursu max. przez 2 dodatkowych Użytkowników za dodatkową opłatą`;
-const contract = { rawText, agreementNumber: 'EL/JF/811/192956/3/9/2025' };
+const contract = { ...extractContractData(rawText, 'EL/JF/811/192956/3/9/2025'), rawText };
 
 test('aneks 43 odczytuje dane umowy i buduje komplet placeholderów', () => {
   const prepared = prepareAnnex43(contract);

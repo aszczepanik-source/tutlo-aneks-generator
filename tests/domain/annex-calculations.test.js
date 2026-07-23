@@ -16,15 +16,15 @@ test('wspólny parser odrzuca nieistniejącą datę i podaje pole oraz wartość
 
 const installments = Array.from({ length: 24 }, (_, i) => ({ dueDate: `${2026 + Math.floor(i / 12)}-${String(i % 12 + 1).padStart(2, '0')}-15`, amountCents: 10000 + i }));
 test('aneks 29 odejmuje najbliższą kwalifikującą się ratę i dodaje 3 dni', () => {
-  const result = calculateAnnex29({ coursePriceCents: 240000, installments }, '2026-06-15');
+  const result = calculateAnnex29({ coursePrice: 2400, installments }, '2026-06-15');
   assert.equal(result.newPriceCents, 229995); assert.equal(result.effectiveDate, '2026-06-18'); assert.equal(result.freeInstallments[0].dueDate, '2026-06-15');
 });
 test('aneks 29a odejmuje dwie najbliższe kwalifikujące się raty', () => {
-  const result = calculateAnnex29a({ coursePriceCents: 240000, installments }, '2026-06-15');
+  const result = calculateAnnex29a({ coursePrice: 2400, installments }, '2026-06-15');
   assert.equal(result.newPriceCents, 219989); assert.deepEqual(result.freeInstallments.map(x => x.dueDate), ['2026-06-15', '2026-07-15']);
 });
 test('aneksy gratis blokują brak wymaganej liczby przyszłych rat', () => {
-  assert.throws(() => calculateAnnex29a({ coursePriceCents: 1, installments: installments.slice(0, 1) }, '2026-01-15'), /co najmniej 2/);
+  assert.throws(() => calculateAnnex29a({ coursePrice: 0.01, installments: installments.slice(0, 1) }, '2026-01-15'), /co najmniej 2/);
 });
 test('aneks 11 przesuwa raty, zachowuje kwoty i 24 pozycje', () => {
   const result = calculateAnnex11({ contractEndDate: '2027-12-31', installments }, '2026-01-31', 2);
@@ -36,7 +36,7 @@ test('aneks 25 pozostaje zablokowany', () => { assert.match(BLOCKED_RULES['25'],
 test('aneks 26 stosuje wszystkie wzory i pierwszy dzień następnego miesiąca', () => {
   const result = calculateAnnex26({
     currentInstallmentCents: 99_99, paidInstallments: 4,
-    coursePriceCents: 1200_00, lessonCount: 101
+    coursePrice: 1200, lessonCount: 101
   }, '2026-07-23', 40_00);
   assert.deepEqual({
     remaining: result.remainingInstallments,
@@ -56,7 +56,7 @@ test('aneks 26 stosuje wszystkie wzory i pierwszy dzień następnego miesiąca',
 });
 
 test('aneks 26 zaokrągla starą i średnią ratę do groszy', () => {
-  const result = calculateAnnex26({ currentInstallmentCents: 1000, paidInstallments: 23, coursePriceCents: 24025, lessonCount: 3 }, '2026-01-31', 1000);
+  const result = calculateAnnex26({ currentInstallmentCents: 1000, paidInstallments: 23, coursePrice: 240.25, lessonCount: 3 }, '2026-01-31', 1000);
   assert.equal(result.newPriceCents, 24024);
   assert.equal(result.newLessonCount, 3);
   assert.equal(result.newAverageInstallmentCents, 1001);

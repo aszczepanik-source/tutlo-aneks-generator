@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import manifest from '../manifest.json' with { type: 'json' };
 import { prepareAnnex26 } from '../index.js';
-import { extractAnnex26Contract } from '../extractor.js';
+import { extractContractData } from '../../../domain/contract-extraction.js';
 
 const RAW_TEXT = `
 UMOWA ELASTYCZNA nr EL/JF/811/192956/3/9/2025
@@ -10,7 +10,7 @@ DANE NABYWCY Imię i nazwisko: Monika Wójcik Adres: Galileusza 10/13, 67-200 G�
 SPECYFIKACJA KURSU Liczba lekcji: 450 Limit miesięczny: 57
 ZAWARTOŚĆ KURSU Typy lektorów: Lektor Polski, English Expert, Native Speaker
 WARUNKI PŁATNOŚCI Cena kursu: Całkowita cena kursu wynosi 11250,00 zł brutto. Rata miesięczna: 999,99 zł`;
-const contract = { rawText: RAW_TEXT, agreementNumber: 'EL/JF/811/192956/3/9/2025' };
+const contract = extractContractData(RAW_TEXT, 'EL/JF/811/192956/3/9/2025');
 const account = '12345678901234567890123456';
 const form = { newInstallment: '400,00', bank: 'Inbank', bankAccount: account };
 
@@ -19,13 +19,12 @@ for (const [amount, expected] of [
   ['11 250,00', 11250_00],
   ['12 999,99', 12999_99]
 ]) {
-  test(`aneks 26 odczytuje całkowitą cenę kursu ${amount}`, () => {
-    const extracted = extractAnnex26Contract(
-      `§ 2 WARUNKI PŁATNOŚCI Całkowita cena kursu wynosi ${amount} zł brutto.`,
-      contract.agreementNumber
+  test(`wspólny extractor odczytuje całkowitą cenę kursu ${amount}`, () => {
+    const extracted = extractContractData(
+      `Całkowita cena kursu wynosi ${amount} zł brutto.`, contract.agreementNumber
     );
 
-    assert.equal(extracted.coursePriceCents, expected);
+    assert.equal(extracted.coursePrice, expected / 100);
   });
 }
 
@@ -51,8 +50,7 @@ test('aneks 26 odczytuje stały wzór, datę z numeru i buduje komplet placehold
 });
 
 test('aneks 26 wylicza starą ratę z ceny kursu i nie odczytuje jej z warunków płatności', () => {
-  const extracted = extractAnnex26Contract(RAW_TEXT, contract.agreementNumber);
-  assert.equal(extracted.currentInstallmentCents, 468_75);
+  assert.equal(contract.monthlyInstallment, 468.75);
 });
 
 test('aneks 26 stosuje wszystkie wzory', () => {

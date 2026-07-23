@@ -1,5 +1,4 @@
 import manifest from './manifest.json' with { type: 'json' };
-import { extractAnnex26Contract } from './extractor.js';
 import { validateAnnex26Data } from './validator.js';
 
 const INSTALLMENT_COUNT = 24;
@@ -11,7 +10,8 @@ const formatAnnex26Date = value => {
 const annex26Money = cents => `${(cents / 100).toFixed(2).replace('.', ',')} zł`;
 
 function calculate(contract, annexDate, newInstallmentCents) {
-  const agreement = new Date(`${contract.agreementDate}T12:00:00Z`);
+  const [day, month, year] = contract.agreementDate.split('.');
+  const agreement = new Date(`${year}-${month}-${day}T12:00:00Z`);
   const annex = new Date(`${annexDate}T12:00:00Z`);
   const oldInstallments = (annex.getUTCFullYear() - agreement.getUTCFullYear()) * 12
     + annex.getUTCMonth() - agreement.getUTCMonth() + 1;
@@ -37,10 +37,11 @@ function calculate(contract, annexDate, newInstallmentCents) {
 }
 
 export function prepareAnnex26(contract, formData) {
-  const extracted = extractAnnex26Contract(contract?.rawText, contract?.agreementNumber);
   const newInstallment = Number(String(formData?.newInstallment ?? '').replace(',', '.'));
   const data = {
-    ...extracted,
+    ...contract,
+    coursePriceCents: Math.round(Number(contract?.coursePrice) * 100),
+    currentInstallmentCents: Math.round(Number(contract?.monthlyInstallment) * 100),
     newInstallmentCents: Number.isFinite(newInstallment) ? Math.round(newInstallment * 100) : NaN,
     bank: String(formData?.bank || '').trim(),
     bankAccount: String(formData?.bankAccount || '').replace(/\D/g, '').slice(0, 26)
@@ -49,7 +50,7 @@ export function prepareAnnex26(contract, formData) {
 
   const annexDate = annex26Iso(new Date());
   const calculation = calculate(data, annexDate, data.newInstallmentCents);
-  const agreementDate = formatAnnex26Date(data.agreementDate);
+  const agreementDate = data.agreementDate;
   const values = {
     NUMER_UMOWY: data.agreementNumber,
     DATA_ANEKSU: formatAnnex26Date(annexDate),

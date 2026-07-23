@@ -4,6 +4,7 @@ import test from 'node:test';
 import vm from 'node:vm';
 import { getAnnexRoute } from '../../router.js';
 import { prepareAnnex43 } from '../../src/annexes/43/index.js';
+import { extractContractData } from '../../src/domain/contract-extraction.js';
 
 const customer = 'Imię i nazwisko: Jan Kowalski Adres: Polna 1, 00-001 Warszawa PESEL: 90010112345';
 const agreementNumber = 'EL/ABC/10/2/2024';
@@ -16,7 +17,8 @@ test('router udostępnia aneks 43 tylko przy dodatkowej opłacie, niezależnie o
 });
 
 test('router -> aneks 43 -> prepareAnnex43 -> Apps Script działa bez ReferenceError', async () => {
-  const contract = { agreementNumber, rawText: `${customer} Kurs Tutlo Plus za dodatkową opłatą` };
+  const rawText = `DANE NABYWCY ${customer} SPECYFIKACJA KURSU Liczba lekcji: 1 Limit miesięczny: 1 ZAWARTOŚĆ KURSU Typy lektorów: Native Speaker WARUNKI PŁATNOŚCI Całkowita cena kursu wynosi 9576,00 zł brutto. Kurs Tutlo Plus za dodatkową opłatą`;
+  const contract = { ...extractContractData(rawText, agreementNumber), rawText };
   assert.equal(getAnnexRoute('43', contract).number, '43');
   const prepared = prepareAnnex43(contract);
   const replacements = [];
