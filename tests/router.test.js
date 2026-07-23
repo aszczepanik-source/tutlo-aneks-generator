@@ -41,13 +41,18 @@ test('interface presents the requested annex statuses and click messages', async
   const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 
   assert.match(html, /Generator Tutlo/);
-  assert.match(html, /Aneks w generatorze/);
+  assert.match(html, /Aneks w Team Tutlo/);
   assert.match(html, /W przygotowaniu/);
   assert.match(html, /Ten aneks jest obsługiwany w dedykowanym generatorze\./);
   assert.match(html, /Ten aneks nie został jeszcze wdrożony\./);
 
-  for (const id of ['11', '26', '29', '29a']) {
-    assert.match(html, new RegExp(`no:'${id}',name:'Aneks ${id}',status:'tutlo'`));
+  for (const [id, name] of [
+    ['11', 'Zawieszenie umowy'],
+    ['26', 'Zmniejszenie rat kredytowych'],
+    ['29', 'Jedna rata gratis'],
+    ['29a', 'Dwie raty gratis']
+  ]) {
+    assert.match(html, new RegExp(`no:'${id}',name:'${name}',status:'tutlo'`));
   }
   assert.match(html, /name:'Rozszerzenie pakietu lektorów'.*hasPolishLecturers===false/);
   assert.match(html, /name:'Aneks 45'.*type==='limit'.*payment==='credit'/);

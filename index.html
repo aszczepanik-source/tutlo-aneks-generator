@@ -424,15 +424,15 @@
 
   const ANNEX_STATUSES = {
     tutlo:{label:'Generator Tutlo',className:'generator-tutlo'},
-    external:{label:'Aneks w generatorze',className:'external-generator'},
+    external:{label:'Aneks w Team Tutlo',className:'external-generator'},
     planned:{label:'W przygotowaniu',className:'in-preparation'}
   };
 
   const ALL_ANNEXES = [
-    {no:'11',name:'Aneks 11',status:'tutlo'},
-    {no:'26',name:'Aneks 26',status:'tutlo'},
-    {no:'29',name:'Aneks 29',status:'tutlo'},
-    {no:'29a',name:'Aneks 29a',status:'tutlo'},
+    {no:'11',name:'Zawieszenie umowy',status:'tutlo'},
+    {no:'26',name:'Zmniejszenie rat kredytowych',status:'tutlo'},
+    {no:'29',name:'Jedna rata gratis',status:'tutlo'},
+    {no:'29a',name:'Dwie raty gratis',status:'tutlo'},
     {no:'wydluzenie-dostepu',marker:'↗',name:'Wydłużenie dostępu',desc:'Dostępny dla każdej umowy.',status:'external'},
     {no:'20-lekcji-gratis',marker:'20',name:'20 lekcji gratis',desc:'Tylko dla umów elastycznych.',status:'external',when:c=>c?.type==='flexible'},
     {no:'rozlozenie-platnosci',marker:'R',name:'Rozłożenie płatności',desc:'Tylko dla rat wewnętrznych.',status:'external',when:c=>c?.payment==='internal'},
