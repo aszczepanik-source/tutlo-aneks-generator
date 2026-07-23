@@ -263,6 +263,7 @@
     }
     .manual-item strong{display:block;margin-bottom:5px}
     .manual-item small{color:var(--muted)}
+    .version{font-size:12px;font-weight:800;margin-top:8px}
     @media(max-width:900px){
       .grid{grid-template-columns:1fr}
       .annex-grid{grid-template-columns:1fr 1fr}
@@ -347,7 +348,7 @@
   </div>
 
   <div class="footer-note">
-    PDF jest odczytywany lokalnie w przeglądarce i nie trafia do AI.
+    PDF jest odczytywany lokalnie w przeglądarce i nie trafia do AI. <span class="version">Wersja 1.0.0</span>
   </div>
 </main>
 
@@ -495,6 +496,10 @@
 
   function openGenerator(no){
     const route=getAnnexRoute(no);
+    if(route?.status==='blocked'){
+      alert(`Generowanie aneksu ${no} jest zablokowane.\n\n${route.blockingReason}`);
+      return;
+    }
     const url=route&&GENERATOR_URLS[route.number];
     if(url){
       window.open(url,'_blank');

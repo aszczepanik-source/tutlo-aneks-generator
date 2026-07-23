@@ -1,4 +1,4 @@
-# Team Utrzymanie Generator
+# Team Utrzymanie Generator — 1.0.0
 
 Ta wersja jest oparta bezpośrednio na wcześniejszym projekcie **Tutlo Router Główny v2** — zachowuje jego żółty interfejs, układ, klasyfikację PDF i listę dostępnych aneksów.
 
@@ -17,15 +17,19 @@ Każdy obsługiwany aneks ma niezależny katalog w `src/annexes/<id>/`, zawieraj
 - `template.docx` — własny, niezmieniony wzór dokumentu;
 - `tests/module.test.js` — testy kontraktu modułu.
 
-Fundament nie jest jeszcze podłączony do istniejącego interfejsu i nie wykonuje
-obliczeń biznesowych. Dzięki temu dotychczasowa klasyfikacja i routing działają bez
-zmian, a logikę generatorów będzie można migrować osobno, pod osłoną testów.
+Aneksy 11, 29 i 29a mają zaimplementowane obliczenia. Aneksy 25 i 26 pozostają
+jawnie zablokowane, ponieważ dokumentacja nie zawiera reguł wystarczających do
+wyliczenia wszystkich placeholderów; aplikacja nie zgaduje tych zasad.
 
 Wymagany jest Node.js 20 lub nowszy. Testy uruchamia polecenie:
 
 ```bash
 npm test
 ```
+
+Pakiet lokalny buduje `npm run build`. Instrukcje znajdują się w
+[`docs/INSTRUKCJA_KONSULTANTA.md`](docs/INSTRUKCJA_KONSULTANTA.md) i
+[`docs/WDROZENIE.md`](docs/WDROZENIE.md).
 
 ## Szybki podgląd na Chromebooku
 Otwórz plik `index.html` w Chrome. To wersja podglądowa działająca bez Apps Script.

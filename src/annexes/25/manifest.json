@@ -70,5 +70,6 @@
     "RATA_24_TERMIN",
     "TYPY_LEKTOROW"
   ],
-  "status": "foundation"
+  "status": "blocked",
+  "blockingReason": "Brak reguł obliczania nowej ceny, liczby lekcji, średniej raty i harmonogramu."
 }

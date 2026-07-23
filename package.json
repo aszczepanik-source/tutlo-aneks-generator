@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "check": "npm test && git diff --check"
+    "build": "node scripts/build-release.mjs",
+    "check": "npm test && npm run build && git diff --check"
   },
   "engines": {
     "node": ">=20"
