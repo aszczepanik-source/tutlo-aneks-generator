@@ -4,6 +4,6 @@ import { validate } from './validator.js';
 
 export const createGenerationPlan = createGenerationPlanFactory({
   annexId: manifest.id,
-  templateUrl: new URL('./template.docx', import.meta.url),
+  templateUrl: new URL(manifest.template, import.meta.url),
   validate
 });

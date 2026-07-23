@@ -1,6 +1,7 @@
 {
   "id": "29a",
   "label": "Obniżenie o 2 raty",
+  "available": true,
   "policy": "two-free-installments",
   "template": "template.docx",
   "templateVersion": "1.0.0",

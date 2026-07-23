@@ -1,6 +1,7 @@
 {
   "id": "26",
   "label": "Zmniejszenie rat kredytowych",
+  "available": true,
   "policy": "credit-installment-reduction",
   "template": "template.docx",
   "templateVersion": "1.0.0",

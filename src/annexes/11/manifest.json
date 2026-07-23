@@ -1,6 +1,7 @@
 {
   "id": "11",
   "label": "Zawieszenie",
+  "available": true,
   "policy": "suspension",
   "template": "template.docx",
   "templateVersion": "1.0.0",

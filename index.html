@@ -378,6 +378,7 @@
 </script>
 
 <script type="module">
+  import { getAnnexRoute } from './router.js';
   import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
@@ -493,7 +494,8 @@
   function humanPayment(v){return v==='credit'?'Kredyt / pożyczka':v==='internal'?'Raty wewnętrzne':'Nie rozpoznano';}
 
   function openGenerator(no){
-    const url=GENERATOR_URLS[no];
+    const route=getAnnexRoute(no);
+    const url=route&&GENERATOR_URLS[route.number];
     if(url){
       window.open(url,'_blank');
     }else{
