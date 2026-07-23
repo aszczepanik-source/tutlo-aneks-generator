@@ -4,6 +4,17 @@ import { createGenerationPlan } from '../../src/annexes/26/generator.js';
 import { prepareAnnex } from '../../src/application/prepare-annex.js';
 import { extractAnnex26Contract } from '../../src/domain/contract-extraction.js';
 
+test('parser odczytuje datę z rzeczywistego zapisu umowy o świadczenie usług', () => {
+  const contract = extractAnnex26Contract(
+    'Umowa o świadczenie usług edukacyjnych zawarta w dniu 10.06.2025 r. w Warszawie'
+  );
+
+  assert.equal(Object.hasOwn(contract, 'agreementDate'), true);
+  assert.equal(contract.agreementDate, '2025-06-10');
+  assert.equal(Object.hasOwn(contract, 'dataZawarciaUmowy'), false);
+  assert.equal(Object.hasOwn(contract, 'contractDate'), false);
+});
+
 test('parser przekazuje datę zawarcia umowy do generowania aneksu 26', () => {
   const contract = extractAnnex26Contract(`
     Numer umowy: TU/2025/26

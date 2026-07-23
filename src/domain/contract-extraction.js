@@ -29,7 +29,7 @@ export function extractAnnex26Contract(text) {
   const paidInstallments = number('(?:liczba rat już opłaconych|numer aktualnej raty|opłacono rat)');
   return {
     contractNumber: first(flat, [/(?:numer|nr)\s+umowy\s*[:#]?\s*([A-Z0-9/_-]+)/i, /umow[ay]\s+nr\s*([A-Z0-9/_-]+)/i]),
-    agreementDate: isoDate(first(flat, [/(?:data zawarcia umowy|umow[ay]\s+zawart[ae]\s+(?:w dniu)?)[^\d]{0,20}(\d{1,2}[.\-/]\d{1,2}[.\-/]\d{4})/i])),
+    agreementDate: isoDate(first(flat, [/(?:data zawarcia umowy|umow[ay]\b.{0,120}?\bzawart[ae]\s+w dniu)[^\d]{0,20}(\d{1,2}[.\-/]\d{1,2}[.\-/]\d{4})/i])),
     customerName: first(flat, [/(?:imię i nazwisko|imie i nazwisko)\s*:\s*([^,;]{3,80})/i, /(?:kursant|klient)\s*:\s*([^,;]{3,80})/i]),
     address: first(flat, [/(?:adres zamieszkania|adres)\s*:\s*(.{5,120}?)(?=\s+(?:PESEL|NIP|telefon|e-mail|email)\b)/i]),
     pesel: first(flat, [/(?:PESEL|NIP)\s*:\s*([0-9-]{10,13})/i]),
