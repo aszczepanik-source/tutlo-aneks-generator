@@ -47,6 +47,49 @@ export function calculateFreeInstallments(contract, annexDate, count) {
 export function calculateAnnex29(contract, annexDate) { return calculateFreeInstallments(contract, annexDate, 1); }
 export function calculateAnnex29a(contract, annexDate) { return calculateFreeInstallments(contract, annexDate, 2); }
 
+const ANNEX_26_INSTALLMENTS = 24;
+
+export function calculateAnnex26(contract, annexDate, newInstallmentCents) {
+  parseIsoDate(annexDate, 'data aneksu');
+  const oldInstallmentCents = Number(contract.currentInstallmentCents);
+  const paidInstallments = Number(contract.paidInstallments);
+  const coursePriceCents = Number(contract.coursePriceCents);
+  const lessonCount = Number(contract.lessonCount);
+
+  if (!Number.isInteger(oldInstallmentCents) || oldInstallmentCents <= 0) throw new Error('Brak wysokości obecnej raty.');
+  if (!Number.isInteger(newInstallmentCents) || newInstallmentCents <= 0 || newInstallmentCents > oldInstallmentCents) {
+    throw new Error('Nowa rata musi być dodatnia i nie może przekraczać obecnej raty.');
+  }
+  if (!Number.isInteger(paidInstallments) || paidInstallments < 0 || paidInstallments > ANNEX_26_INSTALLMENTS) {
+    throw new Error('Liczba opłaconych rat musi mieścić się w zakresie od 0 do 24.');
+  }
+  if (!Number.isInteger(coursePriceCents) || coursePriceCents <= 0) throw new Error('Brak ceny kursu.');
+  if (!Number.isFinite(lessonCount) || lessonCount <= 0) throw new Error('Brak liczby lekcji.');
+
+  const remainingInstallments = ANNEX_26_INSTALLMENTS - paidInstallments;
+  const discountCents = remainingInstallments * (oldInstallmentCents - newInstallmentCents);
+  const newPriceCents = coursePriceCents - discountCents;
+  if (newPriceCents <= 0) throw new Error('Nowa cena kursu musi być dodatnia.');
+
+  const effective = parseIsoDate(annexDate);
+  effective.setUTCMonth(effective.getUTCMonth() + 1, 1);
+
+  return {
+    annexDate,
+    effectiveDate: iso(effective),
+    installmentCount: ANNEX_26_INSTALLMENTS,
+    paidInstallments,
+    remainingInstallments,
+    discountCents,
+    newPriceCents,
+    remainingPercentage: newPriceCents / coursePriceCents,
+    newLessonCount: Math.round(lessonCount * newPriceCents / coursePriceCents),
+    newAverageInstallmentCents: Math.round(newPriceCents / ANNEX_26_INSTALLMENTS),
+    paidToAnnexDateCents: paidInstallments * oldInstallmentCents,
+    bankRefundCents: discountCents
+  };
+}
+
 export function calculateAnnex11(contract, annexDate, suspensionMonths) {
   parseIsoDate(annexDate, 'data aneksu');
   if (![1, 2].includes(suspensionMonths)) throw new Error('Zawieszenie może trwać 1 albo 2 miesiące.');
@@ -69,5 +112,4 @@ export function calculateAnnex11(contract, annexDate, suspensionMonths) {
 
 export const BLOCKED_RULES = Object.freeze({
   '25': 'Dokumentacja nie określa sposobu wyliczenia nowej ceny, liczby lekcji, średniej raty ani nowego harmonogramu.',
-  '26': 'Dokumentacja określa jedynie ręczne pola banku i rachunku. Brakuje reguł nowej ceny, liczby lekcji, średniej raty, spłaconej kwoty i zwrotu bankowi.'
 });

@@ -24,6 +24,14 @@ const annexIds = ['11', '25', '26', '29', '29a'];
 const manifests = await Promise.all(annexIds.map(async id =>
   JSON.parse(await readFile(new URL(`../src/annexes/${id}/manifest.json`, import.meta.url), 'utf8'))
 ));
+const calculationSource = (await readFile(new URL('../src/domain/annex-calculations.js', import.meta.url), 'utf8'))
+  .replace(/^export\s+/gm, '');
+const extractionSource = (await readFile(new URL('../src/domain/contract-extraction.js', import.meta.url), 'utf8'))
+  .replace(/^export\s+/gm, '');
+const preparationSource = (await readFile(new URL('../src/application/prepare-annex.js', import.meta.url), 'utf8'))
+  .replace(/^import .*;\s*$/gm, '')
+  .replace("const manifests = { '11': manifest11, '26': manifest26, '29': manifest29, '29a': manifest29a };", 'const manifests = Object.fromEntries(annexManifests);')
+  .replace(/^export\s+/gm, '');
 
 const runtime = `/* Wygenerowany bundle release ${version}. Bez ES Modules. */
 (() => {
@@ -73,6 +81,9 @@ const runtime = `/* Wygenerowany bundle release ${version}. Bez ES Modules. */
       return operation;
     }
   }
+${calculationSource}
+${extractionSource}
+${preparationSource}
 ${uiScript}
 })();
 `;
