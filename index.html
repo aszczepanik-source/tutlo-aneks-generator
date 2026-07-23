@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Team Utrzymanie Generator</title>
+  <style>
+    :root{
+      --tutlo:#ffc400;
+      --tutlo-dark:#e7ac00;
+      --ink:#141414;
+      --muted:#667085;
+      --bg:#f7f7f5;
+      --panel:#ffffff;
+      --line:#e7e7e2;
+      --ok:#15805c;
+      --ok-bg:#eaf8f2;
+      --warn:#8d6200;
+      --warn-bg:#fff5cf;
+      --danger:#b42318;
+      --shadow:0 10px 30px rgba(17,17,17,.06);
+      --radius:20px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter,Arial,sans-serif;
+      background:var(--bg);
+      color:var(--ink);
+    }
+    header{
+      background:var(--tutlo);
+      border-bottom:1px solid #e9b700;
+      padding:28px 20px;
+    }
+    .header-inner{
+      max-width:1180px;
+      margin:0 auto;
+      text-align:center;
+      position:relative;
+    }
+    h1{
+      margin:0;
+      font-size:34px;
+      letter-spacing:-.7px;
+      line-height:1.1;
+    }
+    .subtitle{
+      margin-top:8px;
+      font-size:15px;
+    }
+    .test-badge{
+      position:absolute;
+      right:0;
+      top:50%;
+      transform:translateY(-50%);
+      background:#fff;
+      border:1px solid rgba(0,0,0,.08);
+      border-radius:999px;
+      padding:9px 13px;
+      font-size:12px;
+      font-weight:800;
+    }
+    main{
+      max-width:1180px;
+      margin:26px auto 60px;
+      padding:0 18px;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns:1.05fr .95fr;
+      gap:22px;
+    }
+    .card{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:24px;
+      min-width:0;
+      overflow:hidden;
+    }
+    .card h2{margin:0 0 14px;font-size:22px}
+    .upload-lead{font-weight:800;margin-bottom:13px}
+    .dropzone{
+      border:2px dashed #e7b200;
+      border-radius:17px;
+      padding:38px 18px;
+      text-align:center;
+      background:#fffdfa;
+      transition:.2s;
+      cursor:pointer;
+      min-height:180px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex-direction:column;
+      gap:8px;
+    }
+    .dropzone.drag{background:#fff8dc;border-color:#c99600}
+    .upload-icon{font-size:42px;line-height:1}
+    .dropzone strong{font-size:17px}
+    .dropzone small{color:var(--muted);font-size:13px}
+    input[type=file]{display:none}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+    .btn{
+      border:none;
+      border-radius:12px;
+      padding:13px 18px;
+      font-weight:900;
+      cursor:pointer;
+      background:var(--tutlo);
+      color:#111;
+      font-size:14px;
+      transition:.15s;
+    }
+    .btn:hover{transform:translateY(-1px);background:#ffd126}
+    .btn.secondary{background:#efefeb;color:#111}
+    .btn.secondary:hover{background:#e6e6e1}
+    .btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+    .status{
+      margin-top:16px;
+      padding:13px 14px;
+      border-radius:13px;
+      display:none;
+      font-size:14px;
+      line-height:1.4;
+    }
+    .status.show{display:block}
+    .status.ok{background:var(--ok-bg);color:var(--ok)}
+    .status.warn{background:var(--warn-bg);color:var(--warn)}
+    .status.error{background:#fdecec;color:var(--danger)}
+    .result-empty{
+      min-height:300px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      color:var(--muted);
+      border:1px dashed var(--line);
+      border-radius:15px;
+      padding:22px;
+    }
+    .result{display:none}
+    .result.show{display:block}
+    .result-row{
+      display:grid;
+      grid-template-columns:175px minmax(0,1fr);
+      gap:14px;
+      padding:15px 0;
+      border-bottom:1px solid #eeeeea;
+      align-items:center;
+    }
+    .label{font-size:13px;color:var(--muted);font-weight:800}
+    .value{
+      font-weight:900;
+      line-height:1.35;
+      overflow-wrap:anywhere;
+      min-width:0;
+    }
+    .confidence{
+      display:inline-flex;
+      background:var(--ok-bg);
+      color:var(--ok);
+      border-radius:999px;
+      padding:6px 10px;
+      font-size:12px;
+      font-weight:900;
+    }
+    details{
+      margin-top:16px;
+      border-top:1px solid var(--line);
+      padding-top:14px;
+    }
+    summary{cursor:pointer;font-weight:900;font-size:13px}
+    details ul{padding-left:18px;color:var(--muted);font-size:13px;line-height:1.55}
+    .annex-section{margin-top:22px}
+    .annex-grid{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:13px;
+      margin-top:16px;
+    }
+    .annex{
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:16px;
+      background:#fff;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      min-width:0;
+    }
+    .annex-top{display:flex;gap:11px;align-items:flex-start}
+    .annex-number{
+      min-width:42px;height:42px;border-radius:12px;
+      display:grid;place-items:center;
+      background:var(--tutlo);
+      color:#111;font-weight:950;
+    }
+    .annex h3{font-size:15px;margin:1px 0 5px}
+    .annex p{margin:0;color:var(--muted);font-size:12px;line-height:1.45}
+    .annex button{margin-top:auto;width:100%}
+    .lower-tools{
+      margin-top:22px;
+      display:flex;
+      justify-content:center;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .ghost-link{
+      border:1px solid var(--line);
+      background:#fff;
+      color:#333;
+      border-radius:12px;
+      padding:11px 14px;
+      font-size:13px;
+      font-weight:850;
+      cursor:pointer;
+    }
+    .footer-note{
+      margin-top:17px;
+      text-align:center;
+      font-size:12px;
+      color:var(--muted);
+    }
+    dialog{
+      border:none;
+      border-radius:18px;
+      width:min(720px,calc(100% - 30px));
+      box-shadow:0 22px 80px rgba(0,0,0,.22);
+      padding:0;
+    }
+    dialog::backdrop{background:rgba(0,0,0,.38)}
+    .modal-head{
+      padding:20px 22px;
+      background:var(--tutlo);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+    }
+    .modal-head h3{margin:0}
+    .modal-body{padding:22px}
+    .close{
+      border:none;background:#fff;border-radius:999px;
+      width:34px;height:34px;cursor:pointer;font-size:18px;
+    }
+    .manual-annex-grid{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:10px;
+    }
+    .manual-item{
+      border:1px solid var(--line);
+      border-radius:13px;
+      padding:13px;
+      background:#fff;
+      cursor:pointer;
+      text-align:left;
+      min-height:90px;
+    }
+    .manual-item strong{display:block;margin-bottom:5px}
+    .manual-item small{color:var(--muted)}
+    @media(max-width:900px){
+      .grid{grid-template-columns:1fr}
+      .annex-grid{grid-template-columns:1fr 1fr}
+      .test-badge{position:static;display:inline-block;transform:none;margin-top:12px}
+    }
+    @media(max-width:620px){
+      h1{font-size:27px}
+      .annex-grid,.manual-annex-grid{grid-template-columns:1fr}
+      .result-row{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <h1>Team Utrzymanie Generator</h1>
+    <div class="subtitle">Wczytaj umowę i wybierz właściwy aneks.</div>
+    <div class="test-badge">Router umów • wersja testowa</div>
+  </div>
+</header>
+
+<main>
+  <div class="grid">
+    <section class="card">
+      <h2>1. Wczytaj umowę</h2>
+      <div class="upload-lead">Wrzuć umowę tutaj</div>
+      <label class="dropzone" id="dropzone" for="pdfInput">
+        <div class="upload-icon">☁️</div>
+        <strong>Przeciągnij i upuść PDF</strong>
+        <small>albo kliknij, aby wybrać plik</small>
+      </label>
+      <input id="pdfInput" type="file" accept="application/pdf">
+
+      <div class="actions">
+        <button id="analyzeBtn" class="btn" disabled>Rozpoznaj umowę</button>
+        <button id="resetBtn" class="btn secondary">Wyczyść</button>
+      </div>
+
+      <div id="fileStatus" class="status"></div>
+    </section>
+
+    <section class="card">
+      <h2>2. Rozpoznanie</h2>
+      <div id="resultEmpty" class="result-empty">
+        Po wczytaniu PDF pokażemy tutaj rodzaj umowy i formę płatności.
+      </div>
+
+      <div id="result" class="result">
+        <div class="result-row">
+          <div class="label">Rodzaj umowy</div>
+          <div class="value" id="contractType">—</div>
+        </div>
+        <div class="result-row">
+          <div class="label">Forma płatności</div>
+          <div class="value" id="paymentType">—</div>
+        </div>
+        <div class="result-row">
+          <div class="label">Wariant płatności</div>
+          <div class="value" id="paymentVariant">—</div>
+        </div>
+        <div class="result-row">
+          <div class="label">Pewność klasyfikacji</div>
+          <div><span class="confidence" id="confidence">—</span></div>
+        </div>
+
+        <details>
+          <summary>Dlaczego tak rozpoznano?</summary>
+          <ul id="reasonsList"></ul>
+        </details>
+      </div>
+    </section>
+  </div>
+
+  <section id="annexSection" class="card annex-section" style="display:none">
+    <h2>3. Dostępne aneksy</h2>
+    <div id="annexGrid" class="annex-grid"></div>
+  </section>
+
+  <div class="lower-tools">
+    <button class="ghost-link" id="verifyAnnexBtn">Sprawdź swój aneks</button>
+    <button class="ghost-link" id="manualAnnexBtn">Wybierz aneks ręcznie</button>
+  </div>
+
+  <div class="footer-note">
+    PDF jest odczytywany lokalnie w przeglądarce i nie trafia do AI.
+  </div>
+</main>
+
+<dialog id="manualAnnexDialog">
+  <div class="modal-head">
+    <h3>Wybierz aneks ręcznie</h3>
+    <button class="close" data-close="manualAnnexDialog">×</button>
+  </div>
+  <div class="modal-body">
+    <p style="color:var(--muted);margin-top:0">Użyj tej opcji tylko wtedy, gdy router źle rozpoznał dokument.</p>
+    <div id="manualAnnexGrid" class="manual-annex-grid"></div>
+  </div>
+</dialog>
+
+<dialog id="verifyDialog">
+  <div class="modal-head">
+    <h3>Sprawdź swój aneks</h3>
+    <button class="close" data-close="verifyDialog">×</button>
+  </div>
+  <div class="modal-body">
+    <p>Ta funkcja zostanie rozbudowana w kolejnym etapie.</p>
+    <p style="color:var(--muted)">Docelowo będzie można wgrać aneks i sprawdzić zgodność danych, obliczeń oraz dat.</p>
+  </div>
+</dialog>
+
+<script>
+  const GENERATOR_URLS = {'11':'','25':'','26':'','29':'','29a':''};
+</script>
+
+<script type="module">
+  import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
+
+  const ANNEX_RULES = {
+    flexible_credit: [
+      {no:'26', name:'Zmniejszenie rat kredytowych', desc:'Obniżenie rat przy zachowaniu finansowania kredytowego.'},
+      {no:'27', name:'Zmniejszenie rat + raty wewnętrzne', desc:'Zmiana z kredytu na raty wewnętrzne i obniżenie rat.'},
+      {no:'11', name:'Zawieszenie dostępu i płatności', desc:'Czasowe zawieszenie kursu i płatności.'},
+      {no:'28', name:'Rata gratis', desc:'Obniżenie wartości kursu o jedną ratę kredytową.'},
+      {no:'45', name:'Limit tygodniowy', desc:'Zmiana kursu na wariant z limitem tygodniowym.'}
+    ],
+    flexible_internal: [
+      {no:'25', name:'Zmniejszenie rat wewnętrznych', desc:'Zmniejszenie miesięcznej raty i wartości kursu.'},
+      {no:'11', name:'Zawieszenie dostępu i płatności', desc:'Czasowe zawieszenie kursu i płatności.'},
+      {no:'29', name:'Obniżenie o 1 ratę', desc:'Obniżenie wartości kursu o jedną ratę wewnętrzną.'},
+      {no:'29a', name:'Obniżenie o 2 raty', desc:'Obniżenie wartości kursu o dwie raty wewnętrzne.'},
+      {no:'45', name:'Limit tygodniowy', desc:'Limit tygodniowy dla rat wewnętrznych.'}
+    ],
+    limit_credit: [
+      {no:'45', name:'Limit tygodniowy', desc:'Kurs z limitem tygodniowym w wariancie kredytowym.'},
+      {no:'48', name:'Zdjęcie limitu', desc:'Usunięcie ograniczenia liczby lekcji.'},
+      {no:'9', name:'Zmiana formy płatności', desc:'Zmiana sposobu finansowania kursu.'}
+    ],
+    limit_internal: [
+      {no:'45', name:'Limit tygodniowy', desc:'Kurs z limitem tygodniowym dla rat wewnętrznych.'},
+      {no:'48', name:'Zdjęcie limitu', desc:'Usunięcie ograniczenia liczby lekcji.'},
+      {no:'11', name:'Zawieszenie', desc:'Czasowe zawieszenie dostępu i płatności.'}
+    ]
+  };
+
+  const ALL_ANNEXES = [
+    {no:'9',name:'Zmiana formy płatności'},
+    {no:'11',name:'Zawieszenie'},
+    {no:'25',name:'Zmniejszenie rat wewnętrznych'},
+    {no:'26',name:'Zmniejszenie rat kredytowych'},
+    {no:'27',name:'Zmniejszenie rat + raty wewnętrzne'},
+    {no:'28',name:'Rata gratis'},
+    {no:'29',name:'Obniżenie o 1 ratę'},
+    {no:'29a',name:'Obniżenie o 2 raty'},
+    {no:'45',name:'Limit tygodniowy'},
+    {no:'48',name:'Zdjęcie limitu'}
+  ];
+
+  const els = {
+    input:document.getElementById('pdfInput'),
+    dropzone:document.getElementById('dropzone'),
+    analyze:document.getElementById('analyzeBtn'),
+    reset:document.getElementById('resetBtn'),
+    status:document.getElementById('fileStatus'),
+    empty:document.getElementById('resultEmpty'),
+    result:document.getElementById('result'),
+    type:document.getElementById('contractType'),
+    payment:document.getElementById('paymentType'),
+    variant:document.getElementById('paymentVariant'),
+    confidence:document.getElementById('confidence'),
+    reasons:document.getElementById('reasonsList'),
+    annexSection:document.getElementById('annexSection'),
+    annexGrid:document.getElementById('annexGrid')
+  };
+
+  let currentFile=null;
+
+  function setStatus(text,kind='ok'){
+    els.status.textContent=text;
+    els.status.className=`status show ${kind}`;
+  }
+  function normalize(text){
+    return text.replace(/\u00a0/g,' ').replace(/[–—]/g,'-').replace(/\s+/g,' ').toLowerCase();
+  }
+  async function extractText(file){
+    const buffer=await file.arrayBuffer();
+    const pdf=await pdfjsLib.getDocument({data:buffer}).promise;
+    let full='';
+    for(let i=1;i<=pdf.numPages;i++){
+      const page=await pdf.getPage(i);
+      const content=await page.getTextContent();
+      full+=' '+content.items.map(x=>x.str).join(' ');
+    }
+    return normalize(full);
+  }
+  function detectPaymentVariant(text,payment){
+    if(payment==='credit') return 'Finansowanie kredytem / pożyczką';
+    if(/płatność następuje w 2 równych ratach/.test(text)) return '2 równe raty';
+    if(/kolejnych 23 rat/.test(text)) return '24 równe raty miesięczne';
+    const first=text.match(/pierwsza rata w wysokości\s*([\d.,]+)/);
+    const next=text.match(/kolejn(?:ych|e)\s+\d+\s+rat\w*\s+w wysokości\s*([\d.,]+)/);
+    if(first&&next&&first[1]!==next[1]) return 'Pierwsza rata wyższa';
+    if(/płatność jednorazowa/.test(text)) return 'Płatność jednorazowa';
+    return 'Inny wariant rat wewnętrznych';
+  }
+  function classify(text){
+    const reasons=[];
+    let type=null,payment=null,score=0;
+
+    const isLimit=/niewykorzystane lekcje .* nie przechodzą/.test(text)||/zasady korzystania z lekcji/.test(text);
+    const isFlexible=/elastyczny kurs językowy/.test(text)||(/lekcje indywidualne w różnej intensywności/.test(text)&&!isLimit);
+
+    if(isLimit){type='limit';score+=50;reasons.push('Wykryto zapis, że niewykorzystane lekcje nie przechodzą na kolejne miesiące.');}
+    else if(isFlexible){type='flexible';score+=50;reasons.push('Wykryto zapis charakterystyczny dla umowy elastycznej.');}
+    else reasons.push('Nie znaleziono jednoznacznego znacznika rodzaju umowy.');
+
+    const isCredit=/raty 0% przy wykorzystaniu kredytu konsumenckiego/.test(text)||/forma płatności:\s*raty 0%/.test(text);
+    const isInternal=/rachunek bankowy tutlo/.test(text)||/kolejnych 23 rat/.test(text)||/płatność następuje w 2 równych ratach/.test(text);
+
+    if(isCredit){payment='credit';score+=50;reasons.push('Wykryto finansowanie kredytem konsumenckim lub pożyczką.');}
+    else if(isInternal){payment='internal';score+=50;reasons.push('Wykryto płatność bezpośrednio do Tutlo lub raty wewnętrzne.');}
+    else reasons.push('Nie znaleziono jednoznacznego znacznika formy płatności.');
+
+    return {type,payment,variant:detectPaymentVariant(text,payment),score:Math.min(score,100),reasons};
+  }
+  function humanType(v){return v==='flexible'?'Umowa elastyczna':v==='limit'?'Umowa z limitem':'Nie rozpoznano';}
+  function humanPayment(v){return v==='credit'?'Kredyt / pożyczka':v==='internal'?'Raty wewnętrzne':'Nie rozpoznano';}
+
+  function openGenerator(no){
+    const url=GENERATOR_URLS[no];
+    if(url){
+      window.open(url,'_blank');
+    }else{
+      alert(`Generator aneksu ${no} nie ma jeszcze wpisanego adresu wdrożenia.\n\nDla aneksów 25 i 26 wklej ich adresy w pliku Code.gs.`);
+    }
+  }
+
+  function renderAnnexCards(items,target){
+    target.innerHTML='';
+    items.forEach(item=>{
+      const div=document.createElement('div');
+      div.className='annex';
+      div.innerHTML=`
+        <div class="annex-top">
+          <div class="annex-number">${item.no}</div>
+          <div>
+            <h3>${item.name}</h3>
+            <p>${item.desc||'Otwórz właściwy generator aneksu.'}</p>
+          </div>
+        </div>
+        <button class="btn">Wybierz aneks ${item.no}</button>`;
+      div.querySelector('button').addEventListener('click',()=>openGenerator(item.no));
+      target.appendChild(div);
+    });
+  }
+
+  function renderResult(c){
+    els.empty.style.display='none';
+    els.result.classList.add('show');
+    els.type.textContent=humanType(c.type);
+    els.payment.textContent=humanPayment(c.payment);
+    els.variant.textContent=c.variant;
+    els.confidence.textContent=c.score>=90?'Wysoka':c.score>=60?'Średnia':'Niska';
+    els.reasons.innerHTML=c.reasons.map(x=>`<li>${x}</li>`).join('');
+
+    const key=`${c.type}_${c.payment}`;
+    const items=ANNEX_RULES[key]||[];
+    if(items.length){
+      renderAnnexCards(items,els.annexGrid);
+      els.annexSection.style.display='block';
+    }else{
+      els.annexSection.style.display='none';
+    }
+  }
+
+  async function analyze(){
+    if(!currentFile)return;
+    els.analyze.disabled=true;
+    setStatus('Odczytuję PDF i klasyfikuję umowę…','warn');
+    try{
+      const text=await extractText(currentFile);
+      const c=classify(text);
+      renderResult(c);
+      setStatus(c.type&&c.payment?'Umowa została rozpoznana. Wybierz aneks.':'Nie udało się rozpoznać dokumentu. Użyj opcji „Wybierz aneks ręcznie”.',c.type&&c.payment?'ok':'warn');
+    }catch(err){
+      console.error(err);
+      setStatus('Nie udało się odczytać PDF. Użyj opcji „Wybierz aneks ręcznie”.','error');
+    }finally{
+      els.analyze.disabled=false;
+    }
+  }
+
+  function selectFile(file){
+    if(!file||file.type!=='application/pdf'){setStatus('Wybierz plik PDF.','error');return;}
+    currentFile=file;
+    els.analyze.disabled=false;
+    setStatus(`Wybrano: ${file.name}`,'ok');
+  }
+
+  els.input.addEventListener('change',e=>selectFile(e.target.files[0]));
+  els.dropzone.addEventListener('dragover',e=>{e.preventDefault();els.dropzone.classList.add('drag')});
+  els.dropzone.addEventListener('dragleave',()=>els.dropzone.classList.remove('drag'));
+  els.dropzone.addEventListener('drop',e=>{e.preventDefault();els.dropzone.classList.remove('drag');selectFile(e.dataTransfer.files[0])});
+  els.analyze.addEventListener('click',analyze);
+  els.reset.addEventListener('click',()=>{
+    currentFile=null;els.input.value='';els.analyze.disabled=true;els.status.className='status';
+    els.empty.style.display='flex';els.result.classList.remove('show');els.annexSection.style.display='none';
+  });
+
+  const manualDialog=document.getElementById('manualAnnexDialog');
+  const verifyDialog=document.getElementById('verifyDialog');
+  document.getElementById('manualAnnexBtn').addEventListener('click',()=>manualDialog.showModal());
+  document.getElementById('verifyAnnexBtn').addEventListener('click',()=>verifyDialog.showModal());
+  document.querySelectorAll('[data-close]').forEach(btn=>btn.addEventListener('click',()=>document.getElementById(btn.dataset.close).close()));
+
+  const manualGrid=document.getElementById('manualAnnexGrid');
+  ALL_ANNEXES.forEach(item=>{
+    const button=document.createElement('button');
+    button.className='manual-item';
+    button.innerHTML=`<strong>Aneks ${item.no}</strong><small>${item.name}</small>`;
+    button.addEventListener('click',()=>openGenerator(item.no));
+    manualGrid.appendChild(button);
+  });
+</script>
+</body>
+</html>
