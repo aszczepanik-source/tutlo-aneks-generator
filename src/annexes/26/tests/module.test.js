@@ -41,3 +41,32 @@ test('aneks 26: przygotowanie wypełnia wszystkie placeholdery szablonu', () => 
   assert.equal(prepared.values.SPLACONO_DO_DNIA_ANEKSU, '200,00 zł');
   assert.equal(prepared.values.KWOTA_DO_ZWROTU_BANKOWI, '200,00 zł');
 });
+
+test('aneks 26: formatuje wszystkie obsługiwane postacie dat z PDF', () => {
+  const formats = ['10.06.2025', '10-06-2025', '2025-06-10', '1.6.2025'];
+  for (const value of formats) {
+    const prepared = prepareAnnex('26', {
+      address: 'Testowa 1', contractDate: value, customerName: 'Jan Kowalski',
+      contractNumber: 'U/26', pesel: '90010112345', creditAgreementDate: value,
+      creditAmountCents: 120000, monthlyLimit: 8, teacherTypes: 'PL',
+      currentInstallmentCents: 5000, paidInstallments: 4, coursePriceCents: 120000, lessonCount: 101
+    }, { newInstallmentCents: 4000, bank: 'Bank', bankAccount: '00 1111' }, value);
+
+    const expected = value === '1.6.2025' ? '1.06.2025' : '10.06.2025';
+    assert.equal(prepared.values.DATA_ZAWARCIA_UMOWY, expected);
+    assert.equal(prepared.values.DATA_UMOWY_KREDYTU, expected);
+    assert.equal(prepared.values.DATA_ANEKSU, expected);
+    assert.equal(prepared.values.DATA_WEJSCIA_W_ZYCIE, '1.07.2025');
+  }
+});
+
+test('aneks 26: błąd daty wskazuje nazwę pola i otrzymaną wartość', () => {
+  assert.throws(() => prepareAnnex('26', {
+    address: 'Testowa 1', contractDate: '2025-06-10', customerName: 'Jan Kowalski',
+    contractNumber: 'U/26', pesel: '90010112345', creditAgreementDate: '31.02.2025',
+    creditAmountCents: 120000, monthlyLimit: 8, teacherTypes: 'PL',
+    currentInstallmentCents: 5000, paidInstallments: 4, coursePriceCents: 120000, lessonCount: 101
+  }, { newInstallmentCents: 4000, bank: 'Bank', bankAccount: '00 1111' }, '2025-06-10'), {
+    message: 'Nieprawidłowa data umowy kredytu: 31.02.2025'
+  });
+});
