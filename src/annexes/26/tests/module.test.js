@@ -8,7 +8,7 @@ const RAW_TEXT = `
 UMOWA ELASTYCZNA nr EL/JF/811/192956/3/9/2025
 DANE NABYWCY Imię i nazwisko: Monika Wójcik Adres: Galileusza 10/13, 67-200 Głogów PESEL: 82111304868
 SPECYFIKACJA KURSU Liczba Lekcji Indywidualnych: 450 Maksymalna miesięczna liczba Lekcji Indywidualnych do wykorzystania: 57
-ZAWARTOŚĆ KURSU Typy lektorów: Lektor Polski, English Expert, Native Speaker
+ZAWARTOŚĆ KURSU 1. Zajęcia w formie spotkań indywidualnych z Lektorem Polskim, English Expert, Native Speaker
 WARUNKI PŁATNOŚCI Cena kursu: Całkowita cena kursu wynosi 11250,00 zł brutto. Rata miesięczna: 999,99 zł`;
 const contract = extractContractData(RAW_TEXT, 'EL/JF/811/192956/3/9/2025');
 const account = '12345678901234567890123456';
