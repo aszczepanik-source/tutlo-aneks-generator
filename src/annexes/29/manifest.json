@@ -1,0 +1,21 @@
+{
+  "id": "29",
+  "label": "Obniżenie o 1 ratę",
+  "policy": "one-free-installment",
+  "template": "template.docx",
+  "templateVersion": "1.0.0",
+  "allowedContractVariants": [
+    "flexible/internal"
+  ],
+  "requiredFields": [
+    "ADRES",
+    "DATA_ANEKSU",
+    "DATA_WEJSCIA_W_ZYCIE",
+    "DATA_ZAWARCIA_UMOWY",
+    "IMIE_NAZWISKO",
+    "NOWA_CENA",
+    "NUMER_UMOWY",
+    "PESEL"
+  ],
+  "status": "foundation"
+}

@@ -1,0 +1,13 @@
+{
+  "name": "tutlo-aneks-generator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "check": "npm test && git diff --check"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
