@@ -72,19 +72,18 @@ const ANNEX_26_INSTALLMENTS = 24;
 
 export function calculateAnnex26(contract, annexDate, newInstallmentCents) {
   parseIsoDate(annexDate, 'data aneksu');
-  const oldInstallmentCents = Number(contract.currentInstallmentCents);
   const paidInstallments = Number(contract.paidInstallments);
   const coursePriceCents = Number(contract.coursePriceCents);
   const lessonCount = Number(contract.lessonCount);
 
-  if (!Number.isInteger(oldInstallmentCents) || oldInstallmentCents <= 0) throw new Error('Brak wysokości obecnej raty.');
+  if (!Number.isInteger(coursePriceCents) || coursePriceCents <= 0) throw new Error('Brak ceny kursu.');
+  const oldInstallmentCents = Math.round(coursePriceCents / ANNEX_26_INSTALLMENTS);
   if (!Number.isInteger(newInstallmentCents) || newInstallmentCents <= 0 || newInstallmentCents > oldInstallmentCents) {
     throw new Error('Nowa rata musi być dodatnia i nie może przekraczać obecnej raty.');
   }
   if (!Number.isInteger(paidInstallments) || paidInstallments < 0 || paidInstallments > ANNEX_26_INSTALLMENTS) {
     throw new Error('Liczba opłaconych rat musi mieścić się w zakresie od 0 do 24.');
   }
-  if (!Number.isInteger(coursePriceCents) || coursePriceCents <= 0) throw new Error('Brak ceny kursu.');
   if (!Number.isFinite(lessonCount) || lessonCount <= 0) throw new Error('Brak liczby lekcji.');
 
   const remainingInstallments = ANNEX_26_INSTALLMENTS - paidInstallments;
