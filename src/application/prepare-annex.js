@@ -2,7 +2,7 @@ import manifest11 from '../annexes/11/manifest.json' with { type: 'json' };
 import manifest26 from '../annexes/26/manifest.json' with { type: 'json' };
 import manifest29 from '../annexes/29/manifest.json' with { type: 'json' };
 import manifest29a from '../annexes/29a/manifest.json' with { type: 'json' };
-import { validateSourceData as validateAnnex26SourceData } from '../annexes/26/validator.js';
+import { validateSourceData as validateAnnex26SourceData } from '../annexes/26/index.js';
 import { BLOCKED_RULES, calculateAnnex11, calculateAnnex26, calculateAnnex29, calculateAnnex29a, formatDate, money } from '../domain/annex-calculations.js';
 
 const manifests = { '11': manifest11, '26': manifest26, '29': manifest29, '29a': manifest29a };
