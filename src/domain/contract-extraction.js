@@ -21,8 +21,8 @@ function isoDate(value) {
 }
 
 /** Extracts and validates the agreement date encoded in the contract number. */
-export function extractAgreementDateFromContractNumber(contractNumber) {
-  const segments = String(contractNumber || '').split('/');
+export function extractAgreementDateFromNumber(agreementNumber) {
+  const segments = String(agreementNumber || '').split('/');
   const dateSegments = segments.slice(-3);
 
   if (
@@ -31,7 +31,7 @@ export function extractAgreementDateFromContractNumber(contractNumber) {
     !/^\d{1,2}$/.test(dateSegments[1]) ||
     !/^\d{4}$/.test(dateSegments[2])
   ) {
-    throw new Error(`Numer umowy nie zawiera daty w formacie dzień/miesiąc/rok: ${contractNumber || '(brak numeru)'}`);
+    throw new Error(`Numer umowy nie zawiera daty w formacie dzień/miesiąc/rok: ${agreementNumber || '(brak numeru)'}`);
   }
 
   const [day, month, year] = dateSegments.map(Number);
@@ -45,17 +45,23 @@ export function extractAgreementDateFromContractNumber(contractNumber) {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
+/** Extracts the agreement number printed after "nr" in the contract heading. */
+export function extractAgreementNumber(text) {
+  const heading = String(text || '').replace(/\u00a0/g, ' ').slice(0, 4000);
+  return heading.match(/\bnr(?:\s+umowy)?\s*[:#]?\s*([A-Z0-9_-]+(?:\/[A-Z0-9_-]+)+)/i)?.[1];
+}
+
 /** Extracts annex 26 source data from the locally-read contract text. */
-export function extractAnnex26Contract(text) {
+export function extractContract(text) {
   const flat = String(text || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
   const amount = label => cents(first(flat, [new RegExp(`${label}[^\\d]{0,40}([\\d ]+(?:[,.]\\d{1,2})?)\\s*(?:zł|PLN)`, 'i')]));
   const number = label => first(flat, [new RegExp(`${label}[^\\d]{0,30}(\\d+)`, 'i')]);
-  const contractNumber = first(flat, [/(?:numer|nr)\s+umowy\s*[:#]?\s*([A-Z0-9/_-]+)/i, /umow[ay]\s+nr\s*([A-Z0-9/_-]+)/i]);
+  const agreementNumber = extractAgreementNumber(text);
 
   const paidInstallments = number('(?:liczba rat już opłaconych|numer aktualnej raty|opłacono rat)');
   return {
-    contractNumber,
-    agreementDate: extractAgreementDateFromContractNumber(contractNumber),
+    agreementNumber,
+    agreementDate: extractAgreementDateFromNumber(agreementNumber),
     customerName: first(flat, [/(?:imię i nazwisko|imie i nazwisko)\s*:\s*([^,;]{3,80})/i, /(?:kursant|klient)\s*:\s*([^,;]{3,80})/i]),
     address: first(flat, [/(?:adres zamieszkania|adres)\s*:\s*(.{5,120}?)(?=\s+(?:PESEL|NIP|telefon|e-mail|email)\b)/i]),
     pesel: first(flat, [/(?:PESEL|NIP)\s*:\s*([0-9-]{10,13})/i]),

@@ -3,16 +3,15 @@ import manifest26 from '../annexes/26/manifest.json' with { type: 'json' };
 import manifest29 from '../annexes/29/manifest.json' with { type: 'json' };
 import manifest29a from '../annexes/29a/manifest.json' with { type: 'json' };
 import { BLOCKED_RULES, calculateAnnex11, calculateAnnex26, calculateAnnex29, calculateAnnex29a, formatDate, money } from '../domain/annex-calculations.js';
-import { logAnnex26Diagnostic } from '../infrastructure/annex-diagnostics.js';
 
 const manifests = { '11': manifest11, '26': manifest26, '29': manifest29, '29a': manifest29a };
 const base = contract => ({
   ADRES: contract.address,
   DATA_ZAWARCIA_UMOWY: formatDate(
-    contract.dataZawarciaUmowy ?? contract.contractDate ?? contract.agreementDate,
+    contract.agreementDate,
     'data zawarcia umowy'
   ),
-  IMIE_NAZWISKO: contract.customerName, NUMER_UMOWY: contract.contractNumber, PESEL: contract.pesel
+  IMIE_NAZWISKO: contract.customerName, NUMER_UMOWY: contract.agreementNumber, PESEL: contract.pesel
 });
 const scheduleValues = installments => Object.fromEntries(installments.flatMap((item, index) => {
   const key = String(index + 1).padStart(2, '0');
@@ -20,7 +19,6 @@ const scheduleValues = installments => Object.fromEntries(installments.flatMap((
 }));
 
 export function prepareAnnex(annexId, contract, inputs = {}, today = new Date().toISOString().slice(0, 10)) {
-  if (annexId === '26') logAnnex26Diagnostic("obiekt otrzymany przez prepareAnnex('26')", contract);
   if (BLOCKED_RULES[annexId]) return { blocked: true, reason: BLOCKED_RULES[annexId] };
   let calculation;
   let values = base(contract);
