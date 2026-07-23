@@ -10,7 +10,8 @@ const CONFIG = Object.freeze({
     '25': '12xjwh6fXsnivYjbbw0WuUGuUn0Cr5bXYPHPEPvkRlAo',
     '26': '1zBnWr2MqKpbde0EbAdvArog6KIkKYpEmkyvqPDS38EU',
     '29': '1BCLvq-hHsGR1Yye_uAqahnEM0i4_3vJVUuadOCBqXhQ',
-    '29a': '1MJtPcGQmxjLs5twy1mcSE7waRGBri6EEKFTLc2qsj2c'
+    '29a': '1MJtPcGQmxjLs5twy1mcSE7waRGBri6EEKFTLc2qsj2c',
+    '43': 'UZUPEŁNIJ_ID_SZABLONU_43'
   })
 });
 
@@ -55,6 +56,15 @@ const REQUIRED = Object.freeze({
     'IMIE_NAZWISKO',
     'NOWA_CENA',
     'NUMER_UMOWY',
+    'PESEL'
+  ],
+  '43': [
+    'NUMER_UMOWY',
+    'DATA_ZAWARCIA_UMOWY',
+    'DATA_ANEKSU',
+    'DATA_WEJSCIA_W_ZYCIE',
+    'IMIE_NAZWISKO',
+    'ADRES',
     'PESEL'
   ]
 });

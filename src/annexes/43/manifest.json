@@ -1,0 +1,25 @@
+{
+  "id": "43",
+  "label": "Grupa rodzinna (Tutlo Plus)",
+  "available": true,
+  "availabilityText": "za dodatkową opłatą",
+  "template": "template.docx",
+  "templatePending": true,
+  "templateVersion": "1.0.0",
+  "allowedContractVariants": [
+    "flexible",
+    "limit",
+    "credit",
+    "internal"
+  ],
+  "requiredFields": [
+    "NUMER_UMOWY",
+    "DATA_ZAWARCIA_UMOWY",
+    "DATA_ANEKSU",
+    "DATA_WEJSCIA_W_ZYCIE",
+    "IMIE_NAZWISKO",
+    "ADRES",
+    "PESEL"
+  ],
+  "status": "ready"
+}

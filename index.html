@@ -415,6 +415,7 @@
   import { getAnnexRoute } from './router.js';
   import { AppsScriptClient } from './src/infrastructure/apps-script-client.js';
   import { prepareAnnex26 } from './src/annexes/26/index.js';
+  import { prepareAnnex43 } from './src/annexes/43/index.js';
   import { extractAgreementNumber } from './src/domain/contract-extraction.js';
   import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
   pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -440,7 +441,7 @@
     {no:'lektorzy-pl',marker:'PL',name:'Rozszerzenie pakietu lektorów',desc:'Dostępny, gdy umowa nie obejmuje lektorów PL.',status:'external',when:c=>c?.hasPolishLecturers===false},
     {no:'45',name:'Aneks 45',desc:'Tylko dla umowy z limitem finansowanej kredytem.',status:'external',when:c=>c?.type==='limit'&&c?.payment==='credit'},
     {no:'10',name:'Aneks 10',desc:'Zmiana formy płatności.',status:'planned'},
-    {no:'43',name:'Aneks 43',desc:'Dodanie grupy rodzinnej.',status:'planned'},
+    {no:'43',name:'Grupa rodzinna (Tutlo Plus)',desc:'Dodanie grupy rodzinnej.',status:'tutlo',when:c=>c?.hasFamilyAdditionalFee===true},
     {no:'47',name:'Aneks 47',desc:'Przejście z limitu na umowę elastyczną.',status:'planned'},
     {no:'grupa-rodzinna',marker:'GR',name:'Grupa rodzinna',status:'planned'},
     {no:'9',name:'Aneks 9',desc:'Niewdrożony aneks.',status:'planned'},
@@ -534,6 +535,7 @@
 
   function openGenerator(no){
     const route=getAnnexRoute(no);
+    if(no==='43'&&!getAnnexRoute(no,currentContract)) return;
     if(route?.status==='blocked'){
       alert(`Generowanie aneksu ${no} jest zablokowane.\n\n${route.blockingReason}`);
       return;
@@ -541,6 +543,13 @@
     if(no==='26'){
       if(!currentContract){ alert('Najpierw wczytaj i rozpoznaj umowę kredytową.'); return; }
       document.getElementById('annex26Dialog').showModal();
+      return;
+    }
+    if(no==='43'){
+      if(!currentContract){ alert('Najpierw wczytaj i rozpoznaj umowę.'); return; }
+      appsScriptClient.generate(prepareAnnex43(currentContract))
+        .then(result=>window.open(result.documentUrl,'_blank'))
+        .catch(error=>alert(error.message));
       return;
     }
     const url=route&&appsScriptClient.endpoint;
@@ -603,6 +612,7 @@
       const normalizedText=normalize(text);
       const c=classify(normalizedText);
       c.hasPolishLecturers=/lektor(?:zy|ów|ami)?\s+(?:języka\s+)?polsk(?:iego|ich|imi)|polscy\s+lektorzy|lektorzy\s+pl/.test(normalizedText);
+      c.hasFamilyAdditionalFee=normalizedText.includes('za dodatkową opłatą');
       currentClassification=c;
       currentContract={
         agreementNumber:extractAgreementNumber(text),
