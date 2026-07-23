@@ -155,6 +155,17 @@ function generate_(request) {
     throw new Error('Brak wymaganych pól: ' + missing.join(', '));
   }
 
+  if (request.annexId === '26' && ![
+    'Inbank',
+    'Oney',
+    'BGŻ BNP Paribas',
+    'mBank',
+    'Ikano Bank',
+    'Alior Bank'
+  ].includes(request.values.BANK)) {
+    throw new Error('Wybierz bank z listy.');
+  }
+
   const cache = CacheService.getScriptCache();
   const cacheKey = 'request:' + request.requestId;
 

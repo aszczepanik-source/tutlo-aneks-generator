@@ -13,6 +13,15 @@ const REQUIRED = [
   ['bankAccount', 'Nie podano numeru rachunku bankowego.']
 ];
 
+const ALLOWED_BANKS = new Set([
+  'Inbank',
+  'Oney',
+  'BGŻ BNP Paribas',
+  'mBank',
+  'Ikano Bank',
+  'Alior Bank'
+]);
+
 export function validateAnnex26Data(data) {
   const missing = REQUIRED.find(([field]) => data[field] === undefined
     || data[field] === null || data[field] === '');
@@ -23,6 +32,9 @@ export function validateAnnex26Data(data) {
   }
   if (data.newInstallmentCents >= data.currentInstallmentCents) {
     throw new Error('Nowa rata musi być niższa od obecnej raty.');
+  }
+  if (!ALLOWED_BANKS.has(data.bank)) {
+    throw new Error('Wybierz bank z listy.');
   }
   if (!/^\d{26}$/.test(data.bankAccount)) {
     throw new Error('Numer rachunku musi zawierać dokładnie 26 cyfr.');

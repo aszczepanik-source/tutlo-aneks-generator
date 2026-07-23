@@ -22,6 +22,7 @@ test('istniejący Apps Script generuje aneks 26 i podstawia wszystkie placeholde
   vm.createContext(context);
   vm.runInContext(await readFile(new URL('../../apps-scirpt/Code.gs', import.meta.url), 'utf8'), context);
   const values = Object.fromEntries(manifest.requiredFields.map(field => [field, `wartość ${field}`]));
+  values.BANK = 'Alior Bank';
   const output = context.doPost({ postData: { contents: JSON.stringify({ action: 'generate', annexId: '26', requestId: 'request-26-test', values }) } });
   const result = JSON.parse(output.value);
 
