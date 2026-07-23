@@ -264,6 +264,9 @@
     .manual-item strong{display:block;margin-bottom:5px}
     .manual-item small{color:var(--muted)}
     .version{font-size:12px;font-weight:800;margin-top:8px}
+    .annex-form{display:grid;gap:14px}
+    .annex-form label{display:grid;gap:6px;font-size:13px;font-weight:800}
+    .annex-form input{border:1px solid var(--line);border-radius:10px;padding:12px;font:inherit}
     @media(max-width:900px){
       .grid{grid-template-columns:1fr}
       .annex-grid{grid-template-columns:1fr 1fr}
@@ -363,6 +366,22 @@
   </div>
 </dialog>
 
+<dialog id="annex26Dialog">
+  <div class="modal-head">
+    <h3>Aneks 26 – Zmniejszenie rat kredytowych</h3>
+    <button class="close" data-close="annex26Dialog">×</button>
+  </div>
+  <div class="modal-body">
+    <form id="annex26Form" class="annex-form">
+      <label>Nowa rata (zł)<input id="annex26NewInstallment" inputmode="decimal" required></label>
+      <label>Bank<input id="annex26Bank" required></label>
+      <label>Numer rachunku bankowego<input id="annex26BankAccount" inputmode="numeric" required></label>
+      <button class="btn" type="submit">Wygeneruj aneks 26</button>
+      <div id="annex26Status" class="status"></div>
+    </form>
+  </div>
+</dialog>
+
 <dialog id="verifyDialog">
   <div class="modal-head">
     <h3>Sprawdź swój aneks</h3>
@@ -378,6 +397,8 @@
   import { APPS_SCRIPT_URL } from './config.js';
   import { getAnnexRoute } from './router.js';
   import { AppsScriptClient } from './src/infrastructure/apps-script-client.js';
+  import { prepareAnnex } from './src/application/prepare-annex.js';
+  import { extractAnnex26Contract } from './src/domain/contract-extraction.js';
   import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
@@ -441,7 +462,7 @@
     annexGrid:document.getElementById('annexGrid')
   };
 
-  let currentFile=null;
+  let currentFile=null,currentContract=null;
 
   function setStatus(text,kind='ok'){
     els.status.textContent=text;
@@ -459,7 +480,7 @@
       const content=await page.getTextContent();
       full+=' '+content.items.map(x=>x.str).join(' ');
     }
-    return normalize(full);
+    return full;
   }
   function detectPaymentVariant(text,payment){
     if(payment==='credit') return 'Finansowanie kredytem / pożyczką';
@@ -498,6 +519,11 @@
     const route=getAnnexRoute(no);
     if(route?.status==='blocked'){
       alert(`Generowanie aneksu ${no} jest zablokowane.\n\n${route.blockingReason}`);
+      return;
+    }
+    if(no==='26'){
+      if(!currentContract){ alert('Najpierw wczytaj i rozpoznaj umowę kredytową.'); return; }
+      document.getElementById('annex26Dialog').showModal();
       return;
     }
     const url=route&&appsScriptClient.endpoint;
@@ -552,7 +578,8 @@
     setStatus('Odczytuję PDF i klasyfikuję umowę…','warn');
     try{
       const text=await extractText(currentFile);
-      const c=classify(text);
+      const c=classify(normalize(text));
+      currentContract=extractAnnex26Contract(text);
       renderResult(c);
       setStatus(c.type&&c.payment?'Umowa została rozpoznana. Wybierz aneks.':'Nie udało się rozpoznać dokumentu. Użyj opcji „Wybierz aneks ręcznie”.',c.type&&c.payment?'ok':'warn');
     }catch(err){
@@ -576,7 +603,7 @@
   els.dropzone.addEventListener('drop',e=>{e.preventDefault();els.dropzone.classList.remove('drag');selectFile(e.dataTransfer.files[0])});
   els.analyze.addEventListener('click',analyze);
   els.reset.addEventListener('click',()=>{
-    currentFile=null;els.input.value='';els.analyze.disabled=true;els.status.className='status';
+    currentFile=null;currentContract=null;els.input.value='';els.analyze.disabled=true;els.status.className='status';
     els.empty.style.display='flex';els.result.classList.remove('show');els.annexSection.style.display='none';
   });
 
@@ -585,6 +612,23 @@
   document.getElementById('manualAnnexBtn').addEventListener('click',()=>manualDialog.showModal());
   document.getElementById('verifyAnnexBtn').addEventListener('click',()=>verifyDialog.showModal());
   document.querySelectorAll('[data-close]').forEach(btn=>btn.addEventListener('click',()=>document.getElementById(btn.dataset.close).close()));
+
+  document.getElementById('annex26Form').addEventListener('submit',async event=>{
+    event.preventDefault();
+    const status=document.getElementById('annex26Status');
+    const amount=Number(document.getElementById('annex26NewInstallment').value.replace(',','.'));
+    status.textContent='Tworzę dokument…';status.className='status show warn';
+    try{
+      const prepared=prepareAnnex('26',currentContract,{
+        newInstallmentCents:Math.round(amount*100),
+        bank:document.getElementById('annex26Bank').value.trim(),
+        bankAccount:document.getElementById('annex26BankAccount').value.trim()
+      });
+      const result=await appsScriptClient.generate(prepared);
+      status.textContent='Aneks został wygenerowany.';status.className='status show ok';
+      window.open(result.documentUrl,'_blank');
+    }catch(error){ status.textContent=error.message;status.className='status show error'; }
+  });
 
   const manualGrid=document.getElementById('manualAnnexGrid');
   ALL_ANNEXES.forEach(item=>{

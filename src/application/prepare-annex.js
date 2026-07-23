@@ -1,9 +1,10 @@
 import manifest11 from '../annexes/11/manifest.json' with { type: 'json' };
+import manifest26 from '../annexes/26/manifest.json' with { type: 'json' };
 import manifest29 from '../annexes/29/manifest.json' with { type: 'json' };
 import manifest29a from '../annexes/29a/manifest.json' with { type: 'json' };
-import { BLOCKED_RULES, calculateAnnex11, calculateAnnex29, calculateAnnex29a, formatDate, money } from '../domain/annex-calculations.js';
+import { BLOCKED_RULES, calculateAnnex11, calculateAnnex26, calculateAnnex29, calculateAnnex29a, formatDate, money } from '../domain/annex-calculations.js';
 
-const manifests = { '11': manifest11, '29': manifest29, '29a': manifest29a };
+const manifests = { '11': manifest11, '26': manifest26, '29': manifest29, '29a': manifest29a };
 const base = contract => ({
   ADRES: contract.address, DATA_ZAWARCIA_UMOWY: formatDate(contract.contractDate),
   IMIE_NAZWISKO: contract.customerName, NUMER_UMOWY: contract.contractNumber, PESEL: contract.pesel
@@ -23,6 +24,33 @@ export function prepareAnnex(annexId, contract, inputs = {}, today = new Date().
       'DATA-WZNOWIENIA-PŁATNOŚCI': formatDate(calculation.paymentResumeDate), 'DŁUGOŚĆ_ZAWIESZENIA': String(calculation.suspensionMonths),
       START_ZAWIESZENIA: formatDate(calculation.suspensionStart), KONIEC_ZAWIESZENIA: formatDate(calculation.suspensionEnd),
       NOWY_KONIEC_UMOWY: formatDate(calculation.newContractEndDate), ...scheduleValues(calculation.installments) };
+  } else if (annexId === '26') {
+    const requiredContractData = {
+      creditAgreementDate: contract.creditAgreementDate,
+      creditAmountCents: contract.creditAmountCents,
+      monthlyLimit: contract.monthlyLimit,
+      teacherTypes: contract.teacherTypes
+    };
+    const missingContractData = Object.entries(requiredContractData)
+      .filter(([, value]) => value === undefined || value === null || value === '')
+      .map(([field]) => field);
+    if (missingContractData.length) throw new Error(`Brak wymaganych danych umowy: ${missingContractData.join(', ')}`);
+    calculation = calculateAnnex26(contract, today, Number(inputs.newInstallmentCents));
+    values = { ...values,
+      BANK: inputs.bank,
+      DATA_ANEKSU: formatDate(today),
+      DATA_UMOWY_KREDYTU: formatDate(contract.creditAgreementDate),
+      DATA_WEJSCIA_W_ZYCIE: formatDate(calculation.effectiveDate),
+      KWOTA_DO_ZWROTU_BANKOWI: money(calculation.bankRefundCents),
+      KWOTA_KREDYTU: money(contract.creditAmountCents),
+      LIMIT_MIESIECZNY: String(contract.monthlyLimit),
+      NOWA_CENA: money(calculation.newPriceCents),
+      NOWA_LICZBA_LEKCJI: String(calculation.newLessonCount),
+      NOWA_SREDNIA_RATA: money(calculation.newAverageInstallmentCents),
+      NUMER_RACHUNKU_BANKU: inputs.bankAccount,
+      SPLACONO_DO_DNIA_ANEKSU: money(calculation.paidToAnnexDateCents),
+      TYPY_LEKTOROW: contract.teacherTypes
+    };
   } else {
     calculation = annexId === '29' ? calculateAnnex29(contract, today) : calculateAnnex29a(contract, today);
     values = { ...values, DATA_ANEKSU: formatDate(today), DATA_WEJSCIA_W_ZYCIE: formatDate(calculation.effectiveDate), NOWA_CENA: money(calculation.newPriceCents) };

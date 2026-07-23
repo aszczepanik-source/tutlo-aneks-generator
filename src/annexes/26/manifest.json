@@ -28,6 +28,5 @@
     "SPLACONO_DO_DNIA_ANEKSU",
     "TYPY_LEKTOROW"
   ],
-  "status": "blocked",
-  "blockingReason": "Brak reguł obliczania nowej ceny, liczby lekcji, średniej raty, kwoty spłaconej i zwrotu bankowi. Bank i rachunek są polami konsultanta."
+  "status": "ready"
 }
