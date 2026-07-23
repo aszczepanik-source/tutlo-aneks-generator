@@ -76,15 +76,16 @@ const runtime = `/* Wygenerowany bundle release ${version}. Bez ES Modules. */
   }
 
   class AppsScriptClient {
-    constructor(endpoint, fetchImpl = globalThis.fetch) {
-      this.endpoint = endpoint; this.fetch = fetchImpl; this.inFlight = new Map();
+    constructor(endpoint, request) {
+      this.endpoint = endpoint; this.request = request; this.inFlight = new Map();
     }
     generate(prepared, requestId = globalThis.crypto?.randomUUID?.() || \`req-\${Date.now()}-\${Math.random().toString(16).slice(2)}\`) {
       if (this.inFlight.has(requestId)) return this.inFlight.get(requestId);
-      const operation = this.fetch(this.endpoint, {
+      const options = {
         method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ action: 'generate', requestId, ...prepared })
-      }).then(async response => {
+      };
+      const operation = (this.request ? this.request(this.endpoint, options) : window.fetch(this.endpoint, options)).then(async response => {
         if (!response.ok) throw new Error('Usługa generowania jest niedostępna.');
         return response.json();
       }).then(result => {

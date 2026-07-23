@@ -35,7 +35,13 @@ test('dist file:// wykonuje formularz 26 aż do AppsScriptClient bez ReferenceEr
       request = JSON.parse(options.body);
       return { ok: true, json: async () => ({ ok: true, documentUrl: 'https://docs.google.com/document/d/runtime-26' }) };
     },
-    window: { open: url => { opened = url; } }, alert() {},
+    window: {
+      fetch: async (_url, options) => {
+        request = JSON.parse(options.body);
+        return { ok: true, json: async () => ({ ok: true, documentUrl: 'https://docs.google.com/document/d/runtime-26' }) };
+      },
+      open: url => { opened = url; }
+    }, alert() {},
     document: {
       getElementById: element,
       querySelectorAll: () => [],
