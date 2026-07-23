@@ -6,7 +6,11 @@ import { BLOCKED_RULES, calculateAnnex11, calculateAnnex26, calculateAnnex29, ca
 
 const manifests = { '11': manifest11, '26': manifest26, '29': manifest29, '29a': manifest29a };
 const base = contract => ({
-  ADRES: contract.address, DATA_ZAWARCIA_UMOWY: formatDate(contract.agreementDate, 'data zawarcia umowy'),
+  ADRES: contract.address,
+  DATA_ZAWARCIA_UMOWY: formatDate(
+    contract.dataZawarciaUmowy ?? contract.contractDate ?? contract.agreementDate,
+    'data zawarcia umowy'
+  ),
   IMIE_NAZWISKO: contract.customerName, NUMER_UMOWY: contract.contractNumber, PESEL: contract.pesel
 });
 const scheduleValues = installments => Object.fromEntries(installments.flatMap((item, index) => {
