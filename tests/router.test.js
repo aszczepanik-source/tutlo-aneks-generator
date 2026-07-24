@@ -59,6 +59,14 @@ test('interface presents the requested annex statuses and click messages', async
   assert.match(availability, /name: 'Aneks 45'.*type === 'limit'.*payment === 'credit'/);
 });
 
+test('obie listy kart UI korzystają bezpośrednio z centralnej reguły dostępności', async () => {
+  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+
+  assert.match(html, /const items=getAvailableAnnexCards\(c\)/);
+  assert.match(html, /getAvailableAnnexCards\(currentClassification\)\.forEach/);
+  assert.doesNotMatch(html, /function availableAnnexes/);
+});
+
 test('konfiguracja release zawiera moduły i lokalne szablony wymagane przez GitHub Pages', async () => {
   const releaseHtml = await readFile(new URL('../index.html', import.meta.url), 'utf8');
   const generator = await readFile(new URL('../src/infrastructure/local-docx-generator.js', import.meta.url), 'utf8');

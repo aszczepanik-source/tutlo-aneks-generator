@@ -18,16 +18,27 @@ const BUYER_FIELD_END = String.raw`(?=\s+(?:adres|telefon|e-?mail|PESEL|NIP)\s*:
 /** Reads identity fields exclusively from the DANE NABYWCY table. */
 function extractBuyerData(buyer) {
   const companyName = capture(buyer, new RegExp(String.raw`firma\s*:\s*(.+?)${BUYER_FIELD_END}`, 'i'));
-  const nipLabel = /(?:^|\s)NIP\s*:/i.test(buyer);
-  const rawNip = capture(buyer, /(?:^|\s)NIP\s*:\s*([\d\s-]+?)(?=\s+(?:adres|telefon|e-?mail|PESEL)\s*:|$)/i);
-  const nip = rawNip?.replace(/[\s-]/g, '');
+  // The PDF text layer may separate the label, optional colon and value into
+  // different items. At this point those item boundaries are whitespace, so
+  // read only the digit/space/hyphen run immediately following the buyer's NIP
+  // label. In particular, never search the seller/header part of the document.
+  const nipMatch = buyer.match(/(?:^|\s)NIP\b\s*:?\s*([\d][\d\s-]*)/i);
+  const nipLabelFound = /(?:^|\s)NIP\b/i.test(buyer);
+  const nip = nipMatch?.[1].trim().replace(/[\s-]/g, '');
+  const nipDiagnostic = {
+    labelFound: nipLabelFound,
+    normalizedLength: nip?.length || 0,
+    isExactly10Digits: /^\d{10}$/.test(nip || '')
+  };
 
   // A FIRMA row identifies the intended buyer variant even when its NIP is
   // incomplete, so downstream validation can report the useful NIP error.
   if (companyName !== undefined) {
+    // Deliberately contains neither the NIP nor any other buyer data.
+    console.info('[NIP nabywcy diagnostic]', nipDiagnostic);
     return {
       customerName: companyName,
-      pesel: nipLabel && /^\d{10}$/.test(nip || '') ? nip : undefined,
+      pesel: nipDiagnostic.isExactly10Digits ? nip : undefined,
       customerType: 'company'
     };
   }
