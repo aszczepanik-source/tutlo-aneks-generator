@@ -404,8 +404,7 @@
       </label>
       <label>Numer rachunku bankowego<input id="annex26BankAccount" inputmode="numeric" maxlength="26" pattern="[0-9]{26}" required></label>
       <div class="actions">
-        <button class="btn" type="submit">Wygeneruj aneks 26</button>
-        <button class="btn secondary" id="testPostBtn" type="button">TEST POST</button>
+        <button class="btn" type="submit">Pobierz aneks</button>
       </div>
       <div id="annex26Status" class="status"></div>
     </form>
@@ -423,18 +422,16 @@
   </div>
 </dialog>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.1.8/pizzip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.62.0/docxtemplater.js"></script>
 <script type="module">
-  import { APPS_SCRIPT_URL } from './config.js';
   import { getAnnexRoute } from './router.js';
-  import { AppsScriptClient, createRequestId } from './src/infrastructure/apps-script-client.js';
+  import { downloadAnnex26 } from './src/infrastructure/local-docx-generator.js';
   import { prepareAnnex26 } from './src/annexes/26/index.js';
-  import { prepareAnnex43 } from './src/annexes/43/index.js';
   import { extractAgreementNumber, extractContractData } from './src/domain/contract-extraction.js';
   import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
-
-  const appsScriptClient = new AppsScriptClient(APPS_SCRIPT_URL);
 
   const ANNEX_STATUSES = {
     tutlo:{label:'Generator Tutlo',className:'generator-tutlo'},
@@ -560,17 +557,10 @@
     }
     if(no==='43'){
       if(!currentContract){ alert('Najpierw wczytaj i rozpoznaj umowę.'); return; }
-      appsScriptClient.generate(prepareAnnex43(currentContract))
-        .then(result=>window.open(result.documentUrl,'_blank'))
-        .catch(error=>alert(error.message));
+      alert('Lokalne pobieranie aneksu 43 zostanie udostępnione w kolejnym etapie.');
       return;
     }
-    const url=route&&appsScriptClient.endpoint;
-    if(url){
-      window.open(url,'_blank');
-    }else{
-      alert(`Generator aneksu ${no} nie ma jeszcze wpisanego adresu wdrożenia.`);
-    }
+    alert(`Lokalne pobieranie aneksu ${no} zostanie udostępnione w kolejnym etapie.`);
   }
 
   function renderAnnexCards(items,target){
@@ -676,32 +666,6 @@
     annex26BankAccount.setCustomValidity(annex26BankAccount.value.length===26?'':'Numer rachunku musi zawierać dokładnie 26 cyfr.');
   });
 
-  document.getElementById('testPostBtn').addEventListener('click',()=>{
-    const annex26Form=document.getElementById('annex26Form');
-    if(!annex26Form.reportValidity()) return;
-    const prepared=prepareAnnex26(currentContract,{
-      newInstallment:Number(document.getElementById('annex26NewInstallment').value.replace(',','.')),
-      bank:document.getElementById('annex26Bank').value.trim(),
-      bankAccount:annex26BankAccount.value
-    });
-    const payload=document.createElement('input');
-    payload.type='hidden';
-    payload.name='payload';
-    payload.value=JSON.stringify({
-      action:'generate',
-      requestId:createRequestId(),
-      ...prepared
-    });
-    const form=document.createElement('form');
-    form.action=APPS_SCRIPT_URL;
-    form.method='POST';
-    form.target='_blank';
-    form.appendChild(payload);
-    document.body.appendChild(form);
-    form.submit();
-    form.remove();
-  });
-
   document.getElementById('annex26Form').addEventListener('submit',async event=>{
     event.preventDefault();
     const status=document.getElementById('annex26Status');
@@ -714,9 +678,8 @@
         bank:document.getElementById('annex26Bank').value.trim(),
         bankAccount:annex26BankAccount.value
       });
-      const result=await appsScriptClient.generate(prepared);
-      status.textContent='Aneks został wygenerowany.';status.className='status show ok';
-      window.open(result.documentUrl,'_blank');
+      await downloadAnnex26(prepared,{requiredFields:prepared.requiredFields});
+      status.textContent='Aneks został pobrany';status.className='status show ok';
     }catch(error){ status.textContent=error.message;status.className='status show error'; }
   });
 

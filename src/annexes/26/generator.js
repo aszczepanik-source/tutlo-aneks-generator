@@ -73,5 +73,5 @@ export function prepareAnnex26(contract, formData) {
   };
 
   return { annexId: manifest.id, template: manifest.template,
-    templateVersion: manifest.templateVersion, values, calculation };
+    templateVersion: manifest.templateVersion, requiredFields: manifest.requiredFields, values, calculation };
 }
