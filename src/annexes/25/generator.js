@@ -5,6 +5,11 @@ const required = (value, label) => {
   if (value === undefined || value === null || String(value).trim() === '') throw new Error(`Brak danych umowy: ${label}.`);
   return value;
 };
+const contractBankAccount = value => {
+  const normalized = String(value ?? '').replace(/[\s-]/g, '');
+  if (!/^\d{26}$/.test(normalized)) throw new Error('Nie odczytano numeru rachunku z umowy.');
+  return normalized;
+};
 const scheduleValues = installments => Object.fromEntries(installments.flatMap(item => {
   const key = String(item.nr).padStart(2, '0');
   return [[`RATA_${key}_KWOTA`, money(item.amountCents)], [`RATA_${key}_TERMIN`, formatDate(item.dueDate)]];
@@ -24,7 +29,7 @@ export function prepareAnnex25(currentContract, inputs = {}, annexDate = new Dat
     NOWA_CENA: money(calculation.newPriceCents),
     NOWA_LICZBA_LEKCJI: String(Math.round(lessonCount * calculation.newPriceCents / currentContract.coursePriceCents)),
     NOWA_SREDNIA_RATA: money(calculation.newAverageInstallmentCents),
-    NUMER_KONTA: required(currentContract.bankAccount, 'numer konta z umowy'),
+    NUMER_KONTA: contractBankAccount(currentContract.bankAccount),
     NUMER_UMOWY: required(currentContract.agreementNumber, 'numer umowy'),
     PESEL: required(currentContract.pesel, 'PESEL'),
     TYPY_LEKTOROW: required(currentContract.teacherTypes, 'typy lektorów'),

@@ -5,6 +5,7 @@ import { getAnnexRoute } from '../../../../router.js';
 import { calculateAnnex25, parseMoneyToCents } from '../../../domain/annex-calculations.js';
 import { prepareAnnex25 } from '../generator.js';
 import manifest from '../manifest.json' with { type: 'json' };
+import { extractDocxPlaceholders } from '../../shared/template-inspection.js';
 
 const installments = Array.from({ length: 24 }, (_, index) => ({
   dueDate: `${2025 + Math.floor((index + 8) / 12)}-${String((index + 8) % 12 + 1).padStart(2, '0')}-15`
@@ -50,6 +51,42 @@ test('prepareAnnex25 wypełnia dokładnie wszystkie rzeczywiste placeholdery', (
   const prepared = prepareAnnex25(contract, { newInstallment: '300,00 zł' }, '2026-01-20');
   assert.deepEqual(Object.keys(prepared.values).sort(), [...manifest.requiredFields].sort());
   assert.equal(Object.values(prepared.values).some(value => /NaN|Infinity|undefined|null|\{\{/.test(String(value))), false);
+});
+
+test('formularz aneksu 25 zawiera wyłącznie pole nowej raty', async () => {
+  const html = await readFile(new URL('../../../../index.html', import.meta.url), 'utf8');
+  const form = html.match(/<form id="annex25Form"[\s\S]*?<\/form>/)?.[0];
+  assert.equal((form.match(/<input\b/g) || []).length, 1);
+  assert.match(form, /id="annex25NewInstallment"/);
+  assert.doesNotMatch(form, /bank|rachun|dat[aey] zmian/i);
+});
+
+test('numer konta pochodzi z currentContract, jest normalizowany i pozostaje stringiem', () => {
+  const spacedAccount = '12 3456-7890 1234 5678 9012 3456';
+  const prepared = prepareAnnex25(
+    { ...contract, bankAccount: spacedAccount },
+    { newInstallment: '300', bank: 'Nie używaj', bankAccount: '99999999999999999999999999' },
+    '2026-01-20'
+  );
+  assert.equal(prepared.values.NUMER_KONTA, '12345678901234567890123456');
+  assert.equal(typeof prepared.values.NUMER_KONTA, 'string');
+  assert.equal('BANK' in prepared.values, false);
+});
+
+test('brak poprawnego konta w currentContract blokuje generowanie czytelnym komunikatem', () => {
+  for (const bankAccount of [undefined, '', '123', '123456789012345678901234567']) {
+    assert.throws(
+      () => prepareAnnex25({ ...contract, bankAccount }, { newInstallment: '300' }, '2026-01-20'),
+      /Nie odczytano numeru rachunku z umowy\./
+    );
+  }
+});
+
+test('szablon aneksu 25 używa placeholdera NUMER_KONTA', async () => {
+  const template = await readFile(new URL('../template.docx', import.meta.url));
+  assert.ok(extractDocxPlaceholders(template).includes('NUMER_KONTA'));
+  assert.equal(prepareAnnex25(contract, { newInstallment: '300' }, '2026-01-20').values.NUMER_KONTA,
+    contract.bankAccount);
 });
 
 test('build publikuje firmowy szablon aneksu 25', async () => {
