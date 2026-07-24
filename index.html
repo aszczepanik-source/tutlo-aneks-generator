@@ -440,6 +440,7 @@
 <script src="./vendor/docxtemplater.js"></script>
 <script type="module">
   import { getAnnexRoute } from './router.js';
+  import { ANNEX_STATUSES, getAvailableAnnexCards } from './src/annexes/availability.js';
   import { downloadAnnex25, downloadAnnex26 } from './src/infrastructure/local-docx-generator.js';
   import { prepareAnnex25 } from './src/annexes/25/index.js';
   import { prepareAnnex26 } from './src/annexes/26/index.js';
@@ -447,34 +448,6 @@
   import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
-
-  const ANNEX_STATUSES = {
-    tutlo:{label:'Generator Tutlo',className:'generator-tutlo'},
-    external:{label:'Aneks w Team Tutlo',className:'external-generator'},
-    planned:{label:'W przygotowaniu',className:'in-preparation'}
-  };
-
-  const ALL_ANNEXES = [
-    {no:'11',name:'Zawieszenie umowy',status:'tutlo'},
-    {no:'25',name:'Zmniejszenie rat wewnętrznych',desc:'Dla umowy elastycznej na 24 raty wewnętrzne.',status:'tutlo',when:c=>c?.type==='flexible'&&c?.payment==='internal'&&c?.variant==='24 równe raty miesięczne'},
-    {no:'26',name:'Zmniejszenie rat kredytowych',status:'tutlo'},
-    {no:'29',name:'Jedna rata gratis',status:'tutlo'},
-    {no:'29a',name:'Dwie raty gratis',status:'tutlo'},
-    {no:'wydluzenie-dostepu',marker:'↗',name:'Wydłużenie dostępu',desc:'Dostępny dla każdej umowy.',status:'external'},
-    {no:'20-lekcji-gratis',marker:'20',name:'20 lekcji gratis',desc:'Tylko dla umów elastycznych.',status:'external',when:c=>c?.type==='flexible'},
-    {no:'rozlozenie-platnosci',marker:'R',name:'Rozłożenie płatności',desc:'Tylko dla rat wewnętrznych.',status:'external',when:c=>c?.payment==='internal'},
-    {no:'tutlo-premium',marker:'P',name:'Aneks Tutlo Premium',desc:'Dostępny dla każdej umowy.',status:'external'},
-    {no:'lektorzy-pl',marker:'PL',name:'Rozszerzenie pakietu lektorów',desc:'Dostępny, gdy umowa nie obejmuje lektorów PL.',status:'external',when:c=>c?.hasPolishLecturers===false},
-    {no:'45',name:'Aneks 45',desc:'Tylko dla umowy z limitem finansowanej kredytem.',status:'external',when:c=>c?.type==='limit'&&c?.payment==='credit'},
-    {no:'10',name:'Aneks 10',desc:'Zmiana formy płatności.',status:'planned'},
-    {no:'43',name:'Grupa rodzinna (Tutlo Plus)',desc:'Dodanie grupy rodzinnej.',status:'tutlo',when:c=>c?.hasFamilyAdditionalFee===true},
-    {no:'47',name:'Aneks 47',desc:'Przejście z limitu na umowę elastyczną.',status:'planned'},
-    {no:'grupa-rodzinna',marker:'GR',name:'Grupa rodzinna',status:'planned'},
-    {no:'9',name:'Aneks 9',desc:'Niewdrożony aneks.',status:'planned'},
-    {no:'27',name:'Aneks 27',desc:'Zmniejszenie rat i przejście na raty wewnętrzne.',status:'planned'},
-    {no:'28',name:'Aneks 28',desc:'Rata gratis.',status:'planned'},
-    {no:'48',name:'Aneks 48',desc:'Zdjęcie limitu.',status:'planned'}
-  ];
 
   const els = {
     input:document.getElementById('pdfInput'),
@@ -605,7 +578,7 @@
   }
 
   function availableAnnexes(contract){
-    return ALL_ANNEXES.filter(item=>!item.when||item.when(contract));
+    return getAvailableAnnexCards(contract);
   }
 
   function renderResult(c){

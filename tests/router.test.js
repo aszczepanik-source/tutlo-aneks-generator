@@ -39,10 +39,11 @@ test('the existing interface and user path remain connected unchanged', async ()
 
 test('interface presents the requested annex statuses and click messages', async () => {
   const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  const availability = await readFile(new URL('../src/annexes/availability.js', import.meta.url), 'utf8');
 
-  assert.match(html, /Generator Tutlo/);
-  assert.match(html, /Aneks w Team Tutlo/);
-  assert.match(html, /W przygotowaniu/);
+  assert.match(availability, /Generator Tutlo/);
+  assert.match(availability, /Aneks w Team Tutlo/);
+  assert.match(availability, /W przygotowaniu/);
   assert.match(html, /Ten aneks jest obsługiwany w dedykowanym generatorze\./);
   assert.match(html, /Ten aneks nie został jeszcze wdrożony\./);
 
@@ -52,10 +53,10 @@ test('interface presents the requested annex statuses and click messages', async
     ['29', 'Jedna rata gratis'],
     ['29a', 'Dwie raty gratis']
   ]) {
-    assert.match(html, new RegExp(`no:'${id}',name:'${name}',status:'tutlo'`));
+    assert.match(availability, new RegExp(`no: '${id}', name: '${name}', status: 'tutlo'`));
   }
-  assert.match(html, /name:'Rozszerzenie pakietu lektorów'.*hasPolishLecturers===false/);
-  assert.match(html, /name:'Aneks 45'.*type==='limit'.*payment==='credit'/);
+  assert.match(availability, /name: 'Rozszerzenie pakietu lektorów'.*hasPolishLecturers === false/);
+  assert.match(availability, /name: 'Aneks 45'.*type === 'limit'.*payment === 'credit'/);
 });
 
 test('konfiguracja release zawiera moduły i lokalne szablony wymagane przez GitHub Pages', async () => {
