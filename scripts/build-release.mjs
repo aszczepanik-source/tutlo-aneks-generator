@@ -75,11 +75,15 @@ const runtime = `/* Wygenerowany bundle release ${version}. Bez ES Modules. */
     });
   }
 
+  function createRequestId(cryptoApi = globalThis.crypto) {
+    return cryptoApi?.randomUUID?.() || \`req-\${Date.now()}-\${Math.random().toString(16).slice(2)}\`;
+  }
+
   class AppsScriptClient {
     constructor(endpoint, request) {
       this.endpoint = endpoint; this.request = request; this.inFlight = new Map();
     }
-    generate(prepared, requestId = globalThis.crypto?.randomUUID?.() || \`req-\${Date.now()}-\${Math.random().toString(16).slice(2)}\`) {
+    generate(prepared, requestId = createRequestId()) {
       if (this.inFlight.has(requestId)) return this.inFlight.get(requestId);
       const options = {
         method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
