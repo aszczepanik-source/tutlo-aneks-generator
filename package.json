@@ -10,5 +10,9 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "dependencies": {
+    "docxtemplater": "3.62.0",
+    "pizzip": "3.1.8"
   }
 }

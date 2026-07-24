@@ -14,8 +14,33 @@ test('wspólny extractor zwraca komplet podstawowych danych umowy', () => {
   assert.deepEqual(extractContractData(rawText), {
     agreementNumber: 'EL/JF/811/192956/3/9/2025', agreementDate: '03.09.2025',
     customerName: 'Monika Wójcik', address: 'Galileusza 10/13, 67-200 Głogów', pesel: '82111304868',
-    coursePrice: 9576, monthlyInstallment: 399, lessonCount: 450, monthlyLimit: 57,
+    coursePrice: 9576, coursePriceCents: 957600,
+    coursePriceDiagnostic: { phraseFound: true, followingText: '9576,00 zł brutto.', valuePassedToPrepareAnnex26: 957600 },
+    monthlyInstallment: 399, lessonCount: 450, monthlyLimit: 57,
     teacherTypes: 'Lektor Polski, English Expert, Native Speaker'
+  });
+});
+
+for (const [printed, expectedCents] of [
+  ['7176,00', 717600], ['7 176,00', 717600], ['7.176,00', 717600], ['7176.00', 717600]
+]) {
+  test(`odczytuje cenę kursu w formacie ${printed}`, () => {
+    const result = extractContractData(`§2 WARUNKI PŁATNOŚCI Całkowita cena kursu wynosi ${printed} zł brutto.`);
+    assert.equal(result.coursePriceCents, expectedCents);
+    assert.equal(result.coursePrice, 7176);
+  });
+}
+
+test('odczytuje cenę kursu rozbitą na linie przez ekstrakcję PDF', () => {
+  const result = extractContractData(`§2\nWARUNKI PŁATNOŚCI\nCałkowita cena kursu wynosi\n7 176,00 zł brutto.`);
+  assert.equal(result.coursePriceCents, 717600);
+});
+
+test('nie wybiera innej kwoty, gdy po dokładnej frazie nie ma ceny', () => {
+  const result = extractContractData('Całkowita cena kursu wynosi brak danych. Rata wynosi 399,00 zł.');
+  assert.equal(result.coursePriceCents, undefined);
+  assert.deepEqual(result.coursePriceDiagnostic, {
+    phraseFound: true, followingText: 'brak danych. Rata wynosi 399,00 zł.', valuePassedToPrepareAnnex26: undefined
   });
 });
 
