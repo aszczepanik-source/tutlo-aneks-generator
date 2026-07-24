@@ -443,7 +443,7 @@
   import { downloadAnnex25, downloadAnnex26 } from './src/infrastructure/local-docx-generator.js';
   import { prepareAnnex25 } from './src/annexes/25/index.js';
   import { prepareAnnex26 } from './src/annexes/26/index.js';
-  import { extractAgreementNumber, extractContractData } from './src/domain/contract-extraction.js';
+  import { extractAgreementNumber, extractContractData, getAgreementDateDiagnostic } from './src/domain/contract-extraction.js';
   import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
@@ -701,7 +701,13 @@
       });
       await downloadAnnex26(prepared,{requiredFields:prepared.requiredFields});
       status.textContent='Aneks został pobrany';status.className='status show ok';
-    }catch(error){ status.textContent=error.message;status.className='status show error'; }
+    }catch(error){
+      if(error.message==='Nie odczytano prawidłowej daty zawarcia umowy z numeru umowy.'){
+        const diagnostic=getAgreementDateDiagnostic(currentContract?.agreementNumber);
+        status.textContent=`${error.message} Końcowe 60 znaków: ${diagnostic.last60Characters}; znaleziono wzorzec daty: ${diagnostic.endingDatePatternFound?'tak':'nie'}; znormalizowany numer: ${diagnostic.normalizedAgreementNumber}`;
+      }else status.textContent=error.message;
+      status.className='status show error';
+    }
   });
 
   document.getElementById('annex25Form').addEventListener('submit',async event=>{
