@@ -318,8 +318,8 @@
       <input id="pdfInput" type="file" accept="application/pdf">
 
       <div class="actions">
-        <button id="analyzeBtn" class="btn" disabled>Rozpoznaj umowę</button>
-        <button id="resetBtn" class="btn secondary">Wyczyść</button>
+        <button id="analyzeBtn" class="btn" type="button" disabled>Rozpoznaj umowę</button>
+        <button id="resetBtn" class="btn secondary" type="button">Wyczyść</button>
       </div>
 
       <div id="fileStatus" class="status"></div>
@@ -363,8 +363,8 @@
   </section>
 
   <div class="lower-tools">
-    <button class="ghost-link" id="verifyAnnexBtn">Sprawdź swój aneks</button>
-    <button class="ghost-link" id="manualAnnexBtn">Wybierz aneks ręcznie</button>
+    <button class="ghost-link" id="verifyAnnexBtn" type="button">Sprawdź swój aneks</button>
+    <button class="ghost-link" id="manualAnnexBtn" type="button">Wybierz aneks ręcznie</button>
   </div>
 
   <div class="footer-note">
@@ -375,7 +375,7 @@
 <dialog id="manualAnnexDialog">
   <div class="modal-head">
     <h3>Wybierz aneks ręcznie</h3>
-    <button class="close" data-close="manualAnnexDialog">×</button>
+    <button class="close" data-close="manualAnnexDialog" type="button">×</button>
   </div>
   <div class="modal-body">
     <p style="color:var(--muted);margin-top:0">Użyj tej opcji tylko wtedy, gdy router źle rozpoznał dokument.</p>
@@ -386,7 +386,7 @@
 <dialog id="annex26Dialog">
   <div class="modal-head">
     <h3>Aneks 26 – Zmniejszenie rat kredytowych</h3>
-    <button class="close" data-close="annex26Dialog">×</button>
+    <button class="close" data-close="annex26Dialog" type="button">×</button>
   </div>
   <div class="modal-body">
     <form id="annex26Form" class="annex-form">
@@ -409,16 +409,13 @@
       </div>
       <div id="annex26Status" class="status"></div>
     </form>
-    <form id="testPostForm" method="POST" target="_blank" hidden>
-      <input id="testPostPayload" name="payload" type="hidden">
-    </form>
   </div>
 </dialog>
 
 <dialog id="verifyDialog">
   <div class="modal-head">
     <h3>Sprawdź swój aneks</h3>
-    <button class="close" data-close="verifyDialog">×</button>
+    <button class="close" data-close="verifyDialog" type="button">×</button>
   </div>
   <div class="modal-body">
     <p>Ta funkcja zostanie rozbudowana w kolejnym etapie.</p>
@@ -438,8 +435,6 @@
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
 
   const appsScriptClient = new AppsScriptClient(APPS_SCRIPT_URL);
-  const testPostForm=document.getElementById('testPostForm');
-  testPostForm.action=APPS_SCRIPT_URL;
 
   const ANNEX_STATUSES = {
     tutlo:{label:'Generator Tutlo',className:'generator-tutlo'},
@@ -593,7 +588,7 @@
             <p>${item.desc||'Otwórz formularz aneksu w Generatorze Tutlo.'}</p>
           </div>
         </div>
-        <button class="btn">Wybierz</button>`;
+        <button class="btn" type="button">Wybierz</button>`;
       div.querySelector('button').addEventListener('click',()=>selectAnnex(item));
       target.appendChild(div);
     });
@@ -657,9 +652,9 @@
   }
 
   els.input.addEventListener('change',e=>selectFile(e.target.files[0]));
-  els.dropzone.addEventListener('dragover',e=>{e.preventDefault();els.dropzone.classList.add('drag')});
-  els.dropzone.addEventListener('dragleave',()=>els.dropzone.classList.remove('drag'));
-  els.dropzone.addEventListener('drop',e=>{e.preventDefault();els.dropzone.classList.remove('drag');selectFile(e.dataTransfer.files[0])});
+  els.dropzone.addEventListener('dragover',e=>{e.preventDefault();e.stopPropagation();els.dropzone.classList.add('drag')});
+  els.dropzone.addEventListener('dragleave',e=>{e.preventDefault();e.stopPropagation();els.dropzone.classList.remove('drag')});
+  els.dropzone.addEventListener('drop',e=>{e.preventDefault();e.stopPropagation();els.dropzone.classList.remove('drag');selectFile(e.dataTransfer.files[0])});
   els.analyze.addEventListener('click',analyze);
   els.reset.addEventListener('click',()=>{
     currentFile=null;currentContract=null;currentClassification=null;els.input.value='';els.analyze.disabled=true;els.status.className='status';
@@ -689,12 +684,22 @@
       bank:document.getElementById('annex26Bank').value.trim(),
       bankAccount:annex26BankAccount.value
     });
-    document.getElementById('testPostPayload').value=JSON.stringify({
+    const payload=document.createElement('input');
+    payload.type='hidden';
+    payload.name='payload';
+    payload.value=JSON.stringify({
       action:'generate',
       requestId:createRequestId(),
       ...prepared
     });
-    testPostForm.submit();
+    const form=document.createElement('form');
+    form.action=APPS_SCRIPT_URL;
+    form.method='POST';
+    form.target='_blank';
+    form.appendChild(payload);
+    document.body.appendChild(form);
+    form.submit();
+    form.remove();
   });
 
   document.getElementById('annex26Form').addEventListener('submit',async event=>{
@@ -721,6 +726,7 @@
     availableAnnexes(currentClassification).forEach(item=>{
       const status=ANNEX_STATUSES[item.status];
       const button=document.createElement('button');
+      button.type='button';
       button.className=`manual-item ${status.className}`;
       button.innerHTML=`<span class="annex-status">${status.label}</span><strong>${item.name}</strong><small>${item.desc||''}</small>`;
       button.addEventListener('click',()=>selectAnnex(item));
