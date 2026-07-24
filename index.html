@@ -403,8 +403,14 @@
         </select>
       </label>
       <label>Numer rachunku bankowego<input id="annex26BankAccount" inputmode="numeric" maxlength="26" pattern="[0-9]{26}" required></label>
-      <button class="btn" type="submit">Wygeneruj aneks 26</button>
+      <div class="actions">
+        <button class="btn" type="submit">Wygeneruj aneks 26</button>
+        <button class="btn secondary" id="testPostBtn" type="button">TEST POST</button>
+      </div>
       <div id="annex26Status" class="status"></div>
+    </form>
+    <form id="testPostForm" method="POST" target="_blank" hidden>
+      <input id="testPostPayload" name="payload" type="hidden">
     </form>
   </div>
 </dialog>
@@ -423,7 +429,7 @@
 <script type="module">
   import { APPS_SCRIPT_URL } from './config.js';
   import { getAnnexRoute } from './router.js';
-  import { AppsScriptClient } from './src/infrastructure/apps-script-client.js';
+  import { AppsScriptClient, createRequestId } from './src/infrastructure/apps-script-client.js';
   import { prepareAnnex26 } from './src/annexes/26/index.js';
   import { prepareAnnex43 } from './src/annexes/43/index.js';
   import { extractAgreementNumber, extractContractData } from './src/domain/contract-extraction.js';
@@ -432,6 +438,8 @@
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
 
   const appsScriptClient = new AppsScriptClient(APPS_SCRIPT_URL);
+  const testPostForm=document.getElementById('testPostForm');
+  testPostForm.action=APPS_SCRIPT_URL;
 
   const ANNEX_STATUSES = {
     tutlo:{label:'Generator Tutlo',className:'generator-tutlo'},
@@ -671,6 +679,22 @@
   annex26BankAccount.addEventListener('input',()=>{
     annex26BankAccount.value=annex26BankAccount.value.replace(/\D/g,'').slice(0,26);
     annex26BankAccount.setCustomValidity(annex26BankAccount.value.length===26?'':'Numer rachunku musi zawierać dokładnie 26 cyfr.');
+  });
+
+  document.getElementById('testPostBtn').addEventListener('click',()=>{
+    const annex26Form=document.getElementById('annex26Form');
+    if(!annex26Form.reportValidity()) return;
+    const prepared=prepareAnnex26(currentContract,{
+      newInstallment:Number(document.getElementById('annex26NewInstallment').value.replace(',','.')),
+      bank:document.getElementById('annex26Bank').value.trim(),
+      bankAccount:annex26BankAccount.value
+    });
+    document.getElementById('testPostPayload').value=JSON.stringify({
+      action:'generate',
+      requestId:createRequestId(),
+      ...prepared
+    });
+    testPostForm.submit();
   });
 
   document.getElementById('annex26Form').addEventListener('submit',async event=>{
