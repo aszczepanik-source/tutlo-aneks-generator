@@ -30,6 +30,15 @@ export function validateAnnex26Data(data) {
   if (!Number.isInteger(data.newInstallmentCents) || data.newInstallmentCents <= 0) {
     throw new Error('Nowa rata musi być liczbą większą od 0.');
   }
+  if (!Number.isInteger(data.coursePriceCents) || data.coursePriceCents <= 0) {
+    throw new Error('Cena kursu musi być skończoną liczbą dodatnią.');
+  }
+  if (!Number.isFinite(data.lessonCount) || data.lessonCount <= 0) {
+    throw new Error('Liczba lekcji musi być skończoną liczbą dodatnią.');
+  }
+  if (!Number.isInteger(data.currentInstallmentCents) || data.currentInstallmentCents <= 0) {
+    throw new Error('Nie można wyliczyć obecnej raty z ceny kursu.');
+  }
   if (data.newInstallmentCents >= data.currentInstallmentCents) {
     throw new Error('Nowa rata musi być niższa od obecnej raty.');
   }
