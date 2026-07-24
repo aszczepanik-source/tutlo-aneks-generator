@@ -31,6 +31,14 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Create private frontend configuration
+        env:
+          APPS_SCRIPT_URL: ${{ secrets.APPS_SCRIPT_URL }}
+        run: |
+          test -n "$APPS_SCRIPT_URL"
+          node --input-type=module -e \
+            "import { writeFileSync } from 'node:fs'; writeFileSync('config.js', 'export const APPS_SCRIPT_URL = ' + JSON.stringify(process.env.APPS_SCRIPT_URL) + ';\\n')"
+
       - name: Check project
         run: npm run check
 

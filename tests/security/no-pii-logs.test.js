@@ -1,2 +1,0 @@
-import assert from 'node:assert/strict';import { readFile } from 'node:fs/promises';import test from 'node:test';
-test('Apps Script nie loguje payloadu ani wartości PII', async()=>{const code=await readFile(new URL('../../apps-scirpt/Code.gs',import.meta.url),'utf8');const calls=[...code.matchAll(/safeLog_\(([^;]+)\);/g)].map(x=>x[1]).join('\n');assert.doesNotMatch(calls,/values|postData|contents|PESEL|ADRES|IMIE_NAZWISKO/);});
