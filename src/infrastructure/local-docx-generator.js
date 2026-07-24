@@ -34,7 +34,8 @@ export function remainingPlaceholders(zip) {
 
 export function renderDocx(templateBytes, prepared, dependencies = globalThis) {
   const { PizZip, docxtemplater: Docxtemplater } = dependencies;
-  if (!PizZip || !Docxtemplater) throw new Error('Biblioteki DOCX nie zostały załadowane. Odśwież stronę i spróbuj ponownie.');
+  if (!PizZip) throw new Error('Nie udało się załadować biblioteki PizZip. Odśwież stronę i spróbuj ponownie.');
+  if (!Docxtemplater) throw new Error('Nie udało się załadować biblioteki docxtemplater. Odśwież stronę i spróbuj ponownie.');
   validateTemplateValues(prepared.values, prepared.requiredFields);
   const zip = new PizZip(templateBytes);
   const unknown = remainingPlaceholders(zip).filter(field => !(field in prepared.values));
@@ -46,12 +47,30 @@ export function renderDocx(templateBytes, prepared, dependencies = globalThis) {
   return document.getZip().generate({ type: 'uint8array', compression: 'DEFLATE', compressionOptions: { level: 6 } });
 }
 
+export function annex26TemplateUrl(moduleUrl = import.meta.url) {
+  return new URL('../annexes/26/template.docx', moduleUrl).href;
+}
+
+function templateFetchError(url, response) {
+  const status = response ? String(response.status) : 'niedostępny (błąd sieci)';
+  const statusText = response?.statusText || 'niedostępny';
+  return new Error(`Nie udało się pobrać zasobu template.docx. URL: ${url}. HTTP status: ${status}. statusText: ${statusText}.`);
+}
+
 export async function downloadAnnex26(prepared, options = {}) {
   const requiredFields = options.requiredFields || [];
   const input = { ...prepared, requiredFields };
   validateTemplateValues(input.values, requiredFields);
-  const response = await (options.fetch || globalThis.fetch)(options.templateUrl || './src/annexes/26/template.docx');
-  if (!response.ok) throw new Error('Nie udało się wczytać lokalnego szablonu aneksu 26.');
+  const templateUrl = options.templateUrl
+    ? new URL(options.templateUrl, options.baseUrl || globalThis.document?.baseURI || import.meta.url).href
+    : annex26TemplateUrl();
+  let response;
+  try {
+    response = await (options.fetch || globalThis.fetch)(templateUrl);
+  } catch (cause) {
+    throw templateFetchError(templateUrl, null, cause);
+  }
+  if (!response.ok) throw templateFetchError(templateUrl, response);
   const bytes = renderDocx(await response.arrayBuffer(), input, options.dependencies || globalThis);
   const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
   const filename = annex26Filename(input.values);
