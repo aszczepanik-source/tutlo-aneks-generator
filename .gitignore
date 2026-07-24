@@ -1,2 +1,10 @@
 dist/
 *.zip
+
+# Lokalna konfiguracja frontendu (kopiowana z config.example.js).
+config.js
+
+# Pliki środowiskowe i typowe warianty lokalne.
+.env
+.env.*
+!.env.example
