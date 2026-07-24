@@ -58,12 +58,16 @@ test('interface presents the requested annex statuses and click messages', async
   assert.match(html, /name:'Aneks 45'.*type==='limit'.*payment==='credit'/);
 });
 
-test('release zawiera moduły i lokalny szablon wymagane przez GitHub Pages', async () => {
-  const releaseHtml = await readFile(new URL('../dist/index.html', import.meta.url), 'utf8');
-  const generator = await readFile(new URL('../dist/src/infrastructure/local-docx-generator.js', import.meta.url), 'utf8');
-  const template = await readFile(new URL('../dist/src/annexes/26/template.docx', import.meta.url));
+test('konfiguracja release zawiera moduły i lokalne szablony wymagane przez GitHub Pages', async () => {
+  const releaseHtml = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  const generator = await readFile(new URL('../src/infrastructure/local-docx-generator.js', import.meta.url), 'utf8');
+  const build = await readFile(new URL('../scripts/build-release.mjs', import.meta.url), 'utf8');
+  const annex25Template = await readFile(new URL('../src/annexes/25/template.docx', import.meta.url));
+  const annex26Template = await readFile(new URL('../src/annexes/26/template.docx', import.meta.url));
+  assert.match(build, /cp\(new URL\('\.\.\/src\/'[\s\S]*recursive: true/);
   assert.match(releaseHtml, /type="module"/);
   assert.match(generator, /renderDocx/);
-  assert.ok(template.byteLength > 0);
+  assert.ok(annex25Template.byteLength > 0);
+  assert.ok(annex26Template.byteLength > 0);
   assert.doesNotMatch(releaseHtml, /AppsScriptClient|APPS_SCRIPT_URL/);
 });
