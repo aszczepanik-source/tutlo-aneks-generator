@@ -13,6 +13,35 @@ export function extractAgreementNumber(text) {
 
 const capture = (text, pattern) => text.match(pattern)?.[1]?.trim();
 
+const BUYER_FIELD_END = String.raw`(?=\s+(?:adres|telefon|e-?mail|PESEL|NIP)\s*:|$)`;
+
+/** Reads identity fields exclusively from the DANE NABYWCY table. */
+function extractBuyerData(buyer) {
+  const companyName = capture(buyer, new RegExp(String.raw`firma\s*:\s*(.+?)${BUYER_FIELD_END}`, 'i'));
+  const nipLabel = /(?:^|\s)NIP\s*:/i.test(buyer);
+  const rawNip = capture(buyer, /(?:^|\s)NIP\s*:\s*([\d\s-]+?)(?=\s+(?:adres|telefon|e-?mail|PESEL)\s*:|$)/i);
+  const nip = rawNip?.replace(/[\s-]/g, '');
+
+  // A FIRMA row identifies the intended buyer variant even when its NIP is
+  // incomplete, so downstream validation can report the useful NIP error.
+  if (companyName !== undefined) {
+    return {
+      customerName: companyName,
+      pesel: nipLabel && /^\d{10}$/.test(nip || '') ? nip : undefined,
+      customerType: 'company'
+    };
+  }
+
+  const customerName = capture(buyer, new RegExp(String.raw`imię\s+i\s+nazwisko\s*:\s*(.+?)${BUYER_FIELD_END}`, 'i'));
+  const rawPesel = capture(buyer, /(?:^|\s)PESEL\s*:\s*([\d\s]+?)(?=\s+(?:adres|telefon|e-?mail|NIP)\s*:|$)/i);
+  const pesel = rawPesel?.replace(/\s/g, '');
+  return {
+    customerName,
+    pesel: /^\d{11}$/.test(pesel || '') ? pesel : undefined,
+    customerType: 'person'
+  };
+}
+
 const TEACHER_TYPE_PHRASES = [
   ['Lektorem Polskim', 'Lektor Polski'],
   ['English Expert', 'English Expert'],
@@ -114,6 +143,7 @@ export const extractAgreementDate = parseAgreementDateFromNumber;
 export function extractContractData(rawText, agreementNumber = extractAgreementNumber(rawText)) {
   const text = normalizeContractText(rawText);
   const buyer = capture(text, /dane nabywcy\s+(.+?)(?=\s+specyfikacja kursu\b)/i) || '';
+  const buyerData = extractBuyerData(buyer);
   const specification = capture(text, /specyfikacja kursu\s+(.+?)(?=\s+zawartość kursu\b)/i) || '';
   const { coursePriceCents, diagnostic: coursePriceDiagnostic } = extractCoursePrice(text);
   const coursePrice = Number.isInteger(coursePriceCents) ? coursePriceCents / 100 : undefined;
@@ -131,9 +161,8 @@ export function extractContractData(rawText, agreementNumber = extractAgreementN
   return {
     agreementNumber,
     agreementDate: parseAgreementDateFromNumber(agreementNumber),
-    customerName: capture(buyer, /imię i nazwisko\s*:\s*(.+?)(?=\s+adres\s*:)/i),
-    address: capture(buyer, /adres\s*:\s*(.+?)(?=\s+(?:PESEL|NIP)\s*:)/i),
-    pesel: capture(buyer, /(?:PESEL|NIP)\s*:\s*([\d-]+)\b/i),
+    ...buyerData,
+    address: capture(buyer, /adres\s*:\s*(.+?)(?=\s+(?:telefon|e-?mail|PESEL|NIP)\s*:|$)/i),
     coursePrice: Number.isFinite(coursePrice) ? coursePrice : undefined,
     coursePriceCents,
     coursePriceDiagnostic,

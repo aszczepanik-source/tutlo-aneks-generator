@@ -1,9 +1,11 @@
 const REQUIRED = [
   ['agreementNumber', 'Nie odczytano numeru umowy.'],
   ['agreementDate', 'Nie odczytano prawidłowej daty zawarcia umowy z numeru umowy.'],
-  ['customerName', 'Nie odczytano imienia i nazwiska.'],
+  ['customerName', data => data.customerType === 'company'
+    ? 'Nie odczytano nazwy firmy.' : 'Nie odczytano imienia i nazwiska.'],
   ['address', 'Nie odczytano adresu.'],
-  ['pesel', 'Nie odczytano numeru PESEL.'],
+  ['pesel', data => data.customerType === 'company'
+    ? 'Nie odczytano NIP firmy.' : 'Nie odczytano numeru PESEL.'],
   ['coursePriceCents', 'Nie odczytano ceny kursu.'],
   ['currentInstallmentCents', 'Nie odczytano wysokości obecnej raty.'],
   ['lessonCount', 'Nie odczytano liczby lekcji.'],
@@ -25,7 +27,14 @@ const ALLOWED_BANKS = new Set([
 export function validateAnnex26Data(data) {
   const missing = REQUIRED.find(([field]) => data[field] === undefined
     || data[field] === null || data[field] === '');
-  if (missing) throw new Error(missing[1]);
+  if (missing) throw new Error(typeof missing[1] === 'function' ? missing[1](data) : missing[1]);
+
+  if (data.customerType === 'company' && !/^\d{10}$/.test(data.pesel)) {
+    throw new Error('NIP firmy musi zawierać dokładnie 10 cyfr.');
+  }
+  if (data.customerType !== 'company' && !/^\d{11}$/.test(data.pesel)) {
+    throw new Error('PESEL musi zawierać dokładnie 11 cyfr.');
+  }
 
   if (!Number.isInteger(data.newInstallmentCents) || data.newInstallmentCents <= 0) {
     throw new Error('Nowa rata musi być liczbą większą od 0.');
