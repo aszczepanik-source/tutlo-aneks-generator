@@ -61,7 +61,9 @@ export function prepareAnnex26(contract, formData) {
   const coursePrice = normalizeNumber(contract?.coursePrice);
   const lessonCount = normalizeNumber(contract?.lessonCount);
   const monthlyInstallment = normalizeNumber(contract?.monthlyInstallment);
-  const coursePriceCents = moneyToCents(contract?.coursePrice);
+  const coursePriceCents = Number.isInteger(contract?.coursePriceCents)
+    ? contract.coursePriceCents
+    : moneyToCents(contract?.coursePrice);
   const newInstallmentCents = moneyToCents(formData?.newInstallment);
   const currentInstallmentCents = Number.isInteger(coursePriceCents)
     ? Math.round(coursePriceCents / INSTALLMENT_COUNT)
@@ -75,7 +77,8 @@ export function prepareAnnex26(contract, formData) {
     lessonCountType: typeof contract?.lessonCount,
     monthlyInstallment: contract?.monthlyInstallment,
     monthlyInstallmentType: typeof contract?.monthlyInstallment,
-    parsed: { coursePrice, coursePriceCents, lessonCount, monthlyInstallment, newInstallmentCents }
+    parsed: { coursePrice, coursePriceCents, lessonCount, monthlyInstallment, newInstallmentCents },
+    coursePriceExtraction: contract?.coursePriceDiagnostic
   });
 
   const data = {

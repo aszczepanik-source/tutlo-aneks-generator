@@ -25,7 +25,23 @@ function extractTeacherTypes(text) {
 
 /** Normalizes whitespace introduced while PDF.js combines text items and lines. */
 export function normalizeContractText(rawText) {
-  return String(rawText || '').replace(/[\n\r\t]+/g, ' ').replace(/\s+/g, ' ').trim();
+  return String(rawText || '').replace(/\u00a0|\u202f/g, ' ').replace(/[\n\r\t]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+const COURSE_PRICE_PHRASE = 'Całkowita cena kursu wynosi';
+
+/** Reads only the first monetary value directly following the contractual course-price phrase. */
+export function extractCoursePrice(text) {
+  const phraseIndex = text.toLocaleLowerCase('pl').indexOf(COURSE_PRICE_PHRASE.toLocaleLowerCase('pl'));
+  const followingText = phraseIndex < 0 ? '' : text.slice(phraseIndex + COURSE_PRICE_PHRASE.length).trimStart();
+  const amount = followingText.match(/^(\d{1,3}(?:[ .]\d{3})+|\d+)([,.])(\d{2})(?=\s*zł(?:\s|[.,;:]|$))/i);
+  if (!amount) return { coursePriceCents: undefined, diagnostic: {
+    phraseFound: phraseIndex >= 0, followingText: followingText.slice(0, 80), valuePassedToPrepareAnnex26: undefined
+  } };
+  const whole = amount[1].replace(/[ .]/g, '');
+  const coursePriceCents = Number(`${whole}${amount[3]}`);
+  return { coursePriceCents: Number.isSafeInteger(coursePriceCents) && coursePriceCents > 0 ? coursePriceCents : undefined,
+    diagnostic: { phraseFound: true, followingText: followingText.slice(0, 80), valuePassedToPrepareAnnex26: coursePriceCents } };
 }
 
 /** Extracts the contract date from the final day/month/year agreement-number segments. */
@@ -48,8 +64,8 @@ export function extractContractData(rawText, agreementNumber = extractAgreementN
   const text = normalizeContractText(rawText);
   const buyer = capture(text, /dane nabywcy\s+(.+?)(?=\s+specyfikacja kursu\b)/i) || '';
   const specification = capture(text, /specyfikacja kursu\s+(.+?)(?=\s+zawartość kursu\b)/i) || '';
-  const amount = capture(text, /całkowita cena kursu wynosi\s+([\d ]+(?:,\d{1,2})?)\s*zł\s+brutto/i);
-  const coursePrice = amount === undefined ? undefined : Number(amount.replace(/\s/g, '').replace(',', '.'));
+  const { coursePriceCents, diagnostic: coursePriceDiagnostic } = extractCoursePrice(text);
+  const coursePrice = Number.isInteger(coursePriceCents) ? coursePriceCents / 100 : undefined;
   // Read the longer label first so it can never be confused with the lesson-count label.
   const monthlyLimit = Number(capture(specification, /maksymalna miesięczna liczba lekcji indywidualnych do wykorzystania\s*:\s*(\d+)/i)) || undefined;
   const lessonCount = Number(capture(specification, /liczba lekcji indywidualnych\s*:\s*(\d+)/i)) || undefined;
@@ -61,6 +77,8 @@ export function extractContractData(rawText, agreementNumber = extractAgreementN
     address: capture(buyer, /adres\s*:\s*(.+?)(?=\s+(?:PESEL|NIP)\s*:)/i),
     pesel: capture(buyer, /(?:PESEL|NIP)\s*:\s*([\d-]+)\b/i),
     coursePrice: Number.isFinite(coursePrice) ? coursePrice : undefined,
+    coursePriceCents,
+    coursePriceDiagnostic,
     monthlyInstallment: Number.isFinite(coursePrice) ? Math.round((coursePrice / 24) * 100) / 100 : undefined,
     lessonCount,
     monthlyLimit,

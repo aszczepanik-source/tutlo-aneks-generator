@@ -1,4 +1,4 @@
-import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { access, cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 
 const root = new URL('../', import.meta.url);
@@ -13,6 +13,16 @@ const html = (await readFile(new URL('../index.html', import.meta.url), 'utf8'))
 await writeFile(new URL('../dist/index.html', import.meta.url), html);
 await cp(new URL('../router.js', import.meta.url), new URL('../dist/router.js', import.meta.url));
 await cp(new URL('../src/', import.meta.url), new URL('../dist/src/', import.meta.url), { recursive: true });
+await mkdir(new URL('../dist/vendor/', import.meta.url), { recursive: true });
+const browserLibraries = [
+  ['pizzip/dist/pizzip.min.js', 'pizzip.min.js'],
+  ['docxtemplater/build/docxtemplater.js', 'docxtemplater.js']
+];
+for (const [source, target] of browserLibraries) {
+  await cp(new URL(`../node_modules/${source}`, import.meta.url), new URL(`../dist/vendor/${target}`, import.meta.url));
+}
+// This explicit postcondition prevents publishing an artifact that silently lost a runtime library.
+await Promise.all(browserLibraries.map(([, target]) => access(new URL(`../dist/vendor/${target}`, import.meta.url))));
 await cp(new URL('../docs/INSTRUKCJA_KONSULTANTA.md', import.meta.url), new URL('../dist/INSTRUKCJA_KONSULTANTA.md', import.meta.url));
 await writeFile(new URL('../dist/VERSION', import.meta.url), `${version}\n`);
 

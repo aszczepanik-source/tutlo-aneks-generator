@@ -422,10 +422,8 @@
   </div>
 </dialog>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.1.8/pizzip.min.js"
-  onerror="console.error('Nie udało się załadować biblioteki PizZip', this.src)"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.62.0/docxtemplater.js"
-  onerror="console.error('Nie udało się załadować biblioteki docxtemplater', this.src)"></script>
+<script src="./vendor/pizzip.min.js"></script>
+<script src="./vendor/docxtemplater.js"></script>
 <script type="module">
   import { getAnnexRoute } from './router.js';
   import { downloadAnnex26 } from './src/infrastructure/local-docx-generator.js';
