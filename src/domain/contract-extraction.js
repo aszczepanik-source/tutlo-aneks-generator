@@ -44,18 +44,45 @@ export function extractCoursePrice(text) {
     diagnostic: { phraseFound: true, followingText: followingText.slice(0, 80), valuePassedToPrepareAnnex26: coursePriceCents } };
 }
 
-const AGREEMENT_DATE_AT_END = /\/(\d{1,2})\/(\d{1,2})\/(\d{4})\s*$/;
+const AGREEMENT_DATE_PATTERN = /\/(\d{1,2})\/(\d{1,2})\/(\d{4})/g;
+
+/** Produces the exact, stable representation used by agreement-date matching. */
+export function normalizeAgreementNumber(value) {
+  return String(value ?? '')
+    .normalize('NFC')
+    .replace(/[\p{Zs}\r\n\t]/gu, ' ')
+    .replace(/ +/g, ' ')
+    .trim();
+}
+
+/** Returns non-personal diagnostics suitable for the temporary date-error UI. */
+export function getAgreementDateDiagnostic(agreementNumber) {
+  const normalizedAgreementNumber = normalizeAgreementNumber(agreementNumber);
+  const matches = [...normalizedAgreementNumber.matchAll(AGREEMENT_DATE_PATTERN)];
+  return {
+    last60Characters: JSON.stringify(String(agreementNumber ?? '').slice(-60)),
+    endingDatePatternFound: matches.length > 0,
+    normalizedAgreementNumber
+  };
+}
 
 /** Extracts the contract date solely from the day/month/year suffix of the agreement number. */
 export function extractAgreementDate(agreementNumber) {
-  const normalizedAgreementNumber = String(agreementNumber).trim().normalize('NFC').replace(/\u00a0|\u202f/g, ' ');
-  const match = normalizedAgreementNumber.match(AGREEMENT_DATE_AT_END);
+  const normalizedAgreementNumber = normalizeAgreementNumber(agreementNumber);
+  const matches = [...normalizedAgreementNumber.matchAll(AGREEMENT_DATE_PATTERN)];
+  const match = matches.at(-1);
   if (!match) {
-    console.warn('[Data umowy] Nie odczytano daty z końca numeru umowy.', {
+    // Kept only on the exceptional path and deliberately limited to the agreement
+    // number: no customer data or other contract contents are emitted.
+    console.log('[agreement date diagnostic]', {
+      rawAgreementNumber: agreementNumber,
+      jsonAgreementNumber: JSON.stringify(agreementNumber),
       normalizedAgreementNumber,
-      last40Characters: normalizedAgreementNumber.slice(-40),
-      endingDatePatternFound: false
+      length: String(agreementNumber ?? '').length,
+      charCodes: Array.from(String(agreementNumber ?? '')).map(char => char.codePointAt(0)),
+      last60Characters: JSON.stringify(String(agreementNumber ?? '').slice(-60))
     });
+    console.warn('[Data umowy] Nie odczytano prawidłowej daty z numeru umowy.');
     return undefined;
   }
   const [day, month, year] = match.slice(1).map(Number);
@@ -63,9 +90,7 @@ export function extractAgreementDate(agreementNumber) {
   if (day < 1 || day > 31 || month < 1 || month > 12
     || date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
     console.warn('[Data umowy] Końcowy wzorzec daty nie jest poprawną datą kalendarzową.', {
-      normalizedAgreementNumber,
-      last40Characters: normalizedAgreementNumber.slice(-40),
-      endingDatePatternFound: true
+      ...getAgreementDateDiagnostic(agreementNumber)
     });
     return undefined;
   }
