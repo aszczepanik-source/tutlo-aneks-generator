@@ -44,10 +44,12 @@ jobs:
 
       - name: Verify Pages build contents
         run: |
-          if [ ! -s dist/src/annexes/26/template.docx ]; then
-            echo 'Błąd: brak szablonu aneksu 26 w dist lub plik jest pusty.' >&2
-            exit 1
-          fi
+          for annex in 25 26; do
+            if [ ! -s "dist/src/annexes/$annex/template.docx" ]; then
+              echo "Błąd: brak szablonu aneksu $annex w dist lub plik jest pusty." >&2
+              exit 1
+            fi
+          done
           if grep -R -F -q 'UZUPELNIJ_LOKALNIE' \
             --include='*.html' --include='*.js' \
             dist/index.html dist/router.js dist/src; then
