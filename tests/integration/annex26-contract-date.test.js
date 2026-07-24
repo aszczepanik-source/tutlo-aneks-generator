@@ -1,6 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { extractAgreementDate, getAgreementDateDiagnostic, normalizeAgreementNumber } from '../../src/domain/contract-extraction.js';
+import {
+  extractAgreementDate,
+  getAgreementDateDiagnostic,
+  normalizeAgreementNumber,
+  parseAgreementDateFromNumber
+} from '../../src/domain/contract-extraction.js';
+
+test('parser daty odczytuje pełny numer umowy', () => {
+  assert.equal(parseAgreementDateFromNumber('EL/JF/811/192956/3/9/2025'), '03.09.2025');
+});
 
 test('odczytuje końcową datę niezależnie od treści wcześniejszych segmentów', () => {
   for (const agreementNumber of [

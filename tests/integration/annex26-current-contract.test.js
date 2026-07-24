@@ -5,13 +5,15 @@ import { prepareAnnex26 } from '../../src/annexes/26/index.js';
 
 test('aneks 26 oblicza sześć pól z rzeczywistego kształtu currentContract parsera', () => {
   const pdfText = `
-    UMOWA ELASTYCZNA nr EL/TEST/3/9/2025
+    UMOWA ELASTYCZNA nr EL/JF/811/192956/3/9/2025
     DANE NABYWCY Imię i nazwisko: Test Testowy Adres: Testowa 1 PESEL: 00000000000
     SPECYFIKACJA KURSU Liczba Lekcji Indywidualnych: 450
     Maksymalna miesięczna liczba Lekcji Indywidualnych do wykorzystania: 57
     ZAWARTOŚĆ KURSU spotkania z Lektorem Polskim WARUNKI PŁATNOŚCI
     Całkowita cena kursu wynosi 11 250,00 zł brutto`;
   const currentContract = extractContractData(pdfText);
+
+  assert.equal(currentContract.agreementNumber, 'EL/JF/811/192956/3/9/2025');
 
   assert.deepEqual(
     {
@@ -26,6 +28,9 @@ test('aneks 26 oblicza sześć pól z rzeczywistego kształtu currentContract pa
   const { values } = prepareAnnex26(currentContract, {
     newInstallment: '400,00', bank: 'Inbank', bankAccount: '12345678901234567890123456'
   });
+
+  assert.equal(values.DATA_ZAWARCIA_UMOWY, '03.09.2025');
+  assert.equal(values.DATA_UMOWY_KREDYTU, '03.09.2025');
 
   assert.deepEqual({
     NOWA_LICZBA_LEKCJI: values.NOWA_LICZBA_LEKCJI,
@@ -50,4 +55,22 @@ test('aneks 26 oblicza sześć pól z rzeczywistego kształtu currentContract pa
     }).values.NOWA_CENA,
     '10356,25 zł'
   );
+});
+
+test('aneks 26 zgłasza błąd, gdy numer umowy nie zawiera poprawnej daty', t => {
+  t.mock.method(console, 'log', () => {});
+  t.mock.method(console, 'warn', () => {});
+  t.mock.method(console, 'info', () => {});
+  const currentContract = extractContractData(`
+    UMOWA ELASTYCZNA nr EL/JF/811/192956/31/2/2025
+    DANE NABYWCY Imię i nazwisko: Test Testowy Adres: Testowa 1 PESEL: 00000000000
+    SPECYFIKACJA KURSU Liczba Lekcji Indywidualnych: 450
+    Maksymalna miesięczna liczba Lekcji Indywidualnych do wykorzystania: 57
+    ZAWARTOŚĆ KURSU spotkania z Lektorem Polskim WARUNKI PŁATNOŚCI
+    Całkowita cena kursu wynosi 11 250,00 zł brutto`);
+
+  assert.equal(currentContract.agreementDate, undefined);
+  assert.throws(() => prepareAnnex26(currentContract, {
+    newInstallment: '400,00', bank: 'Inbank', bankAccount: '12345678901234567890123456'
+  }), /Nie odczytano prawidłowej daty zawarcia umowy z numeru umowy/);
 });

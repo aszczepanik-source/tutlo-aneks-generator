@@ -74,7 +74,7 @@ export function getAgreementDateDiagnostic(agreementNumber) {
 }
 
 /** Extracts the contract date solely from the day/month/year suffix of the agreement number. */
-export function extractAgreementDate(agreementNumber) {
+export function parseAgreementDateFromNumber(agreementNumber) {
   const normalizedAgreementNumber = normalizeAgreementNumber(agreementNumber);
   const matches = [...normalizedAgreementNumber.matchAll(AGREEMENT_DATE_PATTERN)];
   const match = matches.at(-1);
@@ -104,6 +104,9 @@ export function extractAgreementDate(agreementNumber) {
   return `${String(day).padStart(2, '0')}.${String(month).padStart(2, '0')}.${year}`;
 }
 
+// Preserve the existing public name for callers outside the current-contract flow.
+export const extractAgreementDate = parseAgreementDateFromNumber;
+
 /**
  * Extracts the basic data from the one currently supported contract layout.
  * Annex modules receive this result and must not parse these fields from raw text.
@@ -127,7 +130,7 @@ export function extractContractData(rawText, agreementNumber = extractAgreementN
 
   return {
     agreementNumber,
-    agreementDate: extractAgreementDate(agreementNumber),
+    agreementDate: parseAgreementDateFromNumber(agreementNumber),
     customerName: capture(buyer, /imię i nazwisko\s*:\s*(.+?)(?=\s+adres\s*:)/i),
     address: capture(buyer, /adres\s*:\s*(.+?)(?=\s+(?:PESEL|NIP)\s*:)/i),
     pesel: capture(buyer, /(?:PESEL|NIP)\s*:\s*([\d-]+)\b/i),
