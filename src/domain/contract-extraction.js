@@ -44,15 +44,31 @@ export function extractCoursePrice(text) {
     diagnostic: { phraseFound: true, followingText: followingText.slice(0, 80), valuePassedToPrepareAnnex26: coursePriceCents } };
 }
 
-/** Extracts the contract date from the final day/month/year agreement-number segments. */
+const AGREEMENT_DATE_AT_END = /\/(\d{1,2})\/(\d{1,2})\/(\d{4})\s*$/;
+
+/** Extracts the contract date solely from the day/month/year suffix of the agreement number. */
 export function extractAgreementDate(agreementNumber) {
-  const parts = String(agreementNumber || '').split('/').slice(-3);
-  if (parts.length !== 3 || !parts.every((part, index) => new RegExp(index === 2 ? '^\\d{4}$' : '^\\d{1,2}$').test(part))) {
+  const normalizedAgreementNumber = String(agreementNumber).trim().normalize('NFC').replace(/\u00a0|\u202f/g, ' ');
+  const match = normalizedAgreementNumber.match(AGREEMENT_DATE_AT_END);
+  if (!match) {
+    console.warn('[Data umowy] Nie odczytano daty z końca numeru umowy.', {
+      normalizedAgreementNumber,
+      last40Characters: normalizedAgreementNumber.slice(-40),
+      endingDatePatternFound: false
+    });
     return undefined;
   }
-  const [day, month, year] = parts.map(Number);
+  const [day, month, year] = match.slice(1).map(Number);
   const date = new Date(Date.UTC(year, month - 1, day, 12));
-  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return undefined;
+  if (day < 1 || day > 31 || month < 1 || month > 12
+    || date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
+    console.warn('[Data umowy] Końcowy wzorzec daty nie jest poprawną datą kalendarzową.', {
+      normalizedAgreementNumber,
+      last40Characters: normalizedAgreementNumber.slice(-40),
+      endingDatePatternFound: true
+    });
+    return undefined;
+  }
   return `${String(day).padStart(2, '0')}.${String(month).padStart(2, '0')}.${year}`;
 }
 
