@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { BLOCKED_RULES, calculateAnnex11, calculateAnnex26, calculateAnnex29, calculateAnnex29a, parseDate } from '../../src/domain/annex-calculations.js';
+import { calculateAnnex11, calculateAnnex26, calculateAnnex29, calculateAnnex29a, parseDate } from '../../src/domain/annex-calculations.js';
 
 test('wspólny parser obsługuje wszystkie formaty dat z PDF', () => {
   for (const value of ['10.06.2025', '10-06-2025', '2025-06-10', '1.6.2025']) {
@@ -31,8 +31,6 @@ test('aneks 11 przesuwa raty, zachowuje kwoty i 24 pozycje', () => {
   assert.deepEqual([result.suspensionStart,result.suspensionEnd,result.paymentResumeDate,result.newContractEndDate], ['2026-02-01','2026-03-31','2026-04-01','2028-02-29']);
   assert.equal(result.installments.length, 24); assert.equal(result.installments[0].amountCents, installments[0].amountCents); assert.equal(result.installments[1].dueDate, '2026-04-15');
 });
-test('aneks 25 pozostaje zablokowany', () => { assert.match(BLOCKED_RULES['25'], /nowej ceny/); });
-
 test('aneks 26 stosuje wszystkie wzory i pierwszy dzień następnego miesiąca', () => {
   const result = calculateAnnex26({
     currentInstallmentCents: 99_99, paidInstallments: 4,

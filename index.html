@@ -383,6 +383,20 @@
   </div>
 </dialog>
 
+<dialog id="annex25Dialog">
+  <div class="modal-head">
+    <h3>Aneks 25 – Zmniejszenie rat wewnętrznych</h3>
+    <button class="close" data-close="annex25Dialog" type="button">×</button>
+  </div>
+  <div class="modal-body">
+    <form id="annex25Form" class="annex-form">
+      <label>Nowa rata (zł)<input id="annex25NewInstallment" inputmode="decimal" required></label>
+      <div class="actions"><button class="btn" type="submit">Pobierz aneks</button></div>
+      <div id="annex25Status" class="status"></div>
+    </form>
+  </div>
+</dialog>
+
 <dialog id="annex26Dialog">
   <div class="modal-head">
     <h3>Aneks 26 – Zmniejszenie rat kredytowych</h3>
@@ -426,7 +440,8 @@
 <script src="./vendor/docxtemplater.js"></script>
 <script type="module">
   import { getAnnexRoute } from './router.js';
-  import { downloadAnnex26 } from './src/infrastructure/local-docx-generator.js';
+  import { downloadAnnex25, downloadAnnex26 } from './src/infrastructure/local-docx-generator.js';
+  import { prepareAnnex25 } from './src/annexes/25/index.js';
   import { prepareAnnex26 } from './src/annexes/26/index.js';
   import { extractAgreementNumber, extractContractData } from './src/domain/contract-extraction.js';
   import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
@@ -441,6 +456,7 @@
 
   const ALL_ANNEXES = [
     {no:'11',name:'Zawieszenie umowy',status:'tutlo'},
+    {no:'25',name:'Zmniejszenie rat wewnętrznych',desc:'Dla umowy elastycznej na 24 raty wewnętrzne.',status:'tutlo',when:c=>c?.type==='flexible'&&c?.payment==='internal'&&c?.variant==='24 równe raty miesięczne'},
     {no:'26',name:'Zmniejszenie rat kredytowych',status:'tutlo'},
     {no:'29',name:'Jedna rata gratis',status:'tutlo'},
     {no:'29a',name:'Dwie raty gratis',status:'tutlo'},
@@ -455,7 +471,6 @@
     {no:'47',name:'Aneks 47',desc:'Przejście z limitu na umowę elastyczną.',status:'planned'},
     {no:'grupa-rodzinna',marker:'GR',name:'Grupa rodzinna',status:'planned'},
     {no:'9',name:'Aneks 9',desc:'Niewdrożony aneks.',status:'planned'},
-    {no:'25',name:'Aneks 25',desc:'Zmniejszenie rat wewnętrznych.',status:'planned'},
     {no:'27',name:'Aneks 27',desc:'Zmniejszenie rat i przejście na raty wewnętrzne.',status:'planned'},
     {no:'28',name:'Aneks 28',desc:'Rata gratis.',status:'planned'},
     {no:'48',name:'Aneks 48',desc:'Zdjęcie limitu.',status:'planned'}
@@ -555,6 +570,11 @@
       document.getElementById('annex26Dialog').showModal();
       return;
     }
+    if(no==='25'){
+      if(!currentContract||!getAnnexRoute('25',currentContract)){ alert('Aneks 25 wymaga elastycznej umowy na 24 raty wewnętrzne.'); return; }
+      document.getElementById('annex25Dialog').showModal();
+      return;
+    }
     if(no==='43'){
       if(!currentContract){ alert('Najpierw wczytaj i rozpoznaj umowę.'); return; }
       alert('Lokalne pobieranie aneksu 43 zostanie udostępnione w kolejnym etapie.');
@@ -624,6 +644,7 @@
         paymentVariant:c.variant,
         rawText:text
       };
+      if(c.variant==='24 równe raty miesięczne') currentContract.installmentCount=24;
       renderResult(c);
       setStatus(c.type&&c.payment?'Umowa została rozpoznana. Wybierz aneks.':'Nie udało się rozpoznać dokumentu. Użyj opcji „Wybierz aneks ręcznie”.',c.type&&c.payment?'ok':'warn');
     }catch(err){
@@ -680,6 +701,17 @@
       });
       await downloadAnnex26(prepared,{requiredFields:prepared.requiredFields});
       status.textContent='Aneks został pobrany';status.className='status show ok';
+    }catch(error){ status.textContent=error.message;status.className='status show error'; }
+  });
+
+  document.getElementById('annex25Form').addEventListener('submit',async event=>{
+    event.preventDefault();
+    const status=document.getElementById('annex25Status');
+    status.textContent='Tworzę dokument…';status.className='status show warn';
+    try{
+      const prepared=prepareAnnex25(currentContract,{newInstallment:document.getElementById('annex25NewInstallment').value});
+      await downloadAnnex25(prepared);
+      status.textContent='Aneks został pobrany.';status.className='status show ok';
     }catch(error){ status.textContent=error.message;status.className='status show error'; }
   });
 
