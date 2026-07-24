@@ -1,7 +1,14 @@
 /** Extracts the agreement number printed after "nr" in the contract heading. */
 export function extractAgreementNumber(text) {
-  const heading = String(text || '').replace(/\u00a0/g, ' ').slice(0, 4000);
-  return heading.match(/\bnr(?:\s+umowy)?\s*[:#]?\s*([A-Z0-9_-]+(?:\/[A-Z0-9_-]+)+)/i)?.[1];
+  const heading = String(text || '')
+    .slice(0, 4000)
+    .normalize('NFC')
+    .replace(/\u00a0/g, ' ')
+    .replace(/[\n\r\t]+/g, ' ')
+    .replace(/\s*\/\s*/g, '/')
+    .replace(/\s+/g, ' ');
+  const agreementNumberPattern = /\bUMOWA\b.{0,300}?\bnr(?:\s+umowy)?\s*[:#]?\s*(EL\/[A-ZĄĆĘŁŃÓŚŹŻ](?:\s*[A-ZĄĆĘŁŃÓŚŹŻ]){0,9}\/\d+\/\d+\/\d{1,2}\/\d{1,2}\/\d{4})(?=\s|$|[.,;:])/iu;
+  return heading.match(agreementNumberPattern)?.[1].replace(/\s/g, '');
 }
 
 const capture = (text, pattern) => text.match(pattern)?.[1]?.trim();

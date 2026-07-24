@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import { extractContractData } from '../../src/domain/contract-extraction.js';
+import { extractAgreementNumber, extractContractData } from '../../src/domain/contract-extraction.js';
 import { prepareAnnex26 } from '../../src/annexes/26/generator.js';
 
 const rawText = `UMOWA ELASTYCZNA nr EL/JF/811/192956/3/9/2025
@@ -19,6 +19,42 @@ test('wspólny extractor zwraca komplet podstawowych danych umowy', () => {
     monthlyInstallment: 399, lessonCount: 450, monthlyLimit: 57,
     teacherTypes: 'Lektor Polski, English Expert, Native Speaker'
   });
+});
+
+for (const agreementNumber of [
+  'EL/JS/966/125049/5/12/2025',
+  'EL/PM/745/130243/23/9/2025',
+  'EL/JF/811/192956/3/9/2025',
+  'EL/J/1/2/3/4/2025',
+  'EL/ĄĆĘŁŃÓŚŹŻA/123/456/31/12/2025'
+]) {
+  test(`odczytuje pełny numer umowy ${agreementNumber}`, () => {
+    const text = `UMOWA O ŚWIADCZENIE USŁUG KURSU JĘZYKA ANGIELSKIEGO\nnr ${agreementNumber} zawarta na odległość`;
+    assert.equal(extractAgreementNumber(text), agreementNumber);
+  });
+}
+
+test('odtwarza numer rozbity nową linią i spacjami wokół ukośników', () => {
+  const text = `UMOWA O ŚWIADCZENIE USŁUG KURSU JĘZYKA ANGIELSKIEGO
+nr EL / JS / 966 /\n125049 / 5 / 12 / 2025 zawarta na odległość`;
+  assert.equal(extractAgreementNumber(text), 'EL/JS/966/125049/5/12/2025');
+});
+
+test('nie ucina kodu, gdy PDF rozdzieli jego litery końcem linii', () => {
+  const text = `UMOWA O ŚWIADCZENIE USŁUG KURSU JĘZYKA ANGIELSKIEGO
+nr EL/J\nS/966/125049/5/12/2025 zawarta na odległość`;
+  assert.equal(extractAgreementNumber(text), 'EL/JS/966/125049/5/12/2025');
+});
+
+test('nie pobiera numeru EL z miejsca dokumentu innego niż nagłówek umowy', () => {
+  assert.equal(extractAgreementNumber('Identyfikator EL/JS/966/125049/5/12/2025 w stopce dokumentu'), undefined);
+});
+
+test('przekazuje pełny numer z PDF do parsera końcowej daty', () => {
+  const contract = extractContractData(`UMOWA O ŚWIADCZENIE USŁUG KURSU JĘZYKA ANGIELSKIEGO
+nr EL/JS/966/125049/5/12/2025 zawarta na odległość`);
+  assert.equal(contract.agreementNumber, 'EL/JS/966/125049/5/12/2025');
+  assert.equal(contract.agreementDate, '05.12.2025');
 });
 
 for (const [printed, expectedCents] of [
