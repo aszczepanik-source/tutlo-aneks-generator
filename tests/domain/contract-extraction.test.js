@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import { extractAgreementNumber, extractContractData } from '../../src/domain/contract-extraction.js';
+import {
+  extractAgreementNumber, extractContractData, extractInternalInstallmentAccount,
+  INTERNAL_INSTALLMENT_ACCOUNT_LABEL
+} from '../../src/domain/contract-extraction.js';
 import { prepareAnnex26 } from '../../src/annexes/26/generator.js';
 
 const rawText = `UMOWA ELASTYCZNA nr EL/JF/811/192956/3/9/2025
@@ -20,6 +23,27 @@ test('wspólny extractor zwraca komplet podstawowych danych umowy', () => {
     monthlyInstallment: 399, lessonCount: 450, monthlyLimit: 57,
     teacherTypes: 'Lektor Polski, English Expert, Native Speaker'
   });
+});
+
+test('odczytuje rachunek rat wewnętrznych spod właściwej etykiety i normalizuje separatory', () => {
+  assert.equal(INTERNAL_INSTALLMENT_ACCOUNT_LABEL, 'rachunek bankowy Tutlo');
+  for (const printed of [
+    '12 3456 7890 1234 5678 9012 3456',
+    '12-3456-7890-1234-5678-9012-3456',
+    '12345678901234567890123456',
+    '12 3456\n7890 1234\n5678 9012 3456'
+  ]) {
+    const contract = extractContractData(`WARUNKI PŁATNOŚCI rachunek bankowy Tutlo: ${printed}`);
+    assert.equal(contract.bankAccount, '12345678901234567890123456');
+    assert.equal(typeof contract.bankAccount, 'string');
+  }
+});
+
+test('nie pobiera przypadkowych identyfikatorów ani rachunku kredytodawcy', () => {
+  const text = `Numer umowy 12345678901234567890123456 PESEL 12345678901 NIP 1234567890
+    numer rachunku kredytodawcy: 98765432109876543210987654`;
+  assert.equal(extractInternalInstallmentAccount(text), undefined);
+  assert.equal(extractContractData(text).bankAccount, undefined);
 });
 
 test('odczytuje firmę i normalizuje NIP z tabeli danych nabywcy', () => {
