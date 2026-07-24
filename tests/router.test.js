@@ -71,3 +71,14 @@ test('konfiguracja release zawiera moduły i lokalne szablony wymagane przez Git
   assert.ok(annex26Template.byteLength > 0);
   assert.doesNotMatch(releaseHtml, /AppsScriptClient|APPS_SCRIPT_URL/);
 });
+
+test('workflow Pages pokazuje pełny wynik nieudanych testów', async () => {
+  const workflow = await readFile(new URL('../.github/workflows/main.yml', import.meta.url), 'utf8');
+  const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
+
+  assert.match(workflow, /- name: Run tests\s+run: npm test/);
+  assert.doesNotMatch(workflow, /test-results\.log|szczegóły pozostają ukryte|ukrywania? endpointu/i);
+  assert.match(packageJson.scripts.test, /tests\/\*\.test\.js/);
+  assert.match(packageJson.scripts.test, /src\/annexes\/\*\/tests\/\*\.test\.js/);
+  assert.doesNotMatch(packageJson.scripts.test, /^node --test$/);
+});
