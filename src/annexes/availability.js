@@ -37,10 +37,25 @@ const FLEXIBLE_CREDIT_ANNEXES = Object.freeze([
   { no: '27', name: 'Aneks 27', desc: 'Zmniejszenie rat i przejście na raty wewnętrzne.', status: 'planned' }
 ]);
 
+const FLEXIBLE_INTERNAL_24_ANNEXES = Object.freeze([
+  { no: '25', name: 'Zmniejszenie rat wewnętrznych', status: 'tutlo' },
+  { no: '11', name: 'Zawieszenie umowy', status: 'planned' },
+  { no: '29', name: 'Jedna rata gratis', status: 'planned' },
+  { no: '29a', name: 'Dwie raty gratis', status: 'planned' },
+  { no: 'wydluzenie-dostepu', marker: '↗', name: 'Wydłużenie dostępu', status: 'external' },
+  { no: '20-lekcji-gratis', marker: '20', name: '20 lekcji gratis', status: 'external' },
+  { no: 'rozlozenie-platnosci', marker: 'R', name: 'Rozłożenie płatności', status: 'external' },
+  { no: 'tutlo-premium', marker: 'P', name: 'Aneks Tutlo Premium', status: 'external' },
+  { no: '45', name: 'Aneks 45', status: 'planned' }
+]);
+
 /** Central, deterministic availability rule consumed by both card views. */
 export function getAvailableAnnexCards(contract) {
   const catalog = contract?.type === 'flexible' && contract?.payment === 'credit'
     ? FLEXIBLE_CREDIT_ANNEXES
-    : ALL_ANNEXES;
+    : contract?.type === 'flexible' && contract?.payment === 'internal'
+      && contract?.variant === '24 równe raty miesięczne'
+      ? FLEXIBLE_INTERNAL_24_ANNEXES
+      : ALL_ANNEXES;
   return catalog.filter(item => !item.when || item.when(contract));
 }

@@ -77,6 +77,24 @@ export function normalizeContractText(rawText) {
 
 const COURSE_PRICE_PHRASE = 'Całkowita cena kursu wynosi';
 
+// This is the label used by internal-installment agreements. Keep this
+// deliberately narrower than a generic "numer rachunku" search: credit
+// agreements can contain a lender's account which is not Tutlo's payment
+// account.
+export const INTERNAL_INSTALLMENT_ACCOUNT_LABEL = 'rachunek bankowy Tutlo';
+
+/** Reads and normalizes the Tutlo account printed in the payment conditions. */
+export function extractInternalInstallmentAccount(text) {
+  const normalizedText = normalizeContractText(text);
+  const labelPattern = INTERNAL_INSTALLMENT_ACCOUNT_LABEL.replace(/ /g, String.raw`\s+`);
+  const match = normalizedText.match(new RegExp(
+    String.raw`\b${labelPattern}\b\s*(?:(?:nr|numer)\s*)?(?::\s*)?((?:\d[\s-]*){26})(?![\s-]*\d)`,
+    'iu'
+  ));
+  const account = match?.[1].replace(/[\s-]/g, '');
+  return /^\d{26}$/.test(account || '') ? account : undefined;
+}
+
 /** Reads only the first monetary value directly following the contractual course-price phrase. */
 export function extractCoursePrice(text) {
   const phraseIndex = text.toLocaleLowerCase('pl').indexOf(COURSE_PRICE_PHRASE.toLocaleLowerCase('pl'));
@@ -162,7 +180,7 @@ export function extractContractData(rawText, agreementNumber = extractAgreementN
   const monthlyLimit = Number(capture(specification, /maksymalna miesięczna liczba lekcji indywidualnych do wykorzystania\s*:\s*(\d+)/i)) || undefined;
   const lessonCount = Number(capture(specification, /liczba lekcji indywidualnych\s*:\s*(\d+)/i)) || undefined;
   const courseStartDate = capture(specification, /data rozpoczęcia kursu\s*:\s*(\d{1,2}[-.]\d{1,2}[-.]\d{4})/i);
-  const bankAccount = capture(text, /(?:numer(?:ze)? rachunku|rachunek bankowy(?: tutlo)?)\s*(?:nr|:)?\s*([\d ]{26,40})/i)?.replace(/\s/g, '');
+  const bankAccount = extractInternalInstallmentAccount(text);
 
   // Some agreements print every due date, while §2 of the 24-installment variant
   // defines the first payment and then 23 payments on the same day of successive months.

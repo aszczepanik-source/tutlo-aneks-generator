@@ -76,13 +76,20 @@ test('statusy kart elastycznej umowy kredytowej mają właściwe kolory', () => 
   ]);
 });
 
-test('reguła specjalna nie zmienia list innych wariantów', () => {
+test('elastyczna umowa na 24 raty wewnętrzne ma dokładnie wymagane karty i statusy', () => {
   const internal = getAvailableAnnexCards({
     type: 'flexible', payment: 'internal', variant: '24 równe raty miesięczne', hasPolishLecturers: false
   });
-  const limitCredit = getAvailableAnnexCards({ type: 'limit', payment: 'credit' });
+  assert.deepEqual(internal.map(card => card.no), [
+    '25', '11', '29', '29a', 'wydluzenie-dostepu', '20-lekcji-gratis',
+    'rozlozenie-platnosci', 'tutlo-premium', '45'
+  ]);
+  assert.deepEqual(internal.map(card => card.status), [
+    'tutlo', 'planned', 'planned', 'planned', 'external', 'external', 'external', 'external', 'planned'
+  ]);
+  assert.equal(internal.some(card => card.no === '26'), false);
+});
 
-  assert.ok(internal.some(card => card.no === '25'));
-  assert.ok(internal.some(card => card.no === 'rozlozenie-platnosci'));
-  assert.ok(limitCredit.some(card => card.no === '45'));
+test('reguła rat wewnętrznych nie zmienia pozostałych wariantów', () => {
+  assert.ok(getAvailableAnnexCards({ type: 'limit', payment: 'credit' }).some(card => card.no === '45'));
 });
