@@ -47,6 +47,62 @@ export function addMonths(value, count) {
 }
 export function money(cents) { return `${(cents / 100).toFixed(2).replace('.', ',')} zł`; }
 
+export function parseMoneyToCents(value, field = 'kwota') {
+  const text = String(value ?? '').trim().replace(/\s*zł\s*$/i, '').trim();
+  const match = text.match(/^(\d+)(?:[,.](\d{1,2}))?$/);
+  if (!match) throw new Error(`Nieprawidłowa ${field}. Wpisz dodatnią kwotę z maksymalnie dwoma miejscami po przecinku.`);
+  const cents = Number(match[1]) * 100 + Number((match[2] || '').padEnd(2, '0'));
+  if (!Number.isSafeInteger(cents) || cents <= 0) throw new Error(`Nieprawidłowa ${field}. Wpisz dodatnią kwotę z maksymalnie dwoma miejscami po przecinku.`);
+  return cents;
+}
+
+const ANNEX_25_INSTALLMENTS = 24;
+const firstOfNextMonth = value => {
+  const date = parseDate(value, 'data aneksu');
+  return iso(new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1, 12)));
+};
+
+function annex25DueDates(contract) {
+  if (Array.isArray(contract.installments) && contract.installments.length === ANNEX_25_INSTALLMENTS) {
+    return contract.installments.map(item => iso(parseDate(item.dueDate, 'termin raty')));
+  }
+  if (Array.isArray(contract.installmentDueDates) && contract.installmentDueDates.length === ANNEX_25_INSTALLMENTS) {
+    return contract.installmentDueDates.map(value => iso(parseDate(value, 'termin raty')));
+  }
+  // In the §2(2) variant the schedule starts on the course start date and
+  // preserves its day (including end-of-month clamping) for all 24 months.
+  if (!contract.courseStartDate) throw new Error('Brak daty rozpoczęcia harmonogramu rat w danych umowy.');
+  const start = iso(parseDate(contract.courseStartDate, 'data rozpoczęcia harmonogramu'));
+  return Array.from({ length: ANNEX_25_INSTALLMENTS }, (_, index) => addMonths(start, index));
+}
+
+export function calculateAnnex25(contract, annexDate, newInstallmentCents) {
+  const coursePriceCents = contract.coursePriceCents;
+  if (!Number.isSafeInteger(coursePriceCents) || coursePriceCents <= 0) throw new Error('Cena kursu jest nieprawidłowa.');
+  if (contract.installmentCount !== ANNEX_25_INSTALLMENTS) throw new Error('Aneks 25 wymaga umowy na 24 raty.');
+  if (coursePriceCents % ANNEX_25_INSTALLMENTS !== 0) throw new Error('Cena kursu nie dzieli się na 24 pełne raty w groszach.');
+  const oldInstallmentCents = coursePriceCents / ANNEX_25_INSTALLMENTS;
+  if (!Number.isSafeInteger(newInstallmentCents) || newInstallmentCents <= 0) throw new Error('Nowa rata musi być dodatnią kwotą.');
+  if (newInstallmentCents >= oldInstallmentCents) {
+    throw new Error(`Nowa rata musi być niższa od obecnej raty wynoszącej ${money(oldInstallmentCents)}.`);
+  }
+  const effectiveDate = firstOfNextMonth(annexDate);
+  const dueDates = annex25DueDates(contract);
+  if (dueDates.length !== ANNEX_25_INSTALLMENTS || dueDates.some(date => !date)) throw new Error('Harmonogram musi zawierać dokładnie 24 raty z terminami.');
+  const paidInstallments = dueDates.filter(date => date < effectiveDate).length;
+  const remainingInstallments = ANNEX_25_INSTALLMENTS - paidInstallments;
+  const installments = dueDates.map((dueDate, index) => ({
+    nr: index + 1, dueDate, amountCents: index < paidInstallments ? oldInstallmentCents : newInstallmentCents
+  }));
+  const discountCents = (oldInstallmentCents - newInstallmentCents) * remainingInstallments;
+  const newPriceCents = coursePriceCents - discountCents;
+  if (installments.reduce((sum, item) => sum + item.amountCents, 0) !== newPriceCents) throw new Error('Suma harmonogramu nie odpowiada nowej cenie.');
+  return { annexDate, effectiveDate, oldInstallmentCents, newInstallmentCents, paidInstallments,
+    remainingInstallments, discountCents, newPriceCents,
+    paidToAnnexDateCents: oldInstallmentCents * paidInstallments,
+    newAverageInstallmentCents: Math.round(newPriceCents / ANNEX_25_INSTALLMENTS), installments };
+}
+
 function requireInstallments(contract, minimum, annexDate) {
   const installments = (contract.installments || [])
     .map(item => ({ dueDate: item.dueDate, amountCents: Number(item.amountCents) }))
@@ -132,5 +188,4 @@ export function calculateAnnex11(contract, annexDate, suspensionMonths) {
 }
 
 export const BLOCKED_RULES = Object.freeze({
-  '25': 'Dokumentacja nie określa sposobu wyliczenia nowej ceny, liczby lekcji, średniej raty ani nowego harmonogramu.',
 });

@@ -70,6 +70,5 @@
     "RATA_24_TERMIN",
     "TYPY_LEKTOROW"
   ],
-  "status": "blocked",
-  "blockingReason": "Brak reguł obliczania nowej ceny, liczby lekcji, średniej raty i harmonogramu."
+  "status": "ready"
 }

@@ -69,6 +69,13 @@ export function extractContractData(rawText, agreementNumber = extractAgreementN
   // Read the longer label first so it can never be confused with the lesson-count label.
   const monthlyLimit = Number(capture(specification, /maksymalna miesięczna liczba lekcji indywidualnych do wykorzystania\s*:\s*(\d+)/i)) || undefined;
   const lessonCount = Number(capture(specification, /liczba lekcji indywidualnych\s*:\s*(\d+)/i)) || undefined;
+  const courseStartDate = capture(specification, /data rozpoczęcia kursu\s*:\s*(\d{1,2}[-.]\d{1,2}[-.]\d{4})/i);
+  const bankAccount = capture(text, /(?:numer(?:ze)? rachunku|rachunek bankowy(?: tutlo)?)\s*(?:nr|:)?\s*([\d ]{26,40})/i)?.replace(/\s/g, '');
+
+  // Some agreements print every due date, while §2 of the 24-installment variant
+  // defines the first payment and then 23 payments on the same day of successive months.
+  const printedDueDates = [...text.matchAll(/(?:termin(?:em)?|płatn\w*|rata\w*)[^.]{0,80}?(\d{1,2}[.-]\d{1,2}[.-]\d{4})/gi)]
+    .map(match => match[1]);
 
   return {
     agreementNumber,
@@ -80,6 +87,10 @@ export function extractContractData(rawText, agreementNumber = extractAgreementN
     coursePriceCents,
     coursePriceDiagnostic,
     monthlyInstallment: Number.isFinite(coursePrice) ? Math.round((coursePrice / 24) * 100) / 100 : undefined,
+    ...(/kolejn(?:ych|e)\s+23\s+rat/i.test(text) ? { installmentCount: 24 } : {}),
+    ...(printedDueDates.length ? { installmentDueDates: printedDueDates } : {}),
+    ...(courseStartDate ? { courseStartDate } : {}),
+    ...(bankAccount?.length === 26 ? { bankAccount } : {}),
     lessonCount,
     monthlyLimit,
     teacherTypes: extractTeacherTypes(text)
