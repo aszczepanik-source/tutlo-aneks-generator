@@ -34,7 +34,7 @@ test('the existing interface and user path remain connected unchanged', async ()
   assert.match(html, /id="manualAnnexGrid"/);
   assert.match(html, /import \{ getAnnexRoute \} from '\.\/router\.js'/);
   assert.match(html, /const route=getAnnexRoute\(no\)/);
-  assert.match(html, /window\.open\(url,'_blank'\)/);
+  assert.match(html, /downloadAnnex26\(prepared/);
 });
 
 test('interface presents the requested annex statuses and click messages', async () => {
@@ -58,19 +58,12 @@ test('interface presents the requested annex statuses and click messages', async
   assert.match(html, /name:'Aneks 45'.*type==='limit'.*payment==='credit'/);
 });
 
-test('release is a classic-script bundle that can be loaded over file://', async () => {
+test('release zawiera moduły i lokalny szablon wymagane przez GitHub Pages', async () => {
   const releaseHtml = await readFile(new URL('../dist/index.html', import.meta.url), 'utf8');
-  const releaseScript = await readFile(new URL('../dist/app.js', import.meta.url), 'utf8');
-
-  assert.doesNotMatch(releaseHtml, /type="module"/);
-  assert.doesNotMatch(releaseHtml, /(?:src|from)=["']?\.\/(?:config|router|src\/infrastructure)/);
-  assert.match(releaseHtml, /<script src="app\.js"><\/script>/);
-  assert.match(releaseScript, /function getAnnexRoute/);
-  assert.match(releaseScript, /class AppsScriptClient/);
-  assert.match(releaseScript, /function extractContractData/);
-  assert.doesNotMatch(releaseScript, /function extractAnnex26Contract/);
-  assert.match(releaseScript, /function validateAnnex26Data/);
-  assert.match(releaseScript, /function prepareAnnex26/);
-  assert.doesNotMatch(releaseScript, /extractAnnex26Contract is not defined|validateAnnex26SourceData is not defined|logAnnex26Diagnostic is not defined/);
-  assert.match(releaseScript, /id='pdfInput'|getElementById\('pdfInput'\)/);
+  const generator = await readFile(new URL('../dist/src/infrastructure/local-docx-generator.js', import.meta.url), 'utf8');
+  const template = await readFile(new URL('../dist/src/annexes/26/template.docx', import.meta.url));
+  assert.match(releaseHtml, /type="module"/);
+  assert.match(generator, /renderDocx/);
+  assert.ok(template.byteLength > 0);
+  assert.doesNotMatch(releaseHtml, /AppsScriptClient|APPS_SCRIPT_URL/);
 });
