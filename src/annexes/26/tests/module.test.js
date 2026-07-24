@@ -68,6 +68,7 @@ test('aneks 26 stosuje wszystkie wzory', () => {
 
 test('aneks 26 waliduje nową ratę', () => {
   assert.doesNotThrow(() => prepareAnnex26(contract, form));
+  assert.doesNotThrow(() => prepareAnnex26(contract, { ...form, newInstallment: '  400,00 ' }));
   assert.throws(() => prepareAnnex26(contract, { ...form, newInstallment: 0 }), /większą od 0/);
   assert.throws(() => prepareAnnex26(contract, { ...form, newInstallment: '468,80' }), /niższa/);
   assert.throws(() => prepareAnnex26(contract, { ...form, newInstallment: 500 }), /niższa/);

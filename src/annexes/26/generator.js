@@ -9,6 +9,27 @@ const formatAnnex26Date = value => {
 };
 const annex26Money = cents => `${(cents / 100).toFixed(2).replace('.', ',')} zł`;
 
+const normalizeNumber = value => {
+  const normalized = String(value ?? '').replace(/[\s\u00a0\u202f]/g, '').replace(',', '.');
+  if (!/^[+-]?\d+(?:\.\d+)?$/.test(normalized)) return NaN;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : NaN;
+};
+
+const moneyToCents = value => {
+  const parsed = normalizeNumber(value);
+  return Number.isFinite(parsed) ? Math.round(parsed * 100) : NaN;
+};
+
+function assertFiniteCalculation(calculation) {
+  const numericFields = [
+    'newLessonCount', 'newPriceCents', 'newAverageInstallmentCents',
+    'paidToAnnexDateCents', 'bankRefundCents'
+  ];
+  const invalid = numericFields.filter(field => !Number.isFinite(calculation[field]));
+  if (invalid.length) throw new Error(`Nieprawidłowy wynik obliczeń aneksu 26: ${invalid.join(', ')}.`);
+}
+
 function calculate(contract, annexDate, newInstallmentCents) {
   const [day, month, year] = contract.agreementDate.split('.');
   const agreement = new Date(`${year}-${month}-${day}T12:00:00Z`);
@@ -37,12 +58,33 @@ function calculate(contract, annexDate, newInstallmentCents) {
 }
 
 export function prepareAnnex26(contract, formData) {
-  const newInstallment = Number(String(formData?.newInstallment ?? '').replace(',', '.'));
+  const coursePrice = normalizeNumber(contract?.coursePrice);
+  const lessonCount = normalizeNumber(contract?.lessonCount);
+  const monthlyInstallment = normalizeNumber(contract?.monthlyInstallment);
+  const coursePriceCents = moneyToCents(contract?.coursePrice);
+  const newInstallmentCents = moneyToCents(formData?.newInstallment);
+  const currentInstallmentCents = Number.isInteger(coursePriceCents)
+    ? Math.round(coursePriceCents / INSTALLMENT_COUNT)
+    : NaN;
+
+  // Tymczasowa diagnostyka źródeł liczbowych; celowo nie zawiera danych osobowych.
+  console.info('[Aneks 26] źródła obliczeń', {
+    coursePrice: contract?.coursePrice,
+    coursePriceType: typeof contract?.coursePrice,
+    lessonCount: contract?.lessonCount,
+    lessonCountType: typeof contract?.lessonCount,
+    monthlyInstallment: contract?.monthlyInstallment,
+    monthlyInstallmentType: typeof contract?.monthlyInstallment,
+    parsed: { coursePrice, coursePriceCents, lessonCount, monthlyInstallment, newInstallmentCents }
+  });
+
   const data = {
     ...contract,
-    coursePriceCents: Math.round(Number(contract?.coursePrice) * 100),
-    currentInstallmentCents: Math.round(Number(contract?.monthlyInstallment) * 100),
-    newInstallmentCents: Number.isFinite(newInstallment) ? Math.round(newInstallment * 100) : NaN,
+    coursePrice,
+    coursePriceCents,
+    lessonCount,
+    currentInstallmentCents,
+    newInstallmentCents,
     bank: String(formData?.bank || '').trim(),
     bankAccount: String(formData?.bankAccount || '').replace(/\D/g, '').slice(0, 26)
   };
@@ -50,6 +92,7 @@ export function prepareAnnex26(contract, formData) {
 
   const annexDate = annex26Iso(new Date());
   const calculation = calculate(data, annexDate, data.newInstallmentCents);
+  assertFiniteCalculation(calculation);
   const agreementDate = data.agreementDate;
   const values = {
     NUMER_UMOWY: data.agreementNumber,
