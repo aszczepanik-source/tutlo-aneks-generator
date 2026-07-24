@@ -31,24 +31,6 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Create private frontend configuration
-        env:
-          APPS_SCRIPT_URL: ${{ secrets.APPS_SCRIPT_URL }}
-        run: |
-          node --input-type=module <<'EOF'
-          import { writeFile } from 'node:fs/promises';
-
-          const endpoint = process.env.APPS_SCRIPT_URL;
-          if (!endpoint) throw new Error('Brak wymaganego sekretu APPS_SCRIPT_URL.');
-
-          const url = new URL(endpoint);
-          if (url.protocol !== 'https:' || url.hostname !== 'script.google.com') {
-            throw new Error('APPS_SCRIPT_URL musi być adresem HTTPS w domenie script.google.com.');
-          }
-
-          await writeFile('config.js', `export const APPS_SCRIPT_URL = ${JSON.stringify(endpoint)};\n`);
-          EOF
-
       - name: Build release
         run: npm run build
 
@@ -60,14 +42,16 @@ jobs:
           fi
           echo 'Testy zakończone powodzeniem.'
 
-      - name: Verify release endpoint configuration
+      - name: Verify Pages build contents
         run: |
-          if grep -R -F -q 'UZUPELNIJ_LOKALNIE' dist; then
-            echo 'Błąd: dist zawiera placeholder endpointu.' >&2
+          if [ ! -s dist/src/annexes/26/template.docx ]; then
+            echo 'Błąd: brak szablonu aneksu 26 w dist lub plik jest pusty.' >&2
             exit 1
           fi
-          if ! grep -R -F -q 'script.google.com' dist; then
-            echo 'Błąd: dist nie zawiera skonfigurowanej domeny Apps Script.' >&2
+          if grep -R -F -q 'UZUPELNIJ_LOKALNIE' \
+            --include='*.html' --include='*.js' \
+            dist/index.html dist/router.js dist/src; then
+            echo 'Błąd: aktywny kod aplikacji zawiera placeholder UZUPELNIJ_LOKALNIE.' >&2
             exit 1
           fi
 
