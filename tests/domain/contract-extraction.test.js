@@ -13,12 +13,34 @@ WARUNKI PŁATNOŚCI Całkowita cena kursu wynosi 9576,00 zł brutto.`;
 test('wspólny extractor zwraca komplet podstawowych danych umowy', () => {
   assert.deepEqual(extractContractData(rawText), {
     agreementNumber: 'EL/JF/811/192956/3/9/2025', agreementDate: '03.09.2025',
-    customerName: 'Monika Wójcik', address: 'Galileusza 10/13, 67-200 Głogów', pesel: '82111304868',
+    customerName: 'Monika Wójcik', pesel: '82111304868', customerType: 'person',
+    address: 'Galileusza 10/13, 67-200 Głogów',
     coursePrice: 9576, coursePriceCents: 957600,
     coursePriceDiagnostic: { phraseFound: true, followingText: '9576,00 zł brutto.', valuePassedToPrepareAnnex26: 957600 },
     monthlyInstallment: 399, lessonCount: 450, monthlyLimit: 57,
     teacherTypes: 'Lektor Polski, English Expert, Native Speaker'
   });
+});
+
+test('odczytuje firmę i normalizuje NIP z tabeli danych nabywcy', () => {
+  const contract = extractContractData(`Tutlo Sp. z o.o. FIRMA: Tutlo
+    DANE\u00a0NABYWCY
+    firma : Agnieszka Paprotna
+    ADRES: Żerkówek 28, 56-120 Brzeg Dolny TELEFON: 123 456 789
+    E-MAIL: klient@example.com NIP: 692-245-39 48
+    SPECYFIKACJA KURSU ZAWARTOŚĆ KURSU WARUNKI PŁATNOŚCI`);
+
+  assert.equal(contract.customerName, 'Agnieszka Paprotna');
+  assert.equal(contract.pesel, '6922453948');
+  assert.equal(contract.customerType, 'company');
+});
+
+test('nie uznaje firmy Tutlo spoza tabeli DANE NABYWCY za nabywcę', () => {
+  const contract = extractContractData(`FIRMA: Tutlo Sp. z o.o.
+    DANE NABYWCY Imię i nazwisko: Jan Kowalski Adres: Polna 1 PESEL: 12345678901
+    SPECYFIKACJA KURSU ZAWARTOŚĆ KURSU WARUNKI PŁATNOŚCI`);
+  assert.equal(contract.customerName, 'Jan Kowalski');
+  assert.equal(contract.customerType, 'person');
 });
 
 for (const agreementNumber of [

@@ -74,3 +74,34 @@ test('aneks 26 zgłasza błąd, gdy numer umowy nie zawiera poprawnej daty', t =
     newInstallment: '400,00', bank: 'Inbank', bankAccount: '12345678901234567890123456'
   }), /Nie odczytano prawidłowej daty zawarcia umowy z numeru umowy/);
 });
+
+test('aneks 26 przekazuje nazwę firmy i NIP przez istniejące placeholdery', () => {
+  const currentContract = extractContractData(`
+    UMOWA ELASTYCZNA nr EL/JF/811/192956/3/9/2025
+    DANE NABYWCY FIRMA: Agnieszka Paprotna ADRES: Żerkówek 28 NIP: 6922453948
+    SPECYFIKACJA KURSU Liczba Lekcji Indywidualnych: 450
+    Maksymalna miesięczna liczba Lekcji Indywidualnych do wykorzystania: 57
+    ZAWARTOŚĆ KURSU spotkania z Lektorem Polskim WARUNKI PŁATNOŚCI
+    Całkowita cena kursu wynosi 11 250,00 zł brutto`);
+  const { values } = prepareAnnex26(currentContract, {
+    newInstallment: '400,00', bank: 'Inbank', bankAccount: '12345678901234567890123456'
+  });
+
+  assert.equal(values.IMIE_NAZWISKO, 'Agnieszka Paprotna');
+  assert.equal(values.PESEL, '6922453948');
+});
+
+test('firma nie wymaga PESEL, lecz brak NIP zgłasza czytelny błąd', () => {
+  const currentContract = extractContractData(`
+    UMOWA ELASTYCZNA nr EL/JF/811/192956/3/9/2025
+    DANE NABYWCY FIRMA: Agnieszka Paprotna ADRES: Żerkówek 28
+    SPECYFIKACJA KURSU Liczba Lekcji Indywidualnych: 450
+    Maksymalna miesięczna liczba Lekcji Indywidualnych do wykorzystania: 57
+    ZAWARTOŚĆ KURSU spotkania z Lektorem Polskim WARUNKI PŁATNOŚCI
+    Całkowita cena kursu wynosi 11 250,00 zł brutto`);
+
+  assert.equal(currentContract.customerType, 'company');
+  assert.throws(() => prepareAnnex26(currentContract, {
+    newInstallment: '400,00', bank: 'Inbank', bankAccount: '12345678901234567890123456'
+  }), /Nie odczytano NIP firmy\./);
+});
