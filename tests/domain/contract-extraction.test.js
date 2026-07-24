@@ -35,6 +35,44 @@ test('odczytuje firmę i normalizuje NIP z tabeli danych nabywcy', () => {
   assert.equal(contract.customerType, 'company');
 });
 
+for (const printedNip of [
+  'NIP: 6922453948',
+  'NIP 6922453948',
+  'NIP:\n6922453948',
+  'NIP: 692-245-39 48'
+]) {
+  test(`odczytuje NIP zapisany jako „${printedNip.replace('\n', ' / ')}”`, () => {
+    const contract = extractContractData(`DANE NABYWCY
+      FIRMA: Klient Firmowy
+      ADRES: Testowa 1
+      ${printedNip}
+      SPECYFIKACJA KURSU ZAWARTOŚĆ KURSU WARUNKI PŁATNOŚCI`);
+
+    assert.equal(contract.customerName, 'Klient Firmowy');
+    assert.equal(contract.pesel, '6922453948');
+    assert.equal(typeof contract.pesel, 'string');
+    assert.equal(contract.customerType, 'company');
+  });
+}
+
+test('diagnostyka NIP zawiera wyłącznie wynik rozpoznania, bez wartości NIP', () => {
+  const calls = [];
+  const originalInfo = console.info;
+  console.info = (...args) => calls.push(args);
+  try {
+    extractContractData(`DANE NABYWCY FIRMA: Klient Firmowy NIP 692-245-39 48
+      SPECYFIKACJA KURSU ZAWARTOŚĆ KURSU WARUNKI PŁATNOŚCI`);
+  } finally {
+    console.info = originalInfo;
+  }
+
+  assert.deepEqual(calls, [[
+    '[NIP nabywcy diagnostic]',
+    { labelFound: true, normalizedLength: 10, isExactly10Digits: true }
+  ]]);
+  assert.doesNotMatch(JSON.stringify(calls), /6922453948|692-245/);
+});
+
 test('nie uznaje firmy Tutlo spoza tabeli DANE NABYWCY za nabywcę', () => {
   const contract = extractContractData(`FIRMA: Tutlo Sp. z o.o.
     DANE NABYWCY Imię i nazwisko: Jan Kowalski Adres: Polna 1 PESEL: 12345678901

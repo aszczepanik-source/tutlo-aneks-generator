@@ -577,10 +577,6 @@
     });
   }
 
-  function availableAnnexes(contract){
-    return getAvailableAnnexCards(contract);
-  }
-
   function renderResult(c){
     els.empty.style.display='none';
     els.result.classList.add('show');
@@ -590,7 +586,7 @@
     els.confidence.textContent=c.score>=90?'Wysoka':c.score>=60?'Średnia':'Niska';
     els.reasons.innerHTML=c.reasons.map(x=>`<li>${x}</li>`).join('');
 
-    const items=availableAnnexes(c);
+    const items=getAvailableAnnexCards(c);
     if(items.length){
       renderAnnexCards(items,els.annexGrid);
       els.annexSection.style.display='block';
@@ -694,7 +690,7 @@
   const manualGrid=document.getElementById('manualAnnexGrid');
   function renderManualAnnexes(){
     manualGrid.innerHTML='';
-    availableAnnexes(currentClassification).forEach(item=>{
+    getAvailableAnnexCards(currentClassification).forEach(item=>{
       const status=ANNEX_STATUSES[item.status];
       const button=document.createElement('button');
       button.type='button';
