@@ -2,10 +2,11 @@ import manifest from './manifest.json' with { type: 'json' };
 import { validateAnnex26Data } from './validator.js';
 
 const INSTALLMENT_COUNT = 24;
-const ANNEX_26_TEACHER_TYPES = new Map([
-  ['Lektor Polski, English Expert, Native Speaker', 'Lektorem Polskim, English Expert, Native Speakerem'],
-  ['English Expert, Native Speaker', 'English Expert, Native Speakerem']
-]);
+const ANNEX_26_TEACHER_PHRASES = {
+  polish: /\b(?:lektor\s+polski|lektorem\s+polskim)\b/iu,
+  english: /\benglish\s+expert\b/iu,
+  native: /\bnative\s+speaker(?:em)?\b/iu
+};
 const annex26Iso = date => date.toISOString().slice(0, 10);
 const formatAnnex26Date = value => {
   const [year, month, day] = value.split('-');
@@ -20,9 +21,16 @@ const annex26EffectiveDate = annexDate => {
 };
 
 const annex26TeacherTypes = teacherTypes => {
-  const value = ANNEX_26_TEACHER_TYPES.get(teacherTypes);
-  if (!value) throw new Error('Nie rozpoznano prawidłowego wariantu lektorów.');
-  return value;
+  const source = String(teacherTypes ?? '');
+  const hasPolish = ANNEX_26_TEACHER_PHRASES.polish.test(source);
+  const hasEnglish = ANNEX_26_TEACHER_PHRASES.english.test(source);
+  const hasNative = ANNEX_26_TEACHER_PHRASES.native.test(source);
+
+  if (hasPolish && hasEnglish && hasNative) {
+    return 'Lektorem Polskim, English Expert, Native Speakerem';
+  }
+  if (!hasPolish && hasEnglish && hasNative) return 'English Expert, Native Speakerem';
+  throw new Error('Nie rozpoznano prawidłowego wariantu lektorów.');
 };
 
 const normalizeNumber = value => {

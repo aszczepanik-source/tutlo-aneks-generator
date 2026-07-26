@@ -92,6 +92,20 @@ test('aneks 26 mapuje wyłącznie dwa prawidłowe warianty lektorów', () => {
     .values.TYPY_LEKTOROW, 'English Expert, Native Speakerem');
 });
 
+test('aneks 26 rozpoznaje rzeczywisty wariant z trzema typami lektorów po obecności fraz', () => {
+  const teacherTypes = 'Zajęcia z LEKTOREM\n  POLSKIM, , English   Expert oraz Native Speakerem.';
+
+  assert.equal(prepareAnnex26({ ...contract, teacherTypes }, form).values.TYPY_LEKTOROW,
+    'Lektorem Polskim, English Expert, Native Speakerem');
+});
+
+test('aneks 26 rozpoznaje rzeczywisty wariant bez lektora polskiego po obecności fraz', () => {
+  const teacherTypes = 'Zajęcia obejmują english expert,\n , native   speaker.';
+
+  assert.equal(prepareAnnex26({ ...contract, teacherTypes }, form).values.TYPY_LEKTOROW,
+    'English Expert, Native Speakerem');
+});
+
 test('aneks 26 blokuje niepełną lub inną kombinację lektorów', () => {
   for (const teacherTypes of ['Lektor Polski', 'Native Speaker', 'Lektor Polski, Native Speaker',
     'Polscy lektorzy', 'English experci']) {
