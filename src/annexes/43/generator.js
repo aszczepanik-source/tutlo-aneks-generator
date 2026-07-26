@@ -7,12 +7,12 @@ export function prepareAnnex43(currentContract) {
   const agreementDate = currentContract?.agreementDate;
   const values = {
     NUMER_UMOWY: agreementNumber,
-    DATA_ZAWARCIA_UMOWY: formatDate(agreementDate),
+    DATA_ZAWARCIA_UMOWY: agreementDate,
     DATA_ANEKSU: formatDate(annexDate),
     DATA_WEJSCIA_W_ZYCIE: formatDate(addDays(annexDate, 3)),
     IMIE_NAZWISKO: currentContract?.customerName,
     ADRES: currentContract?.address,
-    PESEL: currentContract?.personalId
+    PESEL: currentContract?.pesel
   };
   const missing = manifest.requiredFields.filter(field => values[field] === undefined || values[field] === '');
   if (missing.length) throw new Error(`Brak wymaganych danych: ${missing.join(', ')}`);
