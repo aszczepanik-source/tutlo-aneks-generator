@@ -56,7 +56,7 @@ test('interface presents the requested annex statuses and click messages', async
     assert.match(availability, new RegExp(`no: '${id}', name: '${name}', status: 'tutlo'`));
   }
   assert.match(availability, /name: 'Rozszerzenie pakietu lektorów'.*hasPolishLecturers === false/);
-  assert.match(availability, /name: 'Aneks 45'.*type === 'limit'.*payment === 'credit'/);
+  assert.match(availability, /name: 'Aneks 45'.*contractType === 'limit'.*paymentType === 'credit'/);
 });
 
 test('obie listy kart UI korzystają bezpośrednio z centralnej reguły dostępności', async () => {

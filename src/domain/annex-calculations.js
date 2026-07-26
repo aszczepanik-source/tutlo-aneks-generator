@@ -63,23 +63,21 @@ const firstOfNextMonth = value => {
 };
 
 function annex25DueDates(contract) {
-  if (Array.isArray(contract.installments) && contract.installments.length === ANNEX_25_INSTALLMENTS) {
-    return contract.installments.map(item => iso(parseDate(item.dueDate, 'termin raty')));
-  }
-  if (Array.isArray(contract.installmentDueDates) && contract.installmentDueDates.length === ANNEX_25_INSTALLMENTS) {
-    return contract.installmentDueDates.map(value => iso(parseDate(value, 'termin raty')));
+  const plan = contract.installmentPlan;
+  if (Array.isArray(plan?.installments) && plan.installments.length === ANNEX_25_INSTALLMENTS) {
+    return plan.installments.map(item => iso(parseDate(item.dueDate, 'termin raty')));
   }
   // In the §2(2) variant the schedule starts on the course start date and
   // preserves its day (including end-of-month clamping) for all 24 months.
-  if (!contract.courseStartDate) throw new Error('Brak daty rozpoczęcia harmonogramu rat w danych umowy.');
-  const start = iso(parseDate(contract.courseStartDate, 'data rozpoczęcia harmonogramu'));
+  if (!plan?.startDate) throw new Error('Brak daty rozpoczęcia harmonogramu rat w danych umowy.');
+  const start = iso(parseDate(plan.startDate, 'data rozpoczęcia harmonogramu'));
   return Array.from({ length: ANNEX_25_INSTALLMENTS }, (_, index) => addMonths(start, index));
 }
 
 export function calculateAnnex25(contract, annexDate, newInstallmentCents) {
   const coursePriceCents = contract.coursePriceCents;
   if (!Number.isSafeInteger(coursePriceCents) || coursePriceCents <= 0) throw new Error('Cena kursu jest nieprawidłowa.');
-  if (contract.installmentCount !== ANNEX_25_INSTALLMENTS) throw new Error('Aneks 25 wymaga umowy na 24 raty.');
+  if (contract.paymentVariant !== 'internal_24' || contract.installmentPlan?.paymentCount !== ANNEX_25_INSTALLMENTS) throw new Error('Aneks 25 wymaga umowy na 24 raty.');
   if (coursePriceCents % ANNEX_25_INSTALLMENTS !== 0) throw new Error('Cena kursu nie dzieli się na 24 pełne raty w groszach.');
   const oldInstallmentCents = coursePriceCents / ANNEX_25_INSTALLMENTS;
   if (!Number.isSafeInteger(newInstallmentCents) || newInstallmentCents <= 0) throw new Error('Nowa rata musi być dodatnią kwotą.');
