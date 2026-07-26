@@ -2,6 +2,57 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { extractContractData } from '../../src/domain/contract-extraction.js';
 import { prepareAnnex26 } from '../../src/annexes/26/index.js';
+import { renderDocx } from '../../src/infrastructure/local-docx-generator.js';
+
+const buyerPdfText = buyerItems => [
+  'Tutlo Sp. z o.o. NIP: 5272600188 reprezentant sprzedawcy Firma finansująca',
+  'UMOWA ELASTYCZNA nr EL/JF/811/192956/3/9/2025',
+  'DANE\u00a0NABYWCY', ...buyerItems,
+  'SPECYFIKACJA KURSU', 'Liczba Lekcji Indywidualnych: 450',
+  'Maksymalna miesięczna liczba Lekcji Indywidualnych do wykorzystania: 57',
+  'ZAWARTOŚĆ KURSU spotkania z Lektorem Polskim, English Expert, Native Speaker',
+  'WARUNKI PŁATNOŚCI Całkowita cena kursu wynosi 11 250,00 zł brutto'
+].join('\n');
+
+test('aneks 26 integracyjnie rozpoznaje osobę i firmę z komórek PDF oraz generuje oba DOCX', async () => {
+  const cases = [
+    {
+      items: ['IMIĘ I NAZWISKO:', 'Jan Żółć', 'ADRES:', 'Polna 1', 'PESEL:', '123 456\u00a0789 01'],
+      type: 'person', name: 'Jan Żółć', id: '12345678901'
+    },
+    {
+      items: ['FIRMA:', 'Przykład sp. z o.o.', 'ADRES:', 'Firmowa 2', 'NIP:', '692-245-39 48'],
+      type: 'company', name: 'Przykład sp. z o.o.', id: '6922453948'
+    }
+  ];
+  class TestZip {
+    constructor() { this.files = {}; }
+    file() { return undefined; }
+    generate() { return new TextEncoder().encode('DOCX'); }
+  }
+  class TestDocxtemplater {
+    constructor(zip) { this.zip = zip; }
+    render() {}
+    getZip() { return this.zip; }
+  }
+
+  for (const expected of cases) {
+    const currentContract = extractContractData(buyerPdfText(expected.items));
+    assert.equal(currentContract.customerType, expected.type);
+    assert.equal(currentContract.customerName, expected.name);
+    assert.equal(currentContract.pesel, expected.id);
+    assert.equal(typeof currentContract.pesel, 'string');
+
+    const prepared = prepareAnnex26(currentContract, {
+      newInstallment: '400,00', bank: 'Inbank', bankAccount: '12345678901234567890123456'
+    });
+    assert.equal(prepared.values.IMIE_NAZWISKO, expected.name);
+    assert.equal(prepared.values.PESEL, expected.id);
+    const docx = renderDocx(new Uint8Array(), prepared,
+      { PizZip: TestZip, docxtemplater: TestDocxtemplater });
+    assert.ok(docx.byteLength > 0);
+  }
+});
 
 test('aneks 26 oblicza sześć pól z rzeczywistego kształtu currentContract parsera', () => {
   const pdfText = `

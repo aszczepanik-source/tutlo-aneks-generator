@@ -98,7 +98,7 @@ for (const printedNip of [
   });
 }
 
-test('diagnostyka NIP zawiera wyłącznie wynik rozpoznania, bez wartości NIP', () => {
+test('diagnostyka nabywcy zawiera wyłącznie flagi i długości, bez identyfikatorów', () => {
   const calls = [];
   const originalInfo = console.info;
   console.info = (...args) => calls.push(args);
@@ -109,10 +109,16 @@ test('diagnostyka NIP zawiera wyłącznie wynik rozpoznania, bez wartości NIP',
     console.info = originalInfo;
   }
 
-  assert.deepEqual(calls, [[
-    '[NIP nabywcy diagnostic]',
-    { labelFound: true, normalizedLength: 10, isExactly10Digits: true }
-  ]]);
+  assert.deepEqual(calls, [['[DANE NABYWCY diagnostic]', {
+    buyerSectionFound: true,
+    personNameLabelFound: false,
+    peselLabelFound: false,
+    companyLabelFound: true,
+    nipLabelFound: true,
+    normalizedPeselLength: 0,
+    normalizedNipLength: 10,
+    customerType: 'company'
+  }]]);
   assert.doesNotMatch(JSON.stringify(calls), /6922453948|692-245/);
 });
 
@@ -140,7 +146,7 @@ test('nie ustawia rodzaju nabywcy na podstawie niekompletnej pary pól', () => {
 
   const person = extractContractData('DANE NABYWCY IMIĘ I NAZWISKO: Jan Kowalski SPECYFIKACJA KURSU');
   assert.equal(person.customerType, undefined);
-  assert.equal(person.customerDiagnostic, 'Nie odczytano numeru PESEL.');
+  assert.equal(person.customerDiagnostic, 'Nie odczytano PESEL.');
 });
 
 test('nie zgaduje rodzaju, gdy DANE NABYWCY zawierają obie kompletne pary', () => {
@@ -149,8 +155,7 @@ test('nie zgaduje rodzaju, gdy DANE NABYWCY zawierają obie kompletne pary', () 
     FIRMA: Kowalski sp. z o.o. NIP: 123-456-78-90
     SPECYFIKACJA KURSU`);
   assert.equal(contract.customerType, undefined);
-  assert.equal(contract.customerDiagnostic,
-    'Sekcja DANE NABYWCY zawiera jednocześnie komplet danych osoby fizycznej i firmy.');
+  assert.equal(contract.customerDiagnostic, 'Nie rozpoznano danych nabywcy.');
 });
 
 test('prepareAnnex26 zachowuje placeholdery danych osoby i firmy', () => {

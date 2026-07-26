@@ -5,7 +5,7 @@ const REQUIRED = [
     ? 'Nie odczytano nazwy firmy.' : 'Nie odczytano imienia i nazwiska.'],
   ['address', 'Nie odczytano adresu.'],
   ['pesel', data => data.customerType === 'company'
-    ? 'Nie odczytano NIP firmy.' : 'Nie odczytano numeru PESEL.'],
+    ? 'Nie odczytano NIP firmy.' : 'Nie odczytano PESEL.'],
   ['coursePriceCents', 'Nie odczytano ceny kursu.'],
   ['currentInstallmentCents', 'Nie odczytano wysokości obecnej raty.'],
   ['lessonCount', 'Nie odczytano liczby lekcji.'],
@@ -26,6 +26,9 @@ const ALLOWED_BANKS = new Set([
 
 export function validateAnnex26Data(data) {
   if (data.customerDiagnostic) throw new Error(data.customerDiagnostic);
+  if (data.customerType !== 'person' && data.customerType !== 'company') {
+    throw new Error('Nie rozpoznano danych nabywcy.');
+  }
   const missing = REQUIRED.find(([field]) => data[field] === undefined
     || data[field] === null || data[field] === '');
   if (missing) throw new Error(typeof missing[1] === 'function' ? missing[1](data) : missing[1]);

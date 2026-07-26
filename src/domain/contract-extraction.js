@@ -22,7 +22,7 @@ function extractBuyerData(buyer) {
   // different items. At this point those item boundaries are whitespace, so
   // read only the digit/space/hyphen run immediately following the buyer's NIP
   // label. In particular, never search the seller/header part of the document.
-  const nipMatch = buyer.match(/(?:^|\s)NIP\b\s*:?\s*([\d][\d\s-]*)/i);
+  const nipMatch = buyer.match(/(?:^|\s)NIP\b\s*:?\s*((?:\d[\s\u00a0\u202f-]*){10})(?![\s\u00a0\u202f-]*\d)/i);
   const nipLabelFound = /(?:^|\s)NIP\b/i.test(buyer);
   const nip = nipMatch?.[1].trim().replace(/[\s-]/g, '');
   const nipDiagnostic = {
@@ -32,17 +32,13 @@ function extractBuyerData(buyer) {
   };
 
   const customerName = capture(buyer, new RegExp(String.raw`imię\s+i\s+nazwisko\s*:?\s*(.+?)${BUYER_FIELD_END}`, 'i'));
-  const rawPesel = capture(buyer, /(?:^|\s)PESEL\s*:?\s*([\d\s]+?)(?=\s+(?:imię\s+i\s+nazwisko|firma|adres|telefon|e-?mail|NIP)\s*:?(?:\s|$)|$)/i);
-  const pesel = rawPesel?.replace(/\s/g, '');
+  const peselMatch = buyer.match(/(?:^|\s)PESEL\b\s*:?\s*((?:\d[\s\u00a0\u202f]*){11})(?![\s\u00a0\u202f]*\d)/i);
+  const pesel = peselMatch?.[1].replace(/[\s\u00a0\u202f]/g, '');
   const personComplete = customerName !== undefined && /^\d{11}$/.test(pesel || '');
   const companyComplete = companyName !== undefined && nipDiagnostic.isExactly10Digits;
 
-  if (companyName !== undefined || nipLabelFound) {
-    // Deliberately contains neither the NIP nor any other buyer data.
-    console.info('[NIP nabywcy diagnostic]', nipDiagnostic);
-  }
   if (personComplete && companyComplete) return {
-    customerDiagnostic: 'Sekcja DANE NABYWCY zawiera jednocześnie komplet danych osoby fizycznej i firmy.'
+    customerDiagnostic: 'Nie rozpoznano danych nabywcy.'
   };
   if (personComplete) return { customerName, pesel, customerType: 'person' };
   if (companyComplete) return { customerName: companyName, pesel: nip, customerType: 'company' };
@@ -52,7 +48,7 @@ function extractBuyerData(buyer) {
   const companyLabelFound = /(?:^|\s)firma\s*:?\s/i.test(buyer);
   let customerDiagnostic = 'Nie odczytano kompletnych danych nabywcy w sekcji DANE NABYWCY.';
   if (personLabelFound && !customerName) customerDiagnostic = 'Nie odczytano imienia i nazwiska.';
-  else if (personLabelFound && !/^\d{11}$/.test(pesel || '')) customerDiagnostic = 'Nie odczytano numeru PESEL.';
+  else if (personLabelFound && !/^\d{11}$/.test(pesel || '')) customerDiagnostic = 'Nie odczytano PESEL.';
   else if (peselLabelFound) customerDiagnostic = 'Nie odczytano imienia i nazwiska.';
   else if (companyLabelFound && !companyName) customerDiagnostic = 'Nie odczytano nazwy firmy.';
   else if (companyLabelFound && !nipDiagnostic.isExactly10Digits) customerDiagnostic = 'Nie odczytano NIP firmy.';
@@ -205,8 +201,25 @@ export const extractAgreementDate = parseAgreementDateFromNumber;
  */
 export function extractContractData(rawText, agreementNumber = extractAgreementNumber(rawText)) {
   const text = normalizeContractText(rawText);
-  const buyer = capture(text, /dane nabywcy\s+(.+?)(?=\s+specyfikacja kursu\b)/i) || '';
+  const buyerSectionMatch = text.match(/dane\s+nabywcy\b\s*:?[\s|]*(.*?)(?=\s+(?:specyfikacja(?:\s+kursu)?|zawartość\s+kursu|warunki\s+płatności)\b|$)/i);
+  const buyerSectionFound = buyerSectionMatch !== null;
+  const buyer = buyerSectionMatch?.[1] || '';
   const buyerData = extractBuyerData(buyer);
+  const buyerDiagnostic = {
+    buyerSectionFound,
+    personNameLabelFound: /(?:^|\s)imię\s+i\s+nazwisko\b/i.test(buyer),
+    peselLabelFound: /(?:^|\s)PESEL\b/i.test(buyer),
+    companyLabelFound: /(?:^|\s)firma\b/i.test(buyer),
+    nipLabelFound: /(?:^|\s)NIP\b/i.test(buyer),
+    normalizedPeselLength: buyer.match(/(?:^|\s)PESEL\b\s*:?\s*([\d\s\u00a0\u202f]+)/i)?.[1]
+      ?.replace(/[\s\u00a0\u202f]/g, '').length || 0,
+    normalizedNipLength: buyer.match(/(?:^|\s)NIP\b\s*:?\s*([\d\s\u00a0\u202f-]+)/i)?.[1]
+      ?.replace(/[\s\u00a0\u202f-]/g, '').length || 0,
+    customerType: buyerData.customerType
+  };
+  // Temporary, privacy-safe diagnostics: values of PESEL and NIP are never emitted.
+  console.info('[DANE NABYWCY diagnostic]', buyerDiagnostic);
+  if (!buyerSectionFound) buyerData.customerDiagnostic = 'Nie rozpoznano danych nabywcy.';
   const specification = capture(text, /specyfikacja kursu\s+(.+?)(?=\s+zawartość kursu\b)/i) || '';
   const { coursePriceCents, diagnostic: coursePriceDiagnostic } = extractCoursePrice(text);
   const coursePrice = Number.isInteger(coursePriceCents) ? coursePriceCents / 100 : undefined;
