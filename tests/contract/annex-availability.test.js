@@ -14,8 +14,8 @@ const REQUIRED_IDS = [
 ];
 
 const flexibleCredit = hasFamilyAdditionalFee => ({
-  type: 'flexible',
-  payment: 'credit',
+  contractType: 'flexible',
+  paymentType: 'credit',
   hasFamilyAdditionalFee
 });
 
@@ -78,7 +78,7 @@ test('statusy kart elastycznej umowy kredytowej mają właściwe kolory', () => 
 
 test('elastyczna umowa na 24 raty wewnętrzne ma dokładnie wymagane karty i statusy', () => {
   const internal = getAvailableAnnexCards({
-    type: 'flexible', payment: 'internal', variant: '24 równe raty miesięczne', hasPolishLecturers: false
+    contractType: 'flexible', paymentType: 'internal', paymentVariant: 'internal_24', hasPolishLecturers: false
   });
   assert.deepEqual(internal.map(card => card.no), [
     '25', '11', '29', '29a', 'wydluzenie-dostepu', '20-lekcji-gratis',
@@ -91,5 +91,5 @@ test('elastyczna umowa na 24 raty wewnętrzne ma dokładnie wymagane karty i sta
 });
 
 test('reguła rat wewnętrznych nie zmienia pozostałych wariantów', () => {
-  assert.ok(getAvailableAnnexCards({ type: 'limit', payment: 'credit' }).some(card => card.no === '45'));
+  assert.ok(getAvailableAnnexCards({ contractType: 'limit', paymentType: 'credit' }).some(card => card.no === '45'));
 });

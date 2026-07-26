@@ -6,16 +6,16 @@ export const ANNEX_STATUSES = Object.freeze({
 
 const ALL_ANNEXES = Object.freeze([
   { no: '11', name: 'Zawieszenie umowy', status: 'tutlo' },
-  { no: '25', name: 'Zmniejszenie rat wewnętrznych', desc: 'Dla umowy elastycznej na 24 raty wewnętrzne.', status: 'tutlo', when: c => c?.type === 'flexible' && c?.payment === 'internal' && c?.variant === '24 równe raty miesięczne' },
+  { no: '25', name: 'Zmniejszenie rat wewnętrznych', desc: 'Dla umowy elastycznej na 24 raty wewnętrzne.', status: 'tutlo', when: c => c?.contractType === 'flexible' && c?.paymentType === 'internal' && c?.paymentVariant === 'internal_24' },
   { no: '26', name: 'Zmniejszenie rat kredytowych', status: 'tutlo' },
   { no: '29', name: 'Jedna rata gratis', status: 'tutlo' },
   { no: '29a', name: 'Dwie raty gratis', status: 'tutlo' },
   { no: 'wydluzenie-dostepu', marker: '↗', name: 'Wydłużenie dostępu', desc: 'Dostępny dla każdej umowy.', status: 'external' },
-  { no: '20-lekcji-gratis', marker: '20', name: '20 lekcji gratis', desc: 'Tylko dla umów elastycznych.', status: 'external', when: c => c?.type === 'flexible' },
-  { no: 'rozlozenie-platnosci', marker: 'R', name: 'Rozłożenie płatności', desc: 'Tylko dla rat wewnętrznych.', status: 'external', when: c => c?.payment === 'internal' },
+  { no: '20-lekcji-gratis', marker: '20', name: '20 lekcji gratis', desc: 'Tylko dla umów elastycznych.', status: 'external', when: c => c?.contractType === 'flexible' },
+  { no: 'rozlozenie-platnosci', marker: 'R', name: 'Rozłożenie płatności', desc: 'Tylko dla rat wewnętrznych.', status: 'external', when: c => c?.paymentType === 'internal' },
   { no: 'tutlo-premium', marker: 'P', name: 'Aneks Tutlo Premium', desc: 'Dostępny dla każdej umowy.', status: 'external' },
   { no: 'lektorzy-pl', marker: 'PL', name: 'Rozszerzenie pakietu lektorów', desc: 'Dostępny, gdy umowa nie obejmuje lektorów PL.', status: 'external', when: c => c?.hasPolishLecturers === false },
-  { no: '45', name: 'Aneks 45', desc: 'Tylko dla umowy z limitem finansowanej kredytem.', status: 'external', when: c => c?.type === 'limit' && c?.payment === 'credit' },
+  { no: '45', name: 'Aneks 45', desc: 'Tylko dla umowy z limitem finansowanej kredytem.', status: 'external', when: c => c?.contractType === 'limit' && c?.paymentType === 'credit' },
   { no: '10', name: 'Aneks 10', desc: 'Zmiana formy płatności.', status: 'planned' },
   { no: '43', name: 'Grupa rodzinna (Tutlo Plus)', desc: 'Dodanie grupy rodzinnej.', status: 'tutlo', when: c => c?.hasFamilyAdditionalFee === true },
   { no: '47', name: 'Aneks 47', desc: 'Przejście z limitu na umowę elastyczną.', status: 'planned' },
@@ -51,10 +51,10 @@ const FLEXIBLE_INTERNAL_24_ANNEXES = Object.freeze([
 
 /** Central, deterministic availability rule consumed by both card views. */
 export function getAvailableAnnexCards(contract) {
-  const catalog = contract?.type === 'flexible' && contract?.payment === 'credit'
+  const catalog = contract?.contractType === 'flexible' && contract?.paymentType === 'credit'
     ? FLEXIBLE_CREDIT_ANNEXES
-    : contract?.type === 'flexible' && contract?.payment === 'internal'
-      && contract?.variant === '24 równe raty miesięczne'
+    : contract?.contractType === 'flexible' && contract?.paymentType === 'internal'
+      && contract?.paymentVariant === 'internal_24'
       ? FLEXIBLE_INTERNAL_24_ANNEXES
       : ALL_ANNEXES;
   return catalog.filter(item => !item.when || item.when(contract));

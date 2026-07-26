@@ -444,7 +444,8 @@
   import { downloadAnnex25, downloadAnnex26 } from './src/infrastructure/local-docx-generator.js';
   import { prepareAnnex25 } from './src/annexes/25/index.js';
   import { prepareAnnex26 } from './src/annexes/26/index.js';
-  import { extractAgreementNumber, extractContractData } from './src/domain/contract-extraction.js';
+  import { parseCurrentContract } from './src/domain/contract-extraction.js';
+  import { assertValidCurrentContract } from './src/domain/current-contract-validation.js';
   import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
@@ -472,9 +473,6 @@
     els.status.textContent=text;
     els.status.className=`status show ${kind}`;
   }
-  function normalize(text){
-    return text.replace(/\u00a0/g,' ').replace(/[–—]/g,'-').replace(/\s+/g,' ').toLowerCase();
-  }
   async function extractText(file){
     const buffer=await file.arrayBuffer();
     const pdf=await pdfjsLib.getDocument({data:buffer}).promise;
@@ -485,36 +483,6 @@
       full+=' '+content.items.map(x=>x.str).join(' ');
     }
     return full;
-  }
-  function detectPaymentVariant(text,payment){
-    if(payment==='credit') return 'Finansowanie kredytem / pożyczką';
-    if(/płatność następuje w 2 równych ratach/.test(text)) return '2 równe raty';
-    if(/kolejnych 23 rat/.test(text)) return '24 równe raty miesięczne';
-    const first=text.match(/pierwsza rata w wysokości\s*([\d.,]+)/);
-    const next=text.match(/kolejn(?:ych|e)\s+\d+\s+rat\w*\s+w wysokości\s*([\d.,]+)/);
-    if(first&&next&&first[1]!==next[1]) return 'Pierwsza rata wyższa';
-    if(/płatność jednorazowa/.test(text)) return 'Płatność jednorazowa';
-    return 'Inny wariant rat wewnętrznych';
-  }
-  function classify(text){
-    const reasons=[];
-    let type=null,payment=null,score=0;
-
-    const isLimit=/niewykorzystane lekcje .* nie przechodzą/.test(text)||/zasady korzystania z lekcji/.test(text);
-    const isFlexible=/elastyczny kurs językowy/.test(text)||(/lekcje indywidualne w różnej intensywności/.test(text)&&!isLimit);
-
-    if(isLimit){type='limit';score+=50;reasons.push('Wykryto zapis, że niewykorzystane lekcje nie przechodzą na kolejne miesiące.');}
-    else if(isFlexible){type='flexible';score+=50;reasons.push('Wykryto zapis charakterystyczny dla umowy elastycznej.');}
-    else reasons.push('Nie znaleziono jednoznacznego znacznika rodzaju umowy.');
-
-    const isCredit=/raty 0% przy wykorzystaniu kredytu konsumenckiego/.test(text)||/forma płatności:\s*raty 0%/.test(text);
-    const isInternal=/rachunek bankowy tutlo/.test(text)||/kolejnych 23 rat/.test(text)||/płatność następuje w 2 równych ratach/.test(text);
-
-    if(isCredit){payment='credit';score+=50;reasons.push('Wykryto finansowanie kredytem konsumenckim lub pożyczką.');}
-    else if(isInternal){payment='internal';score+=50;reasons.push('Wykryto płatność bezpośrednio do Tutlo lub raty wewnętrzne.');}
-    else reasons.push('Nie znaleziono jednoznacznego znacznika formy płatności.');
-
-    return {type,payment,variant:detectPaymentVariant(text,payment),score:Math.min(score,100),reasons};
   }
   function humanType(v){return v==='flexible'?'Umowa elastyczna':v==='limit'?'Umowa z limitem':'Nie rozpoznano';}
   function humanPayment(v){return v==='credit'?'Kredyt / pożyczka':v==='internal'?'Raty wewnętrzne':'Nie rozpoznano';}
@@ -580,9 +548,9 @@
   function renderResult(c){
     els.empty.style.display='none';
     els.result.classList.add('show');
-    els.type.textContent=humanType(c.type);
-    els.payment.textContent=humanPayment(c.payment);
-    els.variant.textContent=c.variant;
+    els.type.textContent=humanType(c.contractType);
+    els.payment.textContent=humanPayment(c.paymentType);
+    els.variant.textContent=c.paymentVariant||'Nie rozpoznano';
     els.confidence.textContent=c.score>=90?'Wysoka':c.score>=60?'Średnia':'Niska';
     els.reasons.innerHTML=c.reasons.map(x=>`<li>${x}</li>`).join('');
 
@@ -601,21 +569,16 @@
     setStatus('Odczytuję PDF i klasyfikuję umowę…','warn');
     try{
       const text=await extractText(currentFile);
-      const normalizedText=normalize(text);
-      const c=classify(normalizedText);
-      c.hasPolishLecturers=/lektor(?:zy|ów|ami)?\s+(?:języka\s+)?polsk(?:iego|ich|imi)|polscy\s+lektorzy|lektorzy\s+pl/.test(normalizedText);
-      c.hasFamilyAdditionalFee=normalizedText.includes('za dodatkową opłatą');
+      const parsedContract=assertValidCurrentContract(parseCurrentContract(text));
+      currentContract={...parsedContract,
+        hasFamilyAdditionalFee:text.toLocaleLowerCase('pl').includes('za dodatkową opłatą')};
+      const c={...currentContract,score:(currentContract.contractType&&currentContract.paymentVariant)?100:50,
+        reasons:['Klasyfikacja i dane pochodzą ze wspólnego parsera umowy.'],
+        hasPolishLecturers:currentContract.teacherVariant==='polish_english_native',
+        hasFamilyAdditionalFee:currentContract.hasFamilyAdditionalFee};
       currentClassification=c;
-      currentContract={
-        ...extractContractData(text,extractAgreementNumber(text)),
-        contractType:c.type,
-        paymentType:c.payment,
-        paymentVariant:c.variant,
-        rawText:text
-      };
-      if(c.variant==='24 równe raty miesięczne') currentContract.installmentCount=24;
       renderResult(c);
-      setStatus(c.type&&c.payment?'Umowa została rozpoznana. Wybierz aneks.':'Nie udało się rozpoznać dokumentu. Użyj opcji „Wybierz aneks ręcznie”.',c.type&&c.payment?'ok':'warn');
+      setStatus(c.contractType&&c.paymentType?'Umowa została rozpoznana. Wybierz aneks.':'Nie udało się rozpoznać dokumentu. Użyj opcji „Wybierz aneks ręcznie”.',c.contractType&&c.paymentType?'ok':'warn');
     }catch(err){
       console.error(err);
       setStatus('Nie udało się odczytać PDF. Użyj opcji „Wybierz aneks ręcznie”.','error');
