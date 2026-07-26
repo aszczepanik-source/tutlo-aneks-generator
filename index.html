@@ -315,7 +315,7 @@
         <strong>Przeciągnij i upuść PDF</strong>
         <small>albo kliknij, aby wybrać plik</small>
       </label>
-      <input id="pdfInput" type="file" accept="application/pdf">
+      <input id="pdfInput" type="file" accept="application/pdf,.pdf">
 
       <div class="actions">
         <button id="analyzeBtn" class="btn" type="button" disabled>Rozpoznaj umowę</button>
@@ -445,6 +445,7 @@
   import { prepareAnnex25 } from './src/annexes/25/index.js';
   import { prepareAnnex26 } from './src/annexes/26/index.js';
   import { processContractPdf } from './src/application/process-contract-pdf.js';
+  import { bindPdfFileUpload, isPdfFile } from './src/application/pdf-file-upload.js';
   import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
@@ -597,17 +598,15 @@
     }
   }
 
-  function selectFile(file){
-    if(!file||file.type!=='application/pdf'){setStatus('Wybierz plik PDF.','error');return;}
+  function handlePdfFile(file){
+    if(!file)return;
+    if(!isPdfFile(file)){setStatus('Wybierz plik PDF.','error');return;}
     currentFile=file;
     els.analyze.disabled=false;
     setStatus(`Wybrano: ${file.name}`,'ok');
   }
 
-  els.input.addEventListener('change',e=>selectFile(e.target.files[0]));
-  els.dropzone.addEventListener('dragover',e=>{e.preventDefault();e.stopPropagation();els.dropzone.classList.add('drag')});
-  els.dropzone.addEventListener('dragleave',e=>{e.preventDefault();e.stopPropagation();els.dropzone.classList.remove('drag')});
-  els.dropzone.addEventListener('drop',e=>{e.preventDefault();e.stopPropagation();els.dropzone.classList.remove('drag');selectFile(e.dataTransfer.files[0])});
+  bindPdfFileUpload({input:els.input,dropzone:els.dropzone,handlePdfFile});
   els.analyze.addEventListener('click',analyze);
   els.reset.addEventListener('click',()=>{
     currentFile=null;currentContract=null;currentClassification=null;els.input.value='';els.analyze.disabled=true;els.status.className='status';
