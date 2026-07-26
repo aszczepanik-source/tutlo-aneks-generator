@@ -47,16 +47,10 @@ test('interface presents the requested annex statuses and click messages', async
   assert.match(html, /Ten aneks jest obsługiwany w dedykowanym generatorze\./);
   assert.match(html, /Ten aneks nie został jeszcze wdrożony\./);
 
-  for (const [id, name] of [
-    ['11', 'Zawieszenie umowy'],
-    ['26', 'Zmniejszenie rat kredytowych'],
-    ['29', 'Jedna rata gratis'],
-    ['29a', 'Dwie raty gratis']
-  ]) {
-    assert.match(availability, new RegExp(`no: '${id}', name: '${name}', status: 'tutlo'`));
-  }
-  assert.match(availability, /name: 'Rozszerzenie pakietu lektorów'.*hasPolishLecturers === false/);
-  assert.match(availability, /name: 'Aneks 45'.*contractType === 'limit'.*paymentType === 'credit'/);
+  assert.match(availability, /card\('26', 'Aneks 26 — Zmniejszenie rat kredytowych', 'tutlo'\)/);
+  assert.match(availability, /'Rozszerzenie pakietu lektorów', 'external'/);
+  assert.match(availability, /hasPolishLecturers === false/);
+  assert.match(availability, /'Aneks 45 — Kurs z limitem tygodniowym, kredyt', 'planned'/);
 });
 
 test('obie listy kart UI korzystają bezpośrednio z centralnej reguły dostępności', async () => {

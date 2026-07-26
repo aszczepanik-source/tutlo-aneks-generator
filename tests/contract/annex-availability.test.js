@@ -1,95 +1,99 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ANNEX_STATUSES, getAvailableAnnexCards } from '../../src/annexes/availability.js';
+import { prepareAnnex26 } from '../../src/annexes/26/index.js';
 
-const REQUIRED_IDS = [
-  '26',
-  'wydluzenie-dostepu',
-  '20-lekcji-gratis',
-  'tutlo-premium',
-  '10',
-  '43',
-  '28',
-  '27'
+const externalIds = contract => getAvailableAnnexCards(contract)
+  .filter(({ status }) => status === 'external').map(({ no }) => no);
+
+const assertCards = (contract, expectedIds, expectedStatuses) => {
+  const cards = getAvailableAnnexCards(contract);
+  assert.deepEqual(cards.map(({ no }) => no), expectedIds);
+  assert.deepEqual(cards.map(({ status }) => status), expectedStatuses);
+  assert.equal(cards.length, expectedIds.length);
+};
+
+test('flexible + credit udostępnia wyłącznie zachowane zielone i wymagane karty', () => {
+  const contract = { contractType: 'flexible', paymentType: 'credit', paymentVariant: 'credit' };
+  assertCards(contract,
+    ['26', 'wydluzenie-dostepu', '20-lekcji-gratis', 'tutlo-premium', '30', '30a', '10', '35'],
+    ['tutlo', 'external', 'external', 'external', 'planned', 'planned', 'planned', 'planned']);
+  assert.deepEqual(externalIds(contract), ['wydluzenie-dostepu', '20-lekcji-gratis', 'tutlo-premium']);
+});
+
+const INTERNAL_IDS = [
+  'wydluzenie-dostepu', 'rozlozenie-platnosci', 'tutlo-premium', 'lektorzy-pl',
+  '45', '35', '48', '29', '29a'
+];
+const INTERNAL_STATUSES = [
+  'external', 'external', 'external', 'external',
+  'planned', 'planned', 'planned', 'planned', 'planned'
 ];
 
-const flexibleCredit = hasFamilyAdditionalFee => ({
-  contractType: 'flexible',
-  paymentType: 'credit',
-  hasFamilyAdditionalFee
-});
-
-test('elastyczna umowa kredytowa ma wyłącznie wymagane karty w wymaganej kolejności', () => {
-  const cards = getAvailableAnnexCards(flexibleCredit(true));
-
-  assert.deepEqual(cards.map(card => card.no), REQUIRED_IDS);
-  assert.deepEqual(cards.map(card => card.name), [
-    'Zmniejszenie rat kredytowych',
-    'Wydłużenie dostępu',
-    '20 lekcji gratis',
-    'Aneks Tutlo Premium',
-    'Aneks 10',
-    'Grupa rodzinna (Tutlo Plus)',
-    'Aneks 28',
-    'Aneks 27'
-  ]);
-  assert.equal(cards.length, REQUIRED_IDS.length);
-
-  for (const hidden of ['11', '25', '29', '29a', '45', '48']) {
-    assert.equal(cards.some(card => card.no === hidden), false, `${hidden} powinien być ukryty`);
-  }
-});
-
-test('Grupa rodzinna wymaga wykrytej frazy „za dodatkową opłatą”', () => {
-  assert.deepEqual(
-    getAvailableAnnexCards(flexibleCredit(false)).map(card => card.no),
-    REQUIRED_IDS.filter(id => id !== '43')
-  );
-  assert.equal(getAvailableAnnexCards(flexibleCredit(undefined)).some(card => card.no === '43'), false);
-  assert.equal(getAvailableAnnexCards(flexibleCredit(true)).some(card => card.no === '43'), true);
-});
-
-test('statusy kart elastycznej umowy kredytowej mają właściwe kolory', () => {
-  const cards = getAvailableAnnexCards(flexibleCredit(true));
-  const expectedStatuses = ['tutlo', 'external', 'external', 'external', 'planned', 'planned', 'planned', 'planned'];
-
-  assert.deepEqual(cards.map(card => card.status), expectedStatuses);
-  assert.deepEqual(expectedStatuses.map(status => ANNEX_STATUSES[status].label), [
-    'Generator Tutlo',
-    'Aneks w Team Tutlo',
-    'Aneks w Team Tutlo',
-    'Aneks w Team Tutlo',
-    'W przygotowaniu',
-    'W przygotowaniu',
-    'W przygotowaniu',
-    'W przygotowaniu'
-  ]);
-  assert.deepEqual(expectedStatuses.map(status => ANNEX_STATUSES[status].className), [
-    'generator-tutlo',
-    'external-generator',
-    'external-generator',
-    'external-generator',
-    'in-preparation',
-    'in-preparation',
-    'in-preparation',
-    'in-preparation'
-  ]);
-});
-
-test('elastyczna umowa na 24 raty wewnętrzne ma dokładnie wymagane karty i statusy', () => {
-  const internal = getAvailableAnnexCards({
-    contractType: 'flexible', paymentType: 'internal', paymentVariant: 'internal_24', hasPolishLecturers: false
+for (const paymentVariant of ['internal_24', 'internal_2', 'internal_13', 'internal_4']) {
+  test(`limit + ${paymentVariant} korzysta z jednej ścisłej listy`, () => {
+    const contract = {
+      contractType: 'limit', paymentType: 'internal', paymentVariant, hasPolishLecturers: false
+    };
+    assertCards(contract, INTERNAL_IDS, INTERNAL_STATUSES);
+    assert.deepEqual(externalIds(contract), [
+      'wydluzenie-dostepu', 'rozlozenie-platnosci', 'tutlo-premium', 'lektorzy-pl'
+    ]);
   });
-  assert.deepEqual(internal.map(card => card.no), [
-    '25', '11', '29', '29a', 'wydluzenie-dostepu', '20-lekcji-gratis',
-    'rozlozenie-platnosci', 'tutlo-premium', '45'
-  ]);
-  assert.deepEqual(internal.map(card => card.status), [
-    'tutlo', 'planned', 'planned', 'planned', 'external', 'external', 'external', 'external', 'planned'
-  ]);
-  assert.equal(internal.some(card => card.no === '26'), false);
+}
+
+test('limit + credit udostępnia wyłącznie zachowane zielone i wymagane czerwone karty', () => {
+  const contract = {
+    contractType: 'limit', paymentType: 'credit', paymentVariant: 'credit', hasPolishLecturers: false
+  };
+  assertCards(contract,
+    ['wydluzenie-dostepu', 'tutlo-premium', 'lektorzy-pl', '45', '35', '48', '30', '30a'],
+    ['external', 'external', 'external', 'planned', 'planned', 'planned', 'planned', 'planned']);
+  assert.deepEqual(externalIds(contract), ['wydluzenie-dostepu', 'tutlo-premium', 'lektorzy-pl']);
 });
 
-test('reguła rat wewnętrznych nie zmienia pozostałych wariantów', () => {
-  assert.ok(getAvailableAnnexCards({ contractType: 'limit', paymentType: 'credit' }).some(card => card.no === '45'));
+test('warunkowa zielona karta lektorów zachowuje dotychczasową dostępność', () => {
+  const contract = { contractType: 'limit', paymentType: 'credit', paymentVariant: 'credit' };
+  assert.equal(getAvailableAnnexCards(contract).some(({ no }) => no === 'lektorzy-pl'), false);
+  assert.equal(getAvailableAnnexCards({ ...contract, hasPolishLecturers: true })
+    .some(({ no }) => no === 'lektorzy-pl'), false);
+  assert.equal(getAvailableAnnexCards({ ...contract, hasPolishLecturers: false })
+    .some(({ no }) => no === 'lektorzy-pl'), true);
+});
+
+test('nazwy, kolory i statusy kart odpowiadają centralnej konfiguracji', () => {
+  assert.deepEqual(ANNEX_STATUSES, {
+    tutlo: { label: 'Generator Tutlo', className: 'generator-tutlo' },
+    external: { label: 'Aneks w Team Tutlo', className: 'external-generator' },
+    planned: { label: 'W przygotowaniu', className: 'in-preparation' }
+  });
+  const flexible = getAvailableAnnexCards({ contractType: 'flexible', paymentType: 'credit' });
+  assert.equal(flexible.find(({ no }) => no === '26').name, 'Aneks 26 — Zmniejszenie rat kredytowych');
+  assert.equal(flexible.find(({ no }) => no === '30').name, 'Aneks 30 — Spłata jednej raty kredytowej');
+  const internal = getAvailableAnnexCards({
+    contractType: 'limit', paymentType: 'internal', paymentVariant: 'internal_24'
+  });
+  assert.equal(internal.find(({ no }) => no === '45').name,
+    'Aneks 45 — Kurs z limitem tygodniowym, raty wewnętrzne');
+});
+
+test('nieobsługiwane kombinacje nie dostają ogólnej listy kart', () => {
+  assert.deepEqual(getAvailableAnnexCards({ contractType: 'flexible', paymentType: 'internal', paymentVariant: 'internal_2' }), []);
+  assert.deepEqual(getAvailableAnnexCards(undefined), []);
+});
+
+test('działający generator aneksu 26 i jego prepared.values pozostają bez zmian', () => {
+  const currentContract = {
+    contractType: 'flexible', paymentType: 'credit', paymentVariant: 'credit', agreementNumber: 'T/26',
+    customerType: 'person', customerName: 'Jan Kowalski', address: 'Testowa 1',
+    personalId: '90010112345', agreementDate: '2025-01-02', coursePriceCents: 1125000,
+    lessonCount: 450, monthlyLessonLimit: 24, teacherVariant: 'polish_english_native',
+    internalPaymentAccount: null, installmentPlan: null
+  };
+  const before = structuredClone(currentContract);
+  const prepared = prepareAnnex26(currentContract, {
+    newInstallment: '400', bank: 'Inbank', bankAccount: '12345678901234567890123456'
+  }, new Date('2025-03-01T12:00:00Z'));
+  assert.ok(prepared.values);
+  assert.deepEqual(currentContract, before);
 });
