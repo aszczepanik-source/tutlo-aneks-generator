@@ -24,5 +24,5 @@ test('aneksy 25 i 26 nie parsują standardowych pól ani rawText',async()=>{
  for(const id of ['25','26']) { const source=await readFile(new URL(`../../src/annexes/${id}/generator.js`,import.meta.url),'utf8'); assert.doesNotMatch(source,/rawText|extract(?:Agreement|Contract|Course|Internal)|\.pesel|teacherTypes|monthlyLimit/); }
 });
 test('UI wykonuje ekstrakcję PDF i wspólny parser dokładnie raz',async()=>{
- const html=await readFile(new URL('../../index.html',import.meta.url),'utf8'); assert.equal((html.match(/extractText\(currentFile\)/g)||[]).length,1); assert.equal((html.match(/parseCurrentContract\(text\)/g)||[]).length,1);
+ const html=await readFile(new URL('../../index.html',import.meta.url),'utf8'); assert.equal((html.match(/processContractPdf\(currentFile/g)||[]).length,1); assert.doesNotMatch(html,/parseCurrentContract\(/);
 });

@@ -444,8 +444,7 @@
   import { downloadAnnex25, downloadAnnex26 } from './src/infrastructure/local-docx-generator.js';
   import { prepareAnnex25 } from './src/annexes/25/index.js';
   import { prepareAnnex26 } from './src/annexes/26/index.js';
-  import { parseCurrentContract } from './src/domain/contract-extraction.js';
-  import { assertValidCurrentContract } from './src/domain/current-contract-validation.js';
+  import { processContractPdf } from './src/application/process-contract-pdf.js';
   import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
@@ -567,11 +566,15 @@
     if(!currentFile)return;
     els.analyze.disabled=true;
     setStatus('Odczytuję PDF i klasyfikuję umowę…','warn');
+    let stage='extraction',extractedText;
     try{
-      const text=await extractText(currentFile);
-      const parsedContract=assertValidCurrentContract(parseCurrentContract(text));
+      const parsedContract=await processContractPdf(currentFile,{extractText:async file=>{
+        extractedText=await extractText(file);
+        return extractedText;
+      }});
+      stage='complete';
       currentContract={...parsedContract,
-        hasFamilyAdditionalFee:text.toLocaleLowerCase('pl').includes('za dodatkową opłatą')};
+        hasFamilyAdditionalFee:parsedContract.rawText.toLocaleLowerCase('pl').includes('za dodatkową opłatą')};
       const c={...currentContract,score:(currentContract.contractType&&currentContract.paymentVariant)?100:50,
         reasons:['Klasyfikacja i dane pochodzą ze wspólnego parsera umowy.'],
         hasPolishLecturers:currentContract.teacherVariant==='polish_english_native',
@@ -580,8 +583,15 @@
       renderResult(c);
       setStatus(c.contractType&&c.paymentType?'Umowa została rozpoznana. Wybierz aneks.':'Nie udało się rozpoznać dokumentu. Użyj opcji „Wybierz aneks ręcznie”.',c.contractType&&c.paymentType?'ok':'warn');
     }catch(err){
-      console.error(err);
-      setStatus('Nie udało się odczytać PDF. Użyj opcji „Wybierz aneks ręcznie”.','error');
+      stage=err.stage||stage;
+      extractedText=err.extractedText===undefined?extractedText:err.extractedText;
+      console.error('Contract PDF processing failed', {
+        stage,
+        error:err,
+        extractedTextType:typeof extractedText,
+        extractedTextLength:typeof extractedText==='string'?extractedText.length:null
+      });
+      setStatus(err.message||'Wystąpił błąd techniczny podczas analizy umowy.','error');
     }finally{
       els.analyze.disabled=false;
     }

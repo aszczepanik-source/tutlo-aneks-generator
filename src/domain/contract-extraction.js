@@ -5,6 +5,14 @@ export const PAYMENT_VARIANTS = Object.freeze(['credit', 'internal_24', 'interna
 export const CUSTOMER_TYPES = Object.freeze(['person', 'company']);
 export const TEACHER_VARIANTS = Object.freeze(['polish_english_native', 'english_native']);
 
+export class ContractParseError extends Error {
+  constructor(code, message) {
+    super(message);
+    this.name = 'ContractParseError';
+    this.code = code;
+  }
+}
+
 export function normalizeContractText(rawText) {
   return String(rawText || '').normalize('NFC').replace(/\u00a0|\u202f/g, ' ')
     .replace(/[–—]/g, '-').replace(/[\n\r\t]+/g, ' ').replace(/\s+/g, ' ').trim();
@@ -101,6 +109,9 @@ function installmentPlan(text, paymentVariant, coursePriceCents, startDate) {
 
 /** The only parser entry point. It receives PDF text once and returns the canonical DTO. */
 export function parseCurrentContract(rawText) {
+  if (typeof rawText !== 'string' || rawText.trim().length === 0) {
+    throw new ContractParseError('EMPTY_PDF_TEXT', 'Nie udało się odczytać tekstu z PDF.');
+  }
   const text = normalizeContractText(rawText);
   const agreementNumber = extractAgreementNumber(text) || null;
   const { contractType, paymentType, paymentVariant } = classify(text);
