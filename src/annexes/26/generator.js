@@ -104,6 +104,10 @@ export function prepareAnnex26(contract, formData, today = new Date()) {
 
   const data = {
     ...contract,
+    // currentContract exposes the canonical identifier as personalId. Keep the
+    // template-facing PESEL field local to annex 26 instead of reverting the
+    // shared contract model to its former `pesel` property.
+    pesel: contract?.personalId ?? contract?.pesel,
     coursePrice,
     coursePriceCents,
     lessonCount,
