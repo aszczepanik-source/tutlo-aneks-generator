@@ -4,13 +4,13 @@ const REQUIRED = [
   ['customerName', data => data.customerType === 'company'
     ? 'Nie odczytano nazwy firmy.' : 'Nie odczytano imienia i nazwiska.'],
   ['address', 'Nie odczytano adresu.'],
-  ['personalId', data => data.customerType === 'company'
+  ['pesel', data => data.customerType === 'company'
     ? 'Nie odczytano NIP firmy.' : 'Nie odczytano PESEL.'],
   ['coursePriceCents', 'Nie odczytano ceny kursu.'],
   ['currentInstallmentCents', 'Nie odczytano wysokości obecnej raty.'],
   ['lessonCount', 'Nie odczytano liczby lekcji.'],
-  ['monthlyLessonLimit', 'Nie odczytano limitu miesięcznego.'],
-  ['teacherVariant', 'Nie odczytano typów lektorów.'],
+  ['monthlyLimit', 'Nie odczytano limitu miesięcznego.'],
+  ['teacherTypes', 'Nie odczytano typów lektorów.'],
   ['bank', 'Nie podano banku.'],
   ['bankAccount', 'Nie podano numeru rachunku bankowego.']
 ];
@@ -33,10 +33,10 @@ export function validateAnnex26Data(data) {
     || data[field] === null || data[field] === '');
   if (missing) throw new Error(typeof missing[1] === 'function' ? missing[1](data) : missing[1]);
 
-  if (data.customerType === 'company' && !/^\d{10}$/.test(data.personalId)) {
+  if (data.customerType === 'company' && !/^\d{10}$/.test(data.pesel)) {
     throw new Error('NIP firmy musi zawierać dokładnie 10 cyfr.');
   }
-  if (data.customerType !== 'company' && !/^\d{11}$/.test(data.personalId)) {
+  if (data.customerType !== 'company' && !/^\d{11}$/.test(data.pesel)) {
     throw new Error('PESEL musi zawierać dokładnie 11 cyfr.');
   }
 

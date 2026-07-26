@@ -25,16 +25,14 @@ export function prepareAnnex25(currentContract, inputs = {}, annexDate = new Dat
     ADRES: required(currentContract.address, 'adres'), DATA_ANEKSU: formatDate(annexDate),
     DATA_ZAWARCIA_UMOWY: formatDate(required(currentContract.agreementDate, 'data zawarcia umowy')),
     IMIE_NAZWISKO: required(currentContract.customerName, 'imię i nazwisko'),
-    LIMIT_MIESIECZNY: String(required(currentContract.monthlyLessonLimit, 'limit miesięczny')),
+    LIMIT_MIESIECZNY: String(required(currentContract.monthlyLimit, 'limit miesięczny')),
     NOWA_CENA: money(calculation.newPriceCents),
     NOWA_LICZBA_LEKCJI: String(Math.round(lessonCount * calculation.newPriceCents / currentContract.coursePriceCents)),
     NOWA_SREDNIA_RATA: money(calculation.newAverageInstallmentCents),
     NUMER_KONTA: contractBankAccount(currentContract.internalPaymentAccount),
     NUMER_UMOWY: required(currentContract.agreementNumber, 'numer umowy'),
-    PESEL: required(currentContract.personalId, currentContract.customerType === 'company' ? 'NIP' : 'PESEL'),
-    TYPY_LEKTOROW: currentContract.teacherVariant === 'polish_english_native'
-      ? 'Lektor Polski, English Expert, Native Speaker' : currentContract.teacherVariant === 'english_native'
-        ? 'English Expert, Native Speaker' : required(null, 'typy lektorów'),
+    PESEL: required(currentContract.pesel, 'PESEL'),
+    TYPY_LEKTOROW: required(currentContract.teacherTypes, 'typy lektorów'),
     ...scheduleValues(calculation.installments)
   };
   const missing = manifest.requiredFields.filter(field => values[field] === undefined || String(values[field]).trim() === '');
