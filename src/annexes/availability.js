@@ -4,58 +4,75 @@ export const ANNEX_STATUSES = Object.freeze({
   planned: Object.freeze({ label: 'W przygotowaniu', className: 'in-preparation' })
 });
 
-const ALL_ANNEXES = Object.freeze([
-  { no: '11', name: 'Zawieszenie umowy', status: 'tutlo' },
-  { no: '25', name: 'Zmniejszenie rat wewnętrznych', desc: 'Dla umowy elastycznej na 24 raty wewnętrzne.', status: 'tutlo', when: c => c?.contractType === 'flexible' && c?.paymentType === 'internal' && c?.paymentVariant === 'internal_24' },
-  { no: '26', name: 'Zmniejszenie rat kredytowych', status: 'tutlo' },
-  { no: '29', name: 'Jedna rata gratis', status: 'tutlo' },
-  { no: '29a', name: 'Dwie raty gratis', status: 'tutlo' },
-  { no: 'wydluzenie-dostepu', marker: '↗', name: 'Wydłużenie dostępu', desc: 'Dostępny dla każdej umowy.', status: 'external' },
-  { no: '20-lekcji-gratis', marker: '20', name: '20 lekcji gratis', desc: 'Tylko dla umów elastycznych.', status: 'external', when: c => c?.contractType === 'flexible' },
-  { no: 'rozlozenie-platnosci', marker: 'R', name: 'Rozłożenie płatności', desc: 'Tylko dla rat wewnętrznych.', status: 'external', when: c => c?.paymentType === 'internal' },
-  { no: 'tutlo-premium', marker: 'P', name: 'Aneks Tutlo Premium', desc: 'Dostępny dla każdej umowy.', status: 'external' },
-  { no: 'lektorzy-pl', marker: 'PL', name: 'Rozszerzenie pakietu lektorów', desc: 'Dostępny, gdy umowa nie obejmuje lektorów PL.', status: 'external', when: c => c?.hasPolishLecturers === false },
-  { no: '45', name: 'Aneks 45', desc: 'Tylko dla umowy z limitem finansowanej kredytem.', status: 'external', when: c => c?.contractType === 'limit' && c?.paymentType === 'credit' },
-  { no: '10', name: 'Aneks 10', desc: 'Zmiana formy płatności.', status: 'planned' },
-  { no: '43', name: 'Grupa rodzinna (Tutlo Plus)', desc: 'Dodanie grupy rodzinnej.', status: 'tutlo', when: c => c?.hasFamilyAdditionalFee === true },
-  { no: '47', name: 'Aneks 47', desc: 'Przejście z limitu na umowę elastyczną.', status: 'planned' },
-  { no: 'grupa-rodzinna', marker: 'GR', name: 'Grupa rodzinna', status: 'planned' },
-  { no: '9', name: 'Aneks 9', desc: 'Niewdrożony aneks.', status: 'planned' },
-  { no: '27', name: 'Aneks 27', desc: 'Zmniejszenie rat i przejście na raty wewnętrzne.', status: 'planned' },
-  { no: '28', name: 'Aneks 28', desc: 'Rata gratis.', status: 'planned' },
-  { no: '48', name: 'Aneks 48', desc: 'Zdjęcie limitu.', status: 'planned' }
+const card = (no, name, status, options = {}) => Object.freeze({ no, name, status, ...options });
+
+const SHARED_EXTERNAL_CARDS = Object.freeze([
+  card('wydluzenie-dostepu', 'Wydłużenie dostępu', 'external', {
+    marker: '↗', desc: 'Dostępny dla każdej umowy.'
+  }),
+  card('tutlo-premium', 'Aneks Tutlo Premium', 'external', {
+    marker: 'P', desc: 'Dostępny dla każdej umowy.'
+  })
 ]);
 
-const FLEXIBLE_CREDIT_ANNEXES = Object.freeze([
-  { no: '26', name: 'Zmniejszenie rat kredytowych', status: 'tutlo' },
-  { no: 'wydluzenie-dostepu', marker: '↗', name: 'Wydłużenie dostępu', desc: 'Dostępny dla każdej umowy.', status: 'external' },
-  { no: '20-lekcji-gratis', marker: '20', name: '20 lekcji gratis', desc: 'Tylko dla umów elastycznych.', status: 'external' },
-  { no: 'tutlo-premium', marker: 'P', name: 'Aneks Tutlo Premium', desc: 'Dostępny dla każdej umowy.', status: 'external' },
-  { no: '10', name: 'Aneks 10', desc: 'Zmiana formy płatności.', status: 'planned' },
-  { no: '43', name: 'Grupa rodzinna (Tutlo Plus)', desc: 'Dodanie grupy rodzinnej.', status: 'planned', when: c => c?.hasFamilyAdditionalFee === true },
-  { no: '28', name: 'Aneks 28', desc: 'Rata gratis.', status: 'planned' },
-  { no: '27', name: 'Aneks 27', desc: 'Zmniejszenie rat i przejście na raty wewnętrzne.', status: 'planned' }
+const POLISH_LECTURERS_CARD = card('lektorzy-pl', 'Rozszerzenie pakietu lektorów', 'external', {
+  marker: 'PL',
+  desc: 'Dostępny, gdy umowa nie obejmuje lektorów PL.',
+  when: contract => contract?.hasPolishLecturers === false
+});
+
+const FLEXIBLE_CREDIT_CARDS = Object.freeze([
+  card('26', 'Aneks 26 — Zmniejszenie rat kredytowych', 'tutlo'),
+  SHARED_EXTERNAL_CARDS[0],
+  card('20-lekcji-gratis', '20 lekcji gratis', 'external', {
+    marker: '20', desc: 'Tylko dla umów elastycznych.'
+  }),
+  SHARED_EXTERNAL_CARDS[1],
+  card('30', 'Aneks 30 — Spłata jednej raty kredytowej', 'planned'),
+  card('30a', 'Aneks 30a — Spłata dwóch rat kredytowych', 'planned'),
+  card('10', 'Aneks 10 — Zmiana formy płatności', 'planned'),
+  card('35', 'Aneks 35 — Grupa rodzinna', 'planned')
 ]);
 
-const FLEXIBLE_INTERNAL_24_ANNEXES = Object.freeze([
-  { no: '25', name: 'Zmniejszenie rat wewnętrznych', status: 'tutlo' },
-  { no: '11', name: 'Zawieszenie umowy', status: 'planned' },
-  { no: '29', name: 'Jedna rata gratis', status: 'planned' },
-  { no: '29a', name: 'Dwie raty gratis', status: 'planned' },
-  { no: 'wydluzenie-dostepu', marker: '↗', name: 'Wydłużenie dostępu', status: 'external' },
-  { no: '20-lekcji-gratis', marker: '20', name: '20 lekcji gratis', status: 'external' },
-  { no: 'rozlozenie-platnosci', marker: 'R', name: 'Rozłożenie płatności', status: 'external' },
-  { no: 'tutlo-premium', marker: 'P', name: 'Aneks Tutlo Premium', status: 'external' },
-  { no: '45', name: 'Aneks 45', status: 'planned' }
+const LIMIT_INTERNAL_CARDS = Object.freeze([
+  SHARED_EXTERNAL_CARDS[0],
+  card('rozlozenie-platnosci', 'Rozłożenie płatności', 'external', {
+    marker: 'R', desc: 'Tylko dla rat wewnętrznych.'
+  }),
+  SHARED_EXTERNAL_CARDS[1],
+  POLISH_LECTURERS_CARD,
+  card('45', 'Aneks 45 — Kurs z limitem tygodniowym, raty wewnętrzne', 'planned'),
+  card('35', 'Aneks 35 — Grupa rodzinna', 'planned'),
+  card('48', 'Aneks 48 — Zdjęcie limitu', 'planned'),
+  card('29', 'Aneks 29 — Spłata jednej raty wewnętrznej', 'planned'),
+  card('29a', 'Aneks 29a — Spłata dwóch rat wewnętrznych', 'planned')
 ]);
+
+const LIMIT_CREDIT_CARDS = Object.freeze([
+  ...SHARED_EXTERNAL_CARDS,
+  POLISH_LECTURERS_CARD,
+  card('45', 'Aneks 45 — Kurs z limitem tygodniowym, kredyt', 'planned'),
+  card('35', 'Aneks 35 — Grupa rodzinna', 'planned'),
+  card('48', 'Aneks 48 — Zdjęcie limitu', 'planned'),
+  card('30', 'Aneks 30 — Spłata jednej raty kredytowej', 'planned'),
+  card('30a', 'Aneks 30a — Spłata dwóch rat kredytowych', 'planned')
+]);
+
+const INTERNAL_VARIANTS = new Set(['internal_24', 'internal_2', 'internal_13', 'internal_4']);
 
 /** Central, deterministic availability rule consumed by both card views. */
-export function getAvailableAnnexCards(contract) {
-  const catalog = contract?.contractType === 'flexible' && contract?.paymentType === 'credit'
-    ? FLEXIBLE_CREDIT_ANNEXES
-    : contract?.contractType === 'flexible' && contract?.paymentType === 'internal'
-      && contract?.paymentVariant === 'internal_24'
-      ? FLEXIBLE_INTERNAL_24_ANNEXES
-      : ALL_ANNEXES;
-  return catalog.filter(item => !item.when || item.when(contract));
+export function getAvailableAnnexCards(currentContract) {
+  const { contractType, paymentType, paymentVariant } = currentContract ?? {};
+  let configuredCards = [];
+
+  if (contractType === 'flexible' && paymentType === 'credit') {
+    configuredCards = FLEXIBLE_CREDIT_CARDS;
+  } else if (contractType === 'limit' && paymentType === 'internal'
+    && INTERNAL_VARIANTS.has(paymentVariant)) {
+    configuredCards = LIMIT_INTERNAL_CARDS;
+  } else if (contractType === 'limit' && paymentType === 'credit') {
+    configuredCards = LIMIT_CREDIT_CARDS;
+  }
+
+  return configuredCards.filter(item => !item.when || item.when(currentContract));
 }
