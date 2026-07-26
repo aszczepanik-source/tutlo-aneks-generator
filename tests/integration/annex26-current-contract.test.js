@@ -9,7 +9,7 @@ test('aneks 26 oblicza sześć pól z rzeczywistego kształtu currentContract pa
     DANE NABYWCY Imię i nazwisko: Test Testowy Adres: Testowa 1 PESEL: 00000000000
     SPECYFIKACJA KURSU Liczba Lekcji Indywidualnych: 450
     Maksymalna miesięczna liczba Lekcji Indywidualnych do wykorzystania: 57
-    ZAWARTOŚĆ KURSU spotkania z Lektorem Polskim WARUNKI PŁATNOŚCI
+    ZAWARTOŚĆ KURSU spotkania z Lektorem Polskim, English Expert, Native Speaker WARUNKI PŁATNOŚCI
     Całkowita cena kursu wynosi 11 250,00 zł brutto`;
   const currentContract = extractContractData(pdfText);
 
@@ -66,7 +66,7 @@ test('aneks 26 zgłasza błąd, gdy numer umowy nie zawiera poprawnej daty', t =
     DANE NABYWCY Imię i nazwisko: Test Testowy Adres: Testowa 1 PESEL: 00000000000
     SPECYFIKACJA KURSU Liczba Lekcji Indywidualnych: 450
     Maksymalna miesięczna liczba Lekcji Indywidualnych do wykorzystania: 57
-    ZAWARTOŚĆ KURSU spotkania z Lektorem Polskim WARUNKI PŁATNOŚCI
+    ZAWARTOŚĆ KURSU spotkania z Lektorem Polskim, English Expert, Native Speaker WARUNKI PŁATNOŚCI
     Całkowita cena kursu wynosi 11 250,00 zł brutto`);
 
   assert.equal(currentContract.agreementDate, undefined);
@@ -81,7 +81,7 @@ test('aneks 26 przekazuje nazwę firmy i NIP przez istniejące placeholdery', ()
     DANE NABYWCY FIRMA: Agnieszka Paprotna ADRES: Żerkówek 28 NIP: 6922453948
     SPECYFIKACJA KURSU Liczba Lekcji Indywidualnych: 450
     Maksymalna miesięczna liczba Lekcji Indywidualnych do wykorzystania: 57
-    ZAWARTOŚĆ KURSU spotkania z Lektorem Polskim WARUNKI PŁATNOŚCI
+    ZAWARTOŚĆ KURSU spotkania z Lektorem Polskim, English Expert, Native Speaker WARUNKI PŁATNOŚCI
     Całkowita cena kursu wynosi 11 250,00 zł brutto`);
   const { values } = prepareAnnex26(currentContract, {
     newInstallment: '400,00', bank: 'Inbank', bankAccount: '12345678901234567890123456'

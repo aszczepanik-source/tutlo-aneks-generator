@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import manifest from '../manifest.json' with { type: 'json' };
 import { prepareAnnex26 } from '../index.js';
 import { extractContractData } from '../../../domain/contract-extraction.js';
+import { extractDocxPlaceholders } from '../../shared/template-inspection.js';
+import { renderDocx } from '../../../infrastructure/local-docx-generator.js';
 
 const RAW_TEXT = `
 UMOWA ELASTYCZNA nr EL/JF/811/192956/3/9/2025
@@ -45,7 +48,7 @@ test('aneks 26 odczytuje stały wzór, datę z numeru i buduje komplet placehold
   }, {
     number: 'EL/JF/811/192956/3/9/2025', date: '03.09.2025', creditDate: '03.09.2025',
     name: 'Monika Wójcik', address: 'Galileusza 10/13, 67-200 Głogów', pesel: '82111304868',
-    lessons: 414, limit: '57', teachers: 'Lektor Polski, English Expert, Native Speaker', credit: '11250,00 zł'
+    lessons: 414, limit: '57', teachers: 'Lektorem Polskim, English Expert, Native Speakerem', credit: '11250,00 zł'
   });
 });
 
@@ -54,7 +57,7 @@ test('aneks 26 wylicza starą ratę z ceny kursu i nie odczytuje jej z warunków
 });
 
 test('aneks 26 stosuje wszystkie wzory', () => {
-  const { calculation, values } = prepareAnnex26(contract, form);
+  const { calculation, values } = prepareAnnex26(contract, form, new Date('2026-07-24T12:00:00Z'));
   assert.equal(calculation.installmentCount, 24);
   assert.equal(calculation.oldInstallments, 11);
   assert.equal(calculation.newInstallments, 13);
@@ -63,7 +66,64 @@ test('aneks 26 stosuje wszystkie wzory', () => {
   assert.equal(values.NOWA_SREDNIA_RATA, '431,51 zł');
   assert.equal(values.SPLACONO_DO_DNIA_ANEKSU, '5156,25 zł');
   assert.equal(values.KWOTA_DO_ZWROTU_BANKOWI, '893,75 zł');
-  assert.equal(values.DATA_WEJSCIA_W_ZYCIE, '01.08.2026');
+  assert.equal(values.DATA_ANEKSU, '24.07.2026');
+  assert.equal(values.DATA_WEJSCIA_W_ZYCIE, '25.07.2026');
+});
+
+for (const [today, annexDate, effectiveDate] of [
+  ['2026-07-24', '24.07.2026', '25.07.2026'],
+  ['2026-07-31', '31.07.2026', '01.08.2026'],
+  ['2026-12-31', '31.12.2026', '01.01.2027'],
+  ['2028-02-28', '28.02.2028', '29.02.2028']
+]) {
+  test(`aneks 26 wchodzi w życie dzień po ${annexDate}`, () => {
+    const agreementYear = Number(today.slice(0, 4)) - 1;
+    const prepared = prepareAnnex26({ ...contract, agreementDate: `03.09.${agreementYear}` }, form,
+      new Date(`${today}T12:00:00Z`));
+    assert.equal(prepared.values.DATA_ANEKSU, annexDate);
+    assert.equal(prepared.values.DATA_WEJSCIA_W_ZYCIE, effectiveDate);
+  });
+}
+
+test('aneks 26 mapuje wyłącznie dwa prawidłowe warianty lektorów', () => {
+  assert.equal(prepareAnnex26(contract, form).values.TYPY_LEKTOROW,
+    'Lektorem Polskim, English Expert, Native Speakerem');
+  assert.equal(prepareAnnex26({ ...contract, teacherTypes: 'English Expert, Native Speaker' }, form)
+    .values.TYPY_LEKTOROW, 'English Expert, Native Speakerem');
+});
+
+test('aneks 26 blokuje niepełną lub inną kombinację lektorów', () => {
+  for (const teacherTypes of ['Lektor Polski', 'Native Speaker', 'Lektor Polski, Native Speaker',
+    'Polscy lektorzy', 'English experci']) {
+    assert.throws(() => prepareAnnex26({ ...contract, teacherTypes }, form),
+      { message: 'Nie rozpoznano prawidłowego wariantu lektorów.' });
+  }
+});
+
+test('prepared.values i wygenerowany DOCX nie zawierają błędnych nazw lektorów', async () => {
+  const prepared = prepareAnnex26(contract, form);
+  assert.doesNotMatch(JSON.stringify(prepared.values), /Polscy lektorzy|English experci/);
+
+  const template = await readFile(new URL('../template.docx', import.meta.url));
+  assert.ok(extractDocxPlaceholders(template).includes('TYPY_LEKTOROW'));
+
+  class TestZip {
+    constructor(input) {
+      this.files = { 'word/document.xml': true };
+      this.xml = typeof input === 'string' ? input : '{{TYPY_LEKTOROW}}';
+    }
+    file() { return { asText: () => this.xml }; }
+    generate() { return new TextEncoder().encode(this.xml); }
+  }
+  class TestDocxtemplater {
+    constructor(zip) { this.zip = zip; }
+    render(values) { this.zip.xml = this.zip.xml.replace('{{TYPY_LEKTOROW}}', values.TYPY_LEKTOROW); }
+    getZip() { return this.zip; }
+  }
+  const output = new TextDecoder().decode(renderDocx('{{TYPY_LEKTOROW}}', prepared,
+    { PizZip: TestZip, docxtemplater: TestDocxtemplater }));
+  assert.doesNotMatch(output, /Polscy lektorzy|English experci/);
+  assert.equal(output, 'Lektorem Polskim, English Expert, Native Speakerem');
 });
 
 test('aneks 26 waliduje nową ratę', () => {

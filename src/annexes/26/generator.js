@@ -2,12 +2,28 @@ import manifest from './manifest.json' with { type: 'json' };
 import { validateAnnex26Data } from './validator.js';
 
 const INSTALLMENT_COUNT = 24;
+const ANNEX_26_TEACHER_TYPES = new Map([
+  ['Lektor Polski, English Expert, Native Speaker', 'Lektorem Polskim, English Expert, Native Speakerem'],
+  ['English Expert, Native Speaker', 'English Expert, Native Speakerem']
+]);
 const annex26Iso = date => date.toISOString().slice(0, 10);
 const formatAnnex26Date = value => {
   const [year, month, day] = value.split('-');
   return `${day}.${month}.${year}`;
 };
 const annex26Money = cents => `${(cents / 100).toFixed(2).replace('.', ',')} zł`;
+
+const annex26EffectiveDate = annexDate => {
+  const effectiveDate = new Date(`${annexDate}T12:00:00Z`);
+  effectiveDate.setUTCDate(effectiveDate.getUTCDate() + 1);
+  return annex26Iso(effectiveDate);
+};
+
+const annex26TeacherTypes = teacherTypes => {
+  const value = ANNEX_26_TEACHER_TYPES.get(teacherTypes);
+  if (!value) throw new Error('Nie rozpoznano prawidłowego wariantu lektorów.');
+  return value;
+};
 
 const normalizeNumber = value => {
   const normalized = String(value ?? '').replace(/[\s\u00a0\u202f]/g, '').replace(',', '.');
@@ -43,11 +59,8 @@ function calculate(contract, annexDate, newInstallmentCents) {
   const newInstallments = INSTALLMENT_COUNT - oldInstallments;
   const discountCents = newInstallments * (contract.currentInstallmentCents - newInstallmentCents);
   const newPriceCents = contract.coursePriceCents - discountCents;
-  const effective = new Date(annex);
-  effective.setUTCMonth(effective.getUTCMonth() + 1, 1);
-
   return {
-    annexDate, effectiveDate: annex26Iso(effective), installmentCount: INSTALLMENT_COUNT,
+    annexDate, effectiveDate: annex26EffectiveDate(annexDate), installmentCount: INSTALLMENT_COUNT,
     oldInstallments, newInstallments, discountCents, newPriceCents,
     remainingPercentage: newPriceCents / contract.coursePriceCents,
     newLessonCount: Math.round(contract.lessonCount * newPriceCents / contract.coursePriceCents),
@@ -57,7 +70,7 @@ function calculate(contract, annexDate, newInstallmentCents) {
   };
 }
 
-export function prepareAnnex26(contract, formData) {
+export function prepareAnnex26(contract, formData, today = new Date()) {
   const coursePrice = normalizeNumber(contract?.coursePrice);
   const lessonCount = normalizeNumber(contract?.lessonCount);
   const monthlyInstallment = normalizeNumber(contract?.monthlyInstallment);
@@ -93,7 +106,7 @@ export function prepareAnnex26(contract, formData) {
   };
   validateAnnex26Data(data);
 
-  const annexDate = annex26Iso(new Date());
+  const annexDate = annex26Iso(today);
   const calculation = calculate(data, annexDate, data.newInstallmentCents);
   assertFiniteCalculation(calculation);
   const agreementDate = data.agreementDate;
@@ -105,7 +118,7 @@ export function prepareAnnex26(contract, formData) {
     PESEL: data.pesel,
     DATA_ZAWARCIA_UMOWY: agreementDate,
     NOWA_LICZBA_LEKCJI: String(calculation.newLessonCount),
-    TYPY_LEKTOROW: data.teacherTypes,
+    TYPY_LEKTOROW: annex26TeacherTypes(data.teacherTypes),
     LIMIT_MIESIECZNY: String(data.monthlyLimit),
     NOWA_CENA: annex26Money(calculation.newPriceCents),
     NOWA_SREDNIA_RATA: annex26Money(calculation.newAverageInstallmentCents),

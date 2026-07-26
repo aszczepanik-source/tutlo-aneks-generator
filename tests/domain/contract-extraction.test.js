@@ -139,7 +139,7 @@ test('prepareAnnex26 zachowuje placeholdery danych osoby i firmy', () => {
     agreementNumber: 'EL/JF/811/192956/3/9/2025', agreementDate: '03.09.2025',
     address: 'Testowa 1', coursePrice: 9576, coursePriceCents: 957600,
     monthlyInstallment: 399, lessonCount: 450, monthlyLimit: 57,
-    teacherTypes: 'Lektor Polski'
+    teacherTypes: 'Lektor Polski, English Expert, Native Speaker'
   };
   const form = { newInstallment: 300, bank: 'Inbank', bankAccount: '12345678901234567890123456' };
   for (const buyer of [
