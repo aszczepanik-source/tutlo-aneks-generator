@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import {
   extractAgreementNumber, extractContractData, extractInternalInstallmentAccount, getInternalPaymentAccountDiagnostic,
-  INTERNAL_INSTALLMENT_ACCOUNT_LABEL
+  INTERNAL_INSTALLMENT_ACCOUNT_LABEL, validateCurrentContract
 } from '../../src/domain/contract-extraction.js';
 import { prepareAnnex26 } from '../../src/annexes/26/generator.js';
 
@@ -16,7 +16,7 @@ WARUNKI PŁATNOŚCI Całkowita cena kursu wynosi 9576,00 zł brutto.`;
 test('wspólny extractor zwraca komplet podstawowych danych umowy', () => {
   assert.deepEqual(extractContractData(rawText), {
     agreementNumber: 'EL/JF/811/192956/3/9/2025', agreementDate: '03.09.2025',
-    customerName: 'Monika Wójcik', pesel: '82111304868', customerType: 'person',
+    customerName: 'Monika Wójcik', personalId: '82111304868', customerType: 'person',
     address: 'Galileusza 10/13, 67-200 Głogów',
     coursePrice: 9576, coursePriceCents: 957600,
     coursePriceDiagnostic: { phraseFound: true, followingText: '9576,00 zł brutto.', valuePassedToPrepareAnnex26: 957600 },
@@ -74,7 +74,7 @@ test('odczytuje firmę i normalizuje NIP z tabeli danych nabywcy', () => {
     SPECYFIKACJA KURSU ZAWARTOŚĆ KURSU WARUNKI PŁATNOŚCI`);
 
   assert.equal(contract.customerName, 'Agnieszka Paprotna');
-  assert.equal(contract.pesel, '6922453948');
+  assert.equal(contract.personalId, '6922453948');
   assert.equal(contract.customerType, 'company');
 });
 
@@ -92,8 +92,8 @@ for (const printedNip of [
       SPECYFIKACJA KURSU ZAWARTOŚĆ KURSU WARUNKI PŁATNOŚCI`);
 
     assert.equal(contract.customerName, 'Klient Firmowy');
-    assert.equal(contract.pesel, '6922453948');
-    assert.equal(typeof contract.pesel, 'string');
+    assert.equal(contract.personalId, '6922453948');
+    assert.equal(typeof contract.personalId, 'string');
     assert.equal(contract.customerType, 'company');
   });
 }
@@ -135,27 +135,28 @@ test('słowo firma i 11-cyfrowy numer poza DANE NABYWCY nie zmieniają rodzaju o
     DANE NABYWCY IMIĘ I NAZWISKO: Jan Kowalski PESEL: 123 456 789 01
     SPECYFIKACJA KURSU FIRMA: Inna NIP: 1234567890 ZAWARTOŚĆ KURSU WARUNKI PŁATNOŚCI`);
   assert.equal(contract.customerName, 'Jan Kowalski');
-  assert.equal(contract.pesel, '12345678901');
+  assert.equal(contract.personalId, '12345678901');
   assert.equal(contract.customerType, 'person');
 });
 
-test('nie ustawia rodzaju nabywcy na podstawie niekompletnej pary pól', () => {
+test('rozpoznaje rodzaj nabywcy po etykietach także przed walidacją identyfikatora', () => {
   const company = extractContractData('DANE NABYWCY FIRMA: Klient bez NIP SPECYFIKACJA KURSU');
-  assert.equal(company.customerType, undefined);
-  assert.equal(company.customerDiagnostic, 'Nie odczytano NIP firmy.');
+  assert.equal(company.customerType, 'company');
+  assert.throws(() => validateCurrentContract(company), /Nie odczytano poprawnego numeru NIP\./);
 
   const person = extractContractData('DANE NABYWCY IMIĘ I NAZWISKO: Jan Kowalski SPECYFIKACJA KURSU');
-  assert.equal(person.customerType, undefined);
-  assert.equal(person.customerDiagnostic, 'Nie odczytano PESEL.');
+  assert.equal(person.customerType, 'person');
+  assert.throws(() => validateCurrentContract(person), /Nie odczytano poprawnego numeru PESEL\./);
 });
 
-test('nie zgaduje rodzaju, gdy DANE NABYWCY zawierają obie kompletne pary', () => {
+test('przy obu parach wybiera pola o najmniejszej odległości w sekcji nabywcy', () => {
   const contract = extractContractData(`DANE NABYWCY
     IMIĘ I NAZWISKO: Jan Kowalski PESEL: 12345678901
     FIRMA: Kowalski sp. z o.o. NIP: 123-456-78-90
     SPECYFIKACJA KURSU`);
-  assert.equal(contract.customerType, undefined);
-  assert.equal(contract.customerDiagnostic, 'Nie rozpoznano danych nabywcy.');
+  assert.equal(contract.customerType, 'company');
+  assert.equal(contract.customerName, 'Kowalski sp. z o.o.');
+  assert.equal(contract.personalId, '1234567890');
 });
 
 test('prepareAnnex26 zachowuje placeholdery danych osoby i firmy', () => {
@@ -316,16 +317,14 @@ Maksymalna miesięczna liczba Lekcji Indywidualnych do wykorzystania: 12`));
   assert.equal(withoutLessonCount.monthlyLimit, 12);
 });
 
-test('przekazuje odczytane pola przez currentContract do aneksu 26', () => {
+test('currentContract zawiera gotowe wspólne dane bez ponownego parsowania', () => {
   const currentContract = extractContractData(withSpecification(`Liczba Lekcji Indywidualnych: 192
 Maksymalna miesięczna liczba Lekcji Indywidualnych do wykorzystania: 24`));
-  const prepared = prepareAnnex26(currentContract, {
-    newInstallment: 300, bank: 'Inbank', bankAccount: '12345678901234567890123456'
-  });
   assert.equal(currentContract.lessonCount, 192);
   assert.equal(currentContract.monthlyLimit, 24);
-  assert.equal(prepared.values.LIMIT_MIESIECZNY, '24');
-  assert.ok(Number(prepared.values.NOWA_LICZBA_LEKCJI) > 0);
+  assert.equal(currentContract.customerType, 'person');
+  assert.equal(currentContract.customerName, 'Monika Wójcik');
+  assert.equal(currentContract.personalId, '82111304868');
 });
 
 test('analyze odczytuje PDF raz i zapisuje pełny currentContract', async () => {
@@ -342,4 +341,34 @@ test('aneksy nie parsują podstawowych danych z rawText ani nie zależą od extr
     const source = sources.join('\n');
     assert.doesNotMatch(source, /currentContract\?*\.rawText|contract\?*\.rawText|extractAnnex\d+Contract/);
   }
+});
+
+test('waliduje kanoniczne dane osoby i firmy zależnie od typu klienta', () => {
+  const person = extractContractData('DANE NABYWCY IMIĘ I NAZWISKO: Jan Kowalski PESEL: 123\u200b 456 789 01 SPECYFIKACJA KURSU');
+  assert.deepEqual(
+    { customerType: person.customerType, customerName: person.customerName, personalId: person.personalId },
+    { customerType: 'person', customerName: 'Jan Kowalski', personalId: '12345678901' }
+  );
+  assert.equal(validateCurrentContract(person), person);
+
+  const company = extractContractData('DANE NABYWCY FIRMA: Kowalski sp. z o.o. NIP: 123-456-78 90 SPECYFIKACJA KURSU');
+  assert.deepEqual(
+    { customerType: company.customerType, customerName: company.customerName, personalId: company.personalId },
+    { customerType: 'company', customerName: 'Kowalski sp. z o.o.', personalId: '1234567890' }
+  );
+  assert.equal(validateCurrentContract(company), company);
+
+  for (const alias of ['pesel', 'nip', 'fullName', 'companyName', 'clientName']) {
+    assert.equal(Object.hasOwn(person, alias), false);
+    assert.equal(Object.hasOwn(company, alias), false);
+  }
+});
+
+test('centralna walidacja zgłasza identyfikator właściwy dla typu klienta', () => {
+  assert.throws(() => validateCurrentContract({ customerType: 'person', customerName: 'Jan Kowalski' }),
+    /Nie odczytano poprawnego numeru PESEL\./);
+  assert.throws(() => validateCurrentContract({ customerType: 'company', customerName: 'Firma' }),
+    /Nie odczytano poprawnego numeru NIP\./);
+  assert.throws(() => validateCurrentContract({ customerName: 'Nieznany' }), /Nie rozpoznano typu klienta\./);
+  assert.doesNotThrow(() => validateCurrentContract({ customerType: 'person', customerName: 'Jan', personalId: '12345678901' }));
 });
