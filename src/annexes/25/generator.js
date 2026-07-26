@@ -29,7 +29,7 @@ export function prepareAnnex25(currentContract, inputs = {}, annexDate = new Dat
     NOWA_CENA: money(calculation.newPriceCents),
     NOWA_LICZBA_LEKCJI: String(Math.round(lessonCount * calculation.newPriceCents / currentContract.coursePriceCents)),
     NOWA_SREDNIA_RATA: money(calculation.newAverageInstallmentCents),
-    NUMER_KONTA: contractBankAccount(currentContract.bankAccount),
+    NUMER_KONTA: contractBankAccount(currentContract.internalPaymentAccount),
     NUMER_UMOWY: required(currentContract.agreementNumber, 'numer umowy'),
     PESEL: required(currentContract.pesel, 'PESEL'),
     TYPY_LEKTOROW: required(currentContract.teacherTypes, 'typy lektorów'),

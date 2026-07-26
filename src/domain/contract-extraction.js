@@ -90,12 +90,39 @@ const COURSE_PRICE_PHRASE = 'Całkowita cena kursu wynosi';
 // account.
 export const INTERNAL_INSTALLMENT_ACCOUNT_LABEL = 'rachunek bankowy Tutlo';
 
+const ACCOUNT_DIAGNOSTIC_TERMS = [
+  'numer rachunku', 'nr rachunku', 'rachunek', 'konto', 'wpłaty', 'płatność'
+];
+
+/**
+ * Returns focused payment-text diagnostics. Callers can display this only in a
+ * controlled diagnostic flow; the extractor itself never logs contract text.
+ */
+export function getInternalPaymentAccountDiagnostic(text) {
+  const source = String(text || '').replace(/\u00a0|\u202f/g, ' ');
+  const occurrences = [];
+  for (const term of ACCOUNT_DIAGNOSTIC_TERMS) {
+    const pattern = new RegExp(term.replace(/ /g, String.raw`\s+`), 'giu');
+    for (const match of source.matchAll(pattern)) {
+      occurrences.push({
+        term,
+        context: source.slice(Math.max(0, match.index - 120), match.index + match[0].length + 120)
+      });
+    }
+  }
+  const possible26DigitSequences = [...source.matchAll(/(?<!\d)(?:\d[\s-]*){26}(?![\s-]*\d)/g)]
+    .map(match => ({ raw: match[0], normalized: match[0].replace(/[\s-]/g, '') }));
+  return { occurrences, possible26DigitSequences };
+}
+
 /** Reads and normalizes the Tutlo account printed in the payment conditions. */
 export function extractInternalInstallmentAccount(text) {
   const normalizedText = normalizeContractText(text);
   const labelPattern = INTERNAL_INSTALLMENT_ACCOUNT_LABEL.replace(/ /g, String.raw`\s+`);
   const match = normalizedText.match(new RegExp(
-    String.raw`\b${labelPattern}\b\s*(?:(?:nr|numer)\s*)?(?::\s*)?((?:\d[\s-]*){26})(?![\s-]*\d)`,
+    // In the contract the bank name is printed between the account label and
+    // its number: "rachunek bankowy Tutlo: mBank S.A. <26 digits>".
+    String.raw`\b${labelPattern}\b\s*:\s*mBank\s+S\.A\.\s*((?:\d[\s-]*){26})(?![\s-]*\d)`,
     'iu'
   ));
   const account = match?.[1].replace(/[\s-]/g, '');
@@ -187,7 +214,7 @@ export function extractContractData(rawText, agreementNumber = extractAgreementN
   const monthlyLimit = Number(capture(specification, /maksymalna miesięczna liczba lekcji indywidualnych do wykorzystania\s*:\s*(\d+)/i)) || undefined;
   const lessonCount = Number(capture(specification, /liczba lekcji indywidualnych\s*:\s*(\d+)/i)) || undefined;
   const courseStartDate = capture(specification, /data rozpoczęcia kursu\s*:\s*(\d{1,2}[-.]\d{1,2}[-.]\d{4})/i);
-  const bankAccount = extractInternalInstallmentAccount(text);
+  const internalPaymentAccount = extractInternalInstallmentAccount(text);
 
   // Some agreements print every due date, while §2 of the 24-installment variant
   // defines the first payment and then 23 payments on the same day of successive months.
@@ -206,7 +233,7 @@ export function extractContractData(rawText, agreementNumber = extractAgreementN
     ...(/kolejn(?:ych|e)\s+23\s+rat/i.test(text) ? { installmentCount: 24 } : {}),
     ...(printedDueDates.length ? { installmentDueDates: printedDueDates } : {}),
     ...(courseStartDate ? { courseStartDate } : {}),
-    ...(bankAccount?.length === 26 ? { bankAccount } : {}),
+    ...(internalPaymentAccount?.length === 26 ? { internalPaymentAccount } : {}),
     lessonCount,
     monthlyLimit,
     teacherTypes: extractTeacherTypes(text)

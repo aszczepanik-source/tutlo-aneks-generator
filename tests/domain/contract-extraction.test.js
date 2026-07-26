@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import {
-  extractAgreementNumber, extractContractData, extractInternalInstallmentAccount,
+  extractAgreementNumber, extractContractData, extractInternalInstallmentAccount, getInternalPaymentAccountDiagnostic,
   INTERNAL_INSTALLMENT_ACCOUNT_LABEL
 } from '../../src/domain/contract-extraction.js';
 import { prepareAnnex26 } from '../../src/annexes/26/generator.js';
@@ -33,9 +33,9 @@ test('odczytuje rachunek rat wewnętrznych spod właściwej etykiety i normalizu
     '12345678901234567890123456',
     '12 3456\n7890 1234\n5678 9012 3456'
   ]) {
-    const contract = extractContractData(`WARUNKI PŁATNOŚCI rachunek bankowy Tutlo: ${printed}`);
-    assert.equal(contract.bankAccount, '12345678901234567890123456');
-    assert.equal(typeof contract.bankAccount, 'string');
+    const contract = extractContractData(`WARUNKI PŁATNOŚCI rachunek bankowy Tutlo: mBank S.A. ${printed}`);
+    assert.equal(contract.internalPaymentAccount, '12345678901234567890123456');
+    assert.equal(typeof contract.internalPaymentAccount, 'string');
   }
 });
 
@@ -43,7 +43,26 @@ test('nie pobiera przypadkowych identyfikatorów ani rachunku kredytodawcy', () 
   const text = `Numer umowy 12345678901234567890123456 PESEL 12345678901 NIP 1234567890
     numer rachunku kredytodawcy: 98765432109876543210987654`;
   assert.equal(extractInternalInstallmentAccount(text), undefined);
-  assert.equal(extractContractData(text).bankAccount, undefined);
+  assert.equal(extractContractData(text).internalPaymentAccount, undefined);
+});
+
+test('wybiera rachunek rat wewnętrznych, gdy dokument zawiera inne numery', () => {
+  const account = '12345678901234567890123456';
+  const text = `PESEL: 82111304868 NIP: 7011130879 telefon: 500 600 700
+    numer rachunku kredytodawcy: 98765432109876543210987654
+    WARUNKI PŁATNOŚCI rachunek bankowy Tutlo: mBank S.A. 12 3456\n7890 1234 5678 9012 3456`;
+  assert.equal(extractContractData(text).internalPaymentAccount, account);
+});
+
+test('diagnostyka zwraca konteksty słów płatniczych i kandydatów 26-cyfrowych', () => {
+  const diagnostic = getInternalPaymentAccountDiagnostic(
+    'WARUNKI PŁATNOŚCI: płatność i wpłaty na rachunek bankowy Tutlo: mBank S.A. 12 3456 7890 1234 5678 9012 3456'
+  );
+  assert.ok(diagnostic.occurrences.some(item => item.term === 'rachunek'));
+  assert.ok(diagnostic.occurrences.some(item => item.term === 'wpłaty'));
+  assert.ok(diagnostic.occurrences.some(item => item.term === 'płatność'));
+  assert.deepEqual(diagnostic.possible26DigitSequences.map(item => item.normalized),
+    ['12345678901234567890123456']);
 });
 
 test('odczytuje firmę i normalizuje NIP z tabeli danych nabywcy', () => {

@@ -14,7 +14,7 @@ const contract = {
   contractType: 'flexible', paymentType: 'internal', installmentCount: 24,
   coursePriceCents: 957600, installments, agreementNumber: 'EL/1/1/2025', agreementDate: '01.01.2025',
   customerName: 'Jan Kowalski', address: 'Testowa 1', pesel: '12345678901', lessonCount: 192,
-  monthlyLimit: 24, bankAccount: '12345678901234567890123456', teacherTypes: 'Lektor Polski'
+  monthlyLimit: 24, internalPaymentAccount: '12345678901234567890123456', teacherTypes: 'Lektor Polski'
 };
 
 test('aneks 25 jest dostępny wyłącznie dla elastycznej umowy na 24 raty wewnętrzne', () => {
@@ -64,7 +64,7 @@ test('formularz aneksu 25 zawiera wyłącznie pole nowej raty', async () => {
 test('numer konta pochodzi z currentContract, jest normalizowany i pozostaje stringiem', () => {
   const spacedAccount = '12 3456-7890 1234 5678 9012 3456';
   const prepared = prepareAnnex25(
-    { ...contract, bankAccount: spacedAccount },
+    { ...contract, internalPaymentAccount: spacedAccount },
     { newInstallment: '300', bank: 'Nie używaj', bankAccount: '99999999999999999999999999' },
     '2026-01-20'
   );
@@ -74,9 +74,9 @@ test('numer konta pochodzi z currentContract, jest normalizowany i pozostaje str
 });
 
 test('brak poprawnego konta w currentContract blokuje generowanie czytelnym komunikatem', () => {
-  for (const bankAccount of [undefined, '', '123', '123456789012345678901234567']) {
+  for (const internalPaymentAccount of [undefined, '', '123', '123456789012345678901234567']) {
     assert.throws(
-      () => prepareAnnex25({ ...contract, bankAccount }, { newInstallment: '300' }, '2026-01-20'),
+      () => prepareAnnex25({ ...contract, internalPaymentAccount }, { newInstallment: '300' }, '2026-01-20'),
       /Nie odczytano numeru rachunku z umowy\./
     );
   }
@@ -86,7 +86,7 @@ test('szablon aneksu 25 używa placeholdera NUMER_KONTA', async () => {
   const template = await readFile(new URL('../template.docx', import.meta.url));
   assert.ok(extractDocxPlaceholders(template).includes('NUMER_KONTA'));
   assert.equal(prepareAnnex25(contract, { newInstallment: '300' }, '2026-01-20').values.NUMER_KONTA,
-    contract.bankAccount);
+    contract.internalPaymentAccount);
 });
 
 test('build publikuje firmowy szablon aneksu 25', async () => {
