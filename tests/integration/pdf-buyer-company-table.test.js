@@ -22,7 +22,7 @@ test('integracja: odczytuje NIP z układu tabeli DANE NABYWCY wyciągniętego z 
   const contract = extractContractData(pdfTextItems.join(' '));
 
   assert.deepEqual(
-    { customerName: contract.customerName, pesel: contract.pesel, customerType: contract.customerType },
-    { customerName: 'Klient Firmowy', pesel: '6922453948', customerType: 'company' }
+    { customerName: contract.customerName, personalId: contract.personalId, customerType: contract.customerType },
+    { customerName: 'Klient Firmowy', personalId: '6922453948', customerType: 'company' }
   );
 });

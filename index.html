@@ -337,6 +337,18 @@
           <div class="value" id="contractType">—</div>
         </div>
         <div class="result-row">
+          <div class="label">Typ klienta</div>
+          <div class="value" id="customerType">—</div>
+        </div>
+        <div class="result-row">
+          <div class="label" id="customerNameLabel">Klient</div>
+          <div class="value" id="customerName">—</div>
+        </div>
+        <div class="result-row">
+          <div class="label" id="personalIdLabel">PESEL / NIP</div>
+          <div class="value" id="personalId">—</div>
+        </div>
+        <div class="result-row">
           <div class="label">Forma płatności</div>
           <div class="value" id="paymentType">—</div>
         </div>
@@ -458,6 +470,11 @@
     empty:document.getElementById('resultEmpty'),
     result:document.getElementById('result'),
     type:document.getElementById('contractType'),
+    customerType:document.getElementById('customerType'),
+    customerNameLabel:document.getElementById('customerNameLabel'),
+    customerName:document.getElementById('customerName'),
+    personalIdLabel:document.getElementById('personalIdLabel'),
+    personalId:document.getElementById('personalId'),
     payment:document.getElementById('paymentType'),
     variant:document.getElementById('paymentVariant'),
     confidence:document.getElementById('confidence'),
@@ -577,10 +594,16 @@
     });
   }
 
-  function renderResult(c){
+  function renderResult(c,contract){
     els.empty.style.display='none';
     els.result.classList.add('show');
     els.type.textContent=humanType(c.type);
+    const company=contract.customerType==='company';
+    els.customerType.textContent=company?'Firma':contract.customerType==='person'?'Osoba fizyczna':'—';
+    els.customerNameLabel.textContent=company?'Firma':'Klient';
+    els.customerName.textContent=contract.customerName||'—';
+    els.personalIdLabel.textContent=company?'NIP':'PESEL';
+    els.personalId.textContent=contract.personalId||'—';
     els.payment.textContent=humanPayment(c.payment);
     els.variant.textContent=c.variant;
     els.confidence.textContent=c.score>=90?'Wysoka':c.score>=60?'Średnia':'Niska';
@@ -614,7 +637,7 @@
         rawText:text
       };
       if(c.variant==='24 równe raty miesięczne') currentContract.installmentCount=24;
-      renderResult(c);
+      renderResult(c,currentContract);
       setStatus(c.type&&c.payment?'Umowa została rozpoznana. Wybierz aneks.':'Nie udało się rozpoznać dokumentu. Użyj opcji „Wybierz aneks ręcznie”.',c.type&&c.payment?'ok':'warn');
     }catch(err){
       console.error(err);

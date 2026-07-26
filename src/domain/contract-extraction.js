@@ -22,9 +22,9 @@ function extractBuyerData(buyer) {
   // different items. At this point those item boundaries are whitespace, so
   // read only the digit/space/hyphen run immediately following the buyer's NIP
   // label. In particular, never search the seller/header part of the document.
-  const nipMatch = buyer.match(/(?:^|\s)NIP\b\s*:?\s*((?:\d[\s\u00a0\u202f-]*){10})(?![\s\u00a0\u202f-]*\d)/i);
+  const nipMatch = buyer.match(/(?:^|\s)NIP\b\s*:?\s*((?:\d[\s\u00a0\u202f\p{Cf}-]*){10})(?![\s\u00a0\u202f\p{Cf}-]*\d)/iu);
   const nipLabelFound = /(?:^|\s)NIP\b/i.test(buyer);
-  const nip = nipMatch?.[1].trim().replace(/[\s-]/g, '');
+  const nip = nipMatch?.[1].trim().replace(/[\s\p{Cf}-]/gu, '');
   const nipDiagnostic = {
     labelFound: nipLabelFound,
     normalizedLength: nip?.length || 0,
@@ -32,28 +32,50 @@ function extractBuyerData(buyer) {
   };
 
   const customerName = capture(buyer, new RegExp(String.raw`imię\s+i\s+nazwisko\s*:?\s*(.+?)${BUYER_FIELD_END}`, 'i'));
-  const peselMatch = buyer.match(/(?:^|\s)PESEL\b\s*:?\s*((?:\d[\s\u00a0\u202f]*){11})(?![\s\u00a0\u202f]*\d)/i);
-  const pesel = peselMatch?.[1].replace(/[\s\u00a0\u202f]/g, '');
-  const personComplete = customerName !== undefined && /^\d{11}$/.test(pesel || '');
-  const companyComplete = companyName !== undefined && nipDiagnostic.isExactly10Digits;
-
-  if (personComplete && companyComplete) return {
-    customerDiagnostic: 'Nie rozpoznano danych nabywcy.'
-  };
-  if (personComplete) return { customerName, pesel, customerType: 'person' };
-  if (companyComplete) return { customerName: companyName, pesel: nip, customerType: 'company' };
-
+  const peselMatch = buyer.match(/(?:^|\s)PESEL\b\s*:?\s*((?:\d[\s\u00a0\u202f\p{Cf}]*){11})(?![\s\u00a0\u202f\p{Cf}]*\d)/iu);
   const personLabelFound = /(?:^|\s)imię\s+i\s+nazwisko\s*:?\s/i.test(buyer);
   const peselLabelFound = /(?:^|\s)PESEL\s*:?\s/i.test(buyer);
   const companyLabelFound = /(?:^|\s)firma\s*:?\s/i.test(buyer);
-  let customerDiagnostic = 'Nie odczytano kompletnych danych nabywcy w sekcji DANE NABYWCY.';
-  if (personLabelFound && !customerName) customerDiagnostic = 'Nie odczytano imienia i nazwiska.';
-  else if (personLabelFound && !/^\d{11}$/.test(pesel || '')) customerDiagnostic = 'Nie odczytano PESEL.';
-  else if (peselLabelFound) customerDiagnostic = 'Nie odczytano imienia i nazwiska.';
-  else if (companyLabelFound && !companyName) customerDiagnostic = 'Nie odczytano nazwy firmy.';
-  else if (companyLabelFound && !nipDiagnostic.isExactly10Digits) customerDiagnostic = 'Nie odczytano NIP firmy.';
-  else if (nipLabelFound) customerDiagnostic = 'Nie odczytano nazwy firmy.';
-  return { customerDiagnostic };
+  const personalId = peselMatch?.[1].replace(/[\s\u00a0\u202f\p{Cf}]/gu, '');
+
+  const personLabels = personLabelFound || peselLabelFound;
+  const companyLabels = companyLabelFound || nipLabelFound;
+  let customerType;
+  if (personLabels && companyLabels) {
+    // Broken PDF table layers can expose both variants. Prefer the internally
+    // coherent pair whose labels are closest, then the pair beginning first.
+    const distance = (namePattern, idPattern) => {
+      const nameIndex = buyer.search(namePattern);
+      const idIndex = buyer.search(idPattern);
+      return nameIndex < 0 || idIndex < 0 ? Number.POSITIVE_INFINITY : Math.abs(idIndex - nameIndex);
+    };
+    const personDistance = distance(/imię\s+i\s+nazwisko/i, /\bPESEL\b/i);
+    const companyDistance = distance(/\bfirma\b/i, /\bNIP\b/i);
+    if (personDistance !== companyDistance) customerType = personDistance < companyDistance ? 'person' : 'company';
+    else customerType = buyer.search(/imię\s+i\s+nazwisko/i) < buyer.search(/\bfirma\b/i) ? 'person' : 'company';
+  } else if (companyLabels) customerType = 'company';
+  else if (personLabels) customerType = 'person';
+
+  if (customerType === 'person') return { customerType, customerName, personalId };
+  if (customerType === 'company') return { customerType, customerName: companyName, personalId: nip };
+  return {};
+}
+
+/** Validates the canonical customer identity on currentContract. */
+export function validateCurrentContract(contract) {
+  if (contract?.customerType !== 'person' && contract?.customerType !== 'company') {
+    throw new Error('Nie rozpoznano typu klienta.');
+  }
+  if (!contract.customerName) {
+    throw new Error(contract.customerType === 'company'
+      ? 'Nie odczytano nazwy firmy.' : 'Nie odczytano imienia i nazwiska.');
+  }
+  const expected = contract.customerType === 'company' ? /^\d{10}$/ : /^\d{11}$/;
+  if (!expected.test(contract.personalId || '')) {
+    throw new Error(contract.customerType === 'company'
+      ? 'Nie odczytano poprawnego numeru NIP.' : 'Nie odczytano poprawnego numeru PESEL.');
+  }
+  return contract;
 }
 
 const TEACHER_TYPE_PHRASES = [
