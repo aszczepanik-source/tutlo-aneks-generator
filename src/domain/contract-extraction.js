@@ -13,11 +13,11 @@ export function extractAgreementNumber(text) {
 
 const capture = (text, pattern) => text.match(pattern)?.[1]?.trim();
 
-const BUYER_FIELD_END = String.raw`(?=\s+(?:adres|telefon|e-?mail|PESEL|NIP)\s*:|$)`;
+const BUYER_FIELD_END = String.raw`(?=\s+(?:imię\s+i\s+nazwisko|firma|adres|telefon|e-?mail|PESEL|NIP)\s*:?(?:\s|$)|$)`;
 
 /** Reads identity fields exclusively from the DANE NABYWCY table. */
 function extractBuyerData(buyer) {
-  const companyName = capture(buyer, new RegExp(String.raw`firma\s*:\s*(.+?)${BUYER_FIELD_END}`, 'i'));
+  const companyName = capture(buyer, new RegExp(String.raw`firma\s*:?\s*(.+?)${BUYER_FIELD_END}`, 'i'));
   // The PDF text layer may separate the label, optional colon and value into
   // different items. At this point those item boundaries are whitespace, so
   // read only the digit/space/hyphen run immediately following the buyer's NIP
@@ -31,26 +31,33 @@ function extractBuyerData(buyer) {
     isExactly10Digits: /^\d{10}$/.test(nip || '')
   };
 
-  // A FIRMA row identifies the intended buyer variant even when its NIP is
-  // incomplete, so downstream validation can report the useful NIP error.
-  if (companyName !== undefined) {
+  const customerName = capture(buyer, new RegExp(String.raw`imię\s+i\s+nazwisko\s*:?\s*(.+?)${BUYER_FIELD_END}`, 'i'));
+  const rawPesel = capture(buyer, /(?:^|\s)PESEL\s*:?\s*([\d\s]+?)(?=\s+(?:imię\s+i\s+nazwisko|firma|adres|telefon|e-?mail|NIP)\s*:?(?:\s|$)|$)/i);
+  const pesel = rawPesel?.replace(/\s/g, '');
+  const personComplete = customerName !== undefined && /^\d{11}$/.test(pesel || '');
+  const companyComplete = companyName !== undefined && nipDiagnostic.isExactly10Digits;
+
+  if (companyName !== undefined || nipLabelFound) {
     // Deliberately contains neither the NIP nor any other buyer data.
     console.info('[NIP nabywcy diagnostic]', nipDiagnostic);
-    return {
-      customerName: companyName,
-      pesel: nipDiagnostic.isExactly10Digits ? nip : undefined,
-      customerType: 'company'
-    };
   }
-
-  const customerName = capture(buyer, new RegExp(String.raw`imię\s+i\s+nazwisko\s*:\s*(.+?)${BUYER_FIELD_END}`, 'i'));
-  const rawPesel = capture(buyer, /(?:^|\s)PESEL\s*:\s*([\d\s]+?)(?=\s+(?:adres|telefon|e-?mail|NIP)\s*:|$)/i);
-  const pesel = rawPesel?.replace(/\s/g, '');
-  return {
-    customerName,
-    pesel: /^\d{11}$/.test(pesel || '') ? pesel : undefined,
-    customerType: 'person'
+  if (personComplete && companyComplete) return {
+    customerDiagnostic: 'Sekcja DANE NABYWCY zawiera jednocześnie komplet danych osoby fizycznej i firmy.'
   };
+  if (personComplete) return { customerName, pesel, customerType: 'person' };
+  if (companyComplete) return { customerName: companyName, pesel: nip, customerType: 'company' };
+
+  const personLabelFound = /(?:^|\s)imię\s+i\s+nazwisko\s*:?\s/i.test(buyer);
+  const peselLabelFound = /(?:^|\s)PESEL\s*:?\s/i.test(buyer);
+  const companyLabelFound = /(?:^|\s)firma\s*:?\s/i.test(buyer);
+  let customerDiagnostic = 'Nie odczytano kompletnych danych nabywcy w sekcji DANE NABYWCY.';
+  if (personLabelFound && !customerName) customerDiagnostic = 'Nie odczytano imienia i nazwiska.';
+  else if (personLabelFound && !/^\d{11}$/.test(pesel || '')) customerDiagnostic = 'Nie odczytano numeru PESEL.';
+  else if (peselLabelFound) customerDiagnostic = 'Nie odczytano imienia i nazwiska.';
+  else if (companyLabelFound && !companyName) customerDiagnostic = 'Nie odczytano nazwy firmy.';
+  else if (companyLabelFound && !nipDiagnostic.isExactly10Digits) customerDiagnostic = 'Nie odczytano NIP firmy.';
+  else if (nipLabelFound) customerDiagnostic = 'Nie odczytano nazwy firmy.';
+  return { customerDiagnostic };
 }
 
 const TEACHER_TYPE_PHRASES = [

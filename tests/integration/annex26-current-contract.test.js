@@ -91,7 +91,7 @@ test('aneks 26 przekazuje nazwę firmy i NIP przez istniejące placeholdery', ()
   assert.equal(values.PESEL, '6922453948');
 });
 
-test('firma nie wymaga PESEL, lecz brak NIP zgłasza czytelny błąd', () => {
+test('sama etykieta firmy nie ustawia rodzaju, a brak NIP zgłasza czytelny błąd', () => {
   const currentContract = extractContractData(`
     UMOWA ELASTYCZNA nr EL/JF/811/192956/3/9/2025
     DANE NABYWCY FIRMA: Agnieszka Paprotna ADRES: Żerkówek 28
@@ -100,7 +100,7 @@ test('firma nie wymaga PESEL, lecz brak NIP zgłasza czytelny błąd', () => {
     ZAWARTOŚĆ KURSU spotkania z Lektorem Polskim WARUNKI PŁATNOŚCI
     Całkowita cena kursu wynosi 11 250,00 zł brutto`);
 
-  assert.equal(currentContract.customerType, 'company');
+  assert.equal(currentContract.customerType, undefined);
   assert.throws(() => prepareAnnex26(currentContract, {
     newInstallment: '400,00', bank: 'Inbank', bankAccount: '12345678901234567890123456'
   }), /Nie odczytano NIP firmy\./);

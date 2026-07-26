@@ -25,6 +25,7 @@ const ALLOWED_BANKS = new Set([
 ]);
 
 export function validateAnnex26Data(data) {
+  if (data.customerDiagnostic) throw new Error(data.customerDiagnostic);
   const missing = REQUIRED.find(([field]) => data[field] === undefined
     || data[field] === null || data[field] === '');
   if (missing) throw new Error(typeof missing[1] === 'function' ? missing[1](data) : missing[1]);

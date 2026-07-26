@@ -105,6 +105,53 @@ test('nie uznaje firmy Tutlo spoza tabeli DANE NABYWCY za nabywcę', () => {
   assert.equal(contract.customerType, 'person');
 });
 
+test('słowo firma i 11-cyfrowy numer poza DANE NABYWCY nie zmieniają rodzaju osoby', () => {
+  const contract = extractContractData(`Firma finansująca, identyfikator 99999999999
+    DANE NABYWCY IMIĘ I NAZWISKO: Jan Kowalski PESEL: 123 456 789 01
+    SPECYFIKACJA KURSU FIRMA: Inna NIP: 1234567890 ZAWARTOŚĆ KURSU WARUNKI PŁATNOŚCI`);
+  assert.equal(contract.customerName, 'Jan Kowalski');
+  assert.equal(contract.pesel, '12345678901');
+  assert.equal(contract.customerType, 'person');
+});
+
+test('nie ustawia rodzaju nabywcy na podstawie niekompletnej pary pól', () => {
+  const company = extractContractData('DANE NABYWCY FIRMA: Klient bez NIP SPECYFIKACJA KURSU');
+  assert.equal(company.customerType, undefined);
+  assert.equal(company.customerDiagnostic, 'Nie odczytano NIP firmy.');
+
+  const person = extractContractData('DANE NABYWCY IMIĘ I NAZWISKO: Jan Kowalski SPECYFIKACJA KURSU');
+  assert.equal(person.customerType, undefined);
+  assert.equal(person.customerDiagnostic, 'Nie odczytano numeru PESEL.');
+});
+
+test('nie zgaduje rodzaju, gdy DANE NABYWCY zawierają obie kompletne pary', () => {
+  const contract = extractContractData(`DANE NABYWCY
+    IMIĘ I NAZWISKO: Jan Kowalski PESEL: 12345678901
+    FIRMA: Kowalski sp. z o.o. NIP: 123-456-78-90
+    SPECYFIKACJA KURSU`);
+  assert.equal(contract.customerType, undefined);
+  assert.equal(contract.customerDiagnostic,
+    'Sekcja DANE NABYWCY zawiera jednocześnie komplet danych osoby fizycznej i firmy.');
+});
+
+test('prepareAnnex26 zachowuje placeholdery danych osoby i firmy', () => {
+  const common = {
+    agreementNumber: 'EL/JF/811/192956/3/9/2025', agreementDate: '03.09.2025',
+    address: 'Testowa 1', coursePrice: 9576, coursePriceCents: 957600,
+    monthlyInstallment: 399, lessonCount: 450, monthlyLimit: 57,
+    teacherTypes: 'Lektor Polski'
+  };
+  const form = { newInstallment: 300, bank: 'Inbank', bankAccount: '12345678901234567890123456' };
+  for (const buyer of [
+    { customerType: 'person', customerName: 'Jan Kowalski', pesel: '12345678901' },
+    { customerType: 'company', customerName: 'Kowalski sp. z o.o.', pesel: '1234567890' }
+  ]) {
+    const prepared = prepareAnnex26({ ...common, ...buyer }, form);
+    assert.equal(prepared.values.IMIE_NAZWISKO, buyer.customerName);
+    assert.equal(prepared.values.PESEL, buyer.pesel);
+  }
+});
+
 for (const agreementNumber of [
   'EL/JS/966/125049/5/12/2025',
   'EL/PM/745/130243/23/9/2025',
