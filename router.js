@@ -7,10 +7,6 @@ import { annexModules } from './src/annexes/catalog.js';
 export function getAnnexRoute(annexId, contract) {
   const annex = annexModules.get(String(annexId));
   if (!annex || annex.manifest.available !== true) return undefined;
-  if (annex.manifest.id === '25' && contract && !(contract.contractType === 'flexible'
-    && contract.paymentType === 'internal' && contract.installmentCount === 24)) return undefined;
-  if (annex.manifest.id === '43'
-    && !String(contract?.rawText || '').toLowerCase().includes(annex.manifest.availabilityText)) return undefined;
 
   return Object.freeze({
     number: annex.manifest.id,
@@ -20,8 +16,7 @@ export function getAnnexRoute(annexId, contract) {
     requiredPlaceholders: Object.freeze([...annex.manifest.requiredFields]),
     status: annex.manifest.status,
     blockingReason: annex.manifest.blockingReason,
-    createGenerationPlan: annex.createGenerationPlan,
-    prepareAnnex25: annex.prepareAnnex25
+    prepareAnnex26: annex.prepareAnnex26
   });
 }
 

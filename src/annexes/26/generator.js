@@ -1,12 +1,8 @@
 import manifest from './manifest.json' with { type: 'json' };
 import { validateAnnex26Data } from './validator.js';
+import { validateCurrentContract } from '../../domain/contract-extraction.js';
 
 const INSTALLMENT_COUNT = 24;
-const ANNEX_26_TEACHER_PHRASES = {
-  polish: /\b(?:lektor\s+polski|lektorem\s+polskim)\b/iu,
-  english: /\benglish\s+expert\b/iu,
-  native: /\bnative\s+speaker(?:em)?\b/iu
-};
 const annex26Iso = date => date.toISOString().slice(0, 10);
 const formatAnnex26Date = value => {
   const [year, month, day] = value.split('-');
@@ -20,16 +16,9 @@ const annex26EffectiveDate = annexDate => {
   return annex26Iso(effectiveDate);
 };
 
-const annex26TeacherTypes = teacherTypes => {
-  const source = String(teacherTypes ?? '');
-  const hasPolish = ANNEX_26_TEACHER_PHRASES.polish.test(source);
-  const hasEnglish = ANNEX_26_TEACHER_PHRASES.english.test(source);
-  const hasNative = ANNEX_26_TEACHER_PHRASES.native.test(source);
-
-  if (hasPolish && hasEnglish && hasNative) {
-    return 'Lektorem Polskim, English Expert, Native Speakerem';
-  }
-  if (!hasPolish && hasEnglish && hasNative) return 'English Expert, Native Speakerem';
+const annex26TeacherTypes = variant => {
+  if (variant === 'polish_english_native') return 'Lektorem Polskim, English Expert, Native Speakerem';
+  if (variant === 'english_native') return 'English Expert, Native Speakerem';
   throw new Error('Nie rozpoznano prawidłowego wariantu lektorów.');
 };
 
@@ -55,8 +44,7 @@ function assertFiniteCalculation(calculation) {
 }
 
 function calculate(contract, annexDate, newInstallmentCents) {
-  const [day, month, year] = contract.agreementDate.split('.');
-  const agreement = new Date(`${year}-${month}-${day}T12:00:00Z`);
+  const agreement = new Date(`${contract.agreementDate}T12:00:00Z`);
   const annex = new Date(`${annexDate}T12:00:00Z`);
   const oldInstallments = (annex.getUTCFullYear() - agreement.getUTCFullYear()) * 12
     + annex.getUTCMonth() - agreement.getUTCMonth() + 1;
@@ -79,36 +67,19 @@ function calculate(contract, annexDate, newInstallmentCents) {
 }
 
 export function prepareAnnex26(contract, formData, today = new Date()) {
-  const coursePrice = normalizeNumber(contract?.coursePrice);
+  validateCurrentContract(contract);
+  if (contract.contractType !== 'flexible' || contract.paymentVariant !== 'credit') {
+    throw new Error('Aneks 26 obsługuje wyłącznie elastyczną umowę kredytową.');
+  }
   const lessonCount = normalizeNumber(contract?.lessonCount);
-  const monthlyInstallment = normalizeNumber(contract?.monthlyInstallment);
-  const coursePriceCents = Number.isInteger(contract?.coursePriceCents)
-    ? contract.coursePriceCents
-    : moneyToCents(contract?.coursePrice);
+  const coursePriceCents = contract?.coursePriceCents;
   const newInstallmentCents = moneyToCents(formData?.newInstallment);
   const currentInstallmentCents = Number.isInteger(coursePriceCents)
     ? Math.round(coursePriceCents / INSTALLMENT_COUNT)
     : NaN;
 
-  // Tymczasowa diagnostyka źródeł liczbowych; celowo nie zawiera danych osobowych.
-  console.info('[Aneks 26] źródła obliczeń', {
-    coursePrice: contract?.coursePrice,
-    coursePriceType: typeof contract?.coursePrice,
-    lessonCount: contract?.lessonCount,
-    lessonCountType: typeof contract?.lessonCount,
-    monthlyInstallment: contract?.monthlyInstallment,
-    monthlyInstallmentType: typeof contract?.monthlyInstallment,
-    parsed: { coursePrice, coursePriceCents, lessonCount, monthlyInstallment, newInstallmentCents },
-    coursePriceExtraction: contract?.coursePriceDiagnostic
-  });
-
   const data = {
     ...contract,
-    // currentContract exposes the canonical identifier as personalId. Keep the
-    // template-facing PESEL field local to annex 26 instead of reverting the
-    // shared contract model to its former `pesel` property.
-    pesel: contract?.personalId ?? contract?.pesel,
-    coursePrice,
     coursePriceCents,
     lessonCount,
     currentInstallmentCents,
@@ -127,16 +98,16 @@ export function prepareAnnex26(contract, formData, today = new Date()) {
     DATA_ANEKSU: formatAnnex26Date(annexDate),
     IMIE_NAZWISKO: data.customerName,
     ADRES: data.address,
-    PESEL: data.pesel,
-    DATA_ZAWARCIA_UMOWY: agreementDate,
+    PESEL: data.personalId,
+    DATA_ZAWARCIA_UMOWY: formatAnnex26Date(agreementDate),
     NOWA_LICZBA_LEKCJI: String(calculation.newLessonCount),
-    TYPY_LEKTOROW: annex26TeacherTypes(data.teacherTypes),
-    LIMIT_MIESIECZNY: String(data.monthlyLimit),
+    TYPY_LEKTOROW: annex26TeacherTypes(data.teacherVariant),
+    LIMIT_MIESIECZNY: String(data.monthlyLessonLimit),
     NOWA_CENA: annex26Money(calculation.newPriceCents),
     NOWA_SREDNIA_RATA: annex26Money(calculation.newAverageInstallmentCents),
     KWOTA_KREDYTU: annex26Money(data.coursePriceCents),
     BANK: data.bank,
-    DATA_UMOWY_KREDYTU: agreementDate,
+    DATA_UMOWY_KREDYTU: formatAnnex26Date(agreementDate),
     SPLACONO_DO_DNIA_ANEKSU: annex26Money(calculation.paidToAnnexDateCents),
     KWOTA_DO_ZWROTU_BANKOWI: annex26Money(calculation.bankRefundCents),
     NUMER_RACHUNKU_BANKU: data.bankAccount,
