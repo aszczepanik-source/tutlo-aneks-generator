@@ -459,7 +459,8 @@
 <script type="module">
   import { getAnnexRoute } from './router.js';
   import { ANNEX_STATUSES, getAvailableAnnexCards } from './src/annexes/availability.js';
-  import { downloadAnnex26 } from './src/infrastructure/local-docx-generator.js';
+  import { downloadAnnex25, downloadAnnex26 } from './src/infrastructure/local-docx-generator.js';
+  import { prepareAnnex25 } from './src/annexes/25/index.js';
   import { prepareAnnex26 } from './src/annexes/26/index.js';
   import { recognizeCurrentContract } from './src/application/recognize-contract.js?v=1.1.1';
   import { extractPdfText } from './src/infrastructure/pdf-text-extractor.js';
@@ -527,7 +528,7 @@
       return;
     }
     if(no==='25'){
-      if(!currentContract||!getAnnexRoute('25',currentContract)){ alert('Aneks 25 wymaga elastycznej umowy na 24 raty wewnętrzne.'); return; }
+      if(!currentContract){ alert('Najpierw wczytaj i rozpoznaj umowę.'); return; }
       document.getElementById('annex25Dialog').showModal();
       return;
     }
@@ -582,7 +583,7 @@
     els.confidence.textContent=c.score>=90?'Wysoka':c.score>=60?'Średnia':'Niska';
     els.reasons.innerHTML=c.reasons.map(x=>`<li>${x}</li>`).join('');
 
-    const items=getAvailableAnnexCards(c);
+    const items=getAvailableAnnexCards(contract);
     if(items.length){
       renderAnnexCards(items,els.annexGrid);
       els.annexSection.style.display='block';
@@ -651,6 +652,21 @@
   annex26BankAccount.addEventListener('input',()=>{
     annex26BankAccount.value=annex26BankAccount.value.replace(/\D/g,'').slice(0,26);
     annex26BankAccount.setCustomValidity(annex26BankAccount.value.length===26?'':'Numer rachunku musi zawierać dokładnie 26 cyfr.');
+  });
+
+  document.getElementById('annex25Form').addEventListener('submit',async event=>{
+    event.preventDefault();
+    const status=document.getElementById('annex25Status');
+    status.textContent='Tworzę dokument…';status.className='status show warn';
+    try{
+      const prepared=prepareAnnex25(currentContract,{
+        newInstallment:document.getElementById('annex25NewInstallment').value
+      });
+      await downloadAnnex25(prepared,{requiredFields:prepared.requiredFields});
+      status.textContent='Aneks został pobrany';status.className='status show ok';
+    }catch(error){
+      status.textContent=error.message;status.className='status show error';
+    }
   });
 
   document.getElementById('annex26Form').addEventListener('submit',async event=>{
