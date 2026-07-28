@@ -422,13 +422,13 @@
   </div>
   <div class="modal-body">
     <form id="annex11Form" class="annex-form">
-      <label>Data aneksu<input id="annex11AnnexDate" type="date" required></label>
-      <label>Początek zawieszenia<input id="annex11SuspensionStart" type="date" required></label>
-      <label>Koniec zawieszenia<input id="annex11SuspensionEnd" type="date" required></label>
-      <label>Długość zawieszenia (pełne miesiące)<input id="annex11SuspensionLength" type="number" min="1" step="1" required></label>
-      <label>Nowy koniec umowy<input id="annex11NewAgreementEnd" type="date" required></label>
-      <label>Data wznowienia płatności<input id="annex11PaymentResumeDate" type="date" required></label>
-      <label>Data wejścia aneksu w życie<input id="annex11EffectiveDate" type="date" required></label>
+      <label>Okres zawieszenia
+        <select id="annex11SuspensionMonths" required>
+          <option value="" selected disabled>Wybierz okres...</option>
+          <option value="1">1 miesiąc</option>
+          <option value="2">2 miesiące</option>
+        </select>
+      </label>
       <div class="actions"><button class="btn" type="submit">Pobierz aneks</button></div>
       <div id="annex11Status" class="status"></div>
     </form>
@@ -686,13 +686,7 @@
     status.textContent='Tworzę dokument…';status.className='status show warn';
     try{
       const prepared=prepareAnnex11(currentContract,{
-        annexDate:document.getElementById('annex11AnnexDate').value,
-        suspensionStart:document.getElementById('annex11SuspensionStart').value,
-        suspensionEnd:document.getElementById('annex11SuspensionEnd').value,
-        suspensionLength:document.getElementById('annex11SuspensionLength').value,
-        newAgreementEnd:document.getElementById('annex11NewAgreementEnd').value,
-        paymentResumeDate:document.getElementById('annex11PaymentResumeDate').value,
-        effectiveDate:document.getElementById('annex11EffectiveDate').value
+        suspensionMonths:document.getElementById('annex11SuspensionMonths').value
       });
       await downloadAnnex11(prepared,{requiredFields:prepared.requiredFields});
       status.textContent='Aneks został pobrany';status.className='status show ok';
