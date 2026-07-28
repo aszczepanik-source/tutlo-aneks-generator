@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import { getAnnexRoute } from '../../../../router.js';
 import { calculateAnnex25, parseMoneyToCents } from '../../../domain/annex-calculations.js';
 import { prepareAnnex25 } from '../generator.js';
+import { validateAnnex25Data } from '../validator.js';
 import manifest from '../manifest.json' with { type: 'json' };
 import { extractDocxPlaceholders } from '../../shared/template-inspection.js';
 
@@ -11,17 +11,32 @@ const installments = Array.from({ length: 24 }, (_, index) => ({
   dueDate: `${2025 + Math.floor((index + 8) / 12)}-${String((index + 8) % 12 + 1).padStart(2, '0')}-15`
 }));
 const contract = {
-  contractType: 'flexible', paymentType: 'internal', installmentCount: 24,
+  contractType: 'flexible', paymentType: 'internal', paymentVariant: 'internal_24',
   coursePriceCents: 957600, installments, agreementNumber: 'EL/1/1/2025', agreementDate: '01.01.2025',
-  customerName: 'Jan Kowalski', address: 'Testowa 1', pesel: '12345678901', lessonCount: 192,
-  monthlyLimit: 24, internalPaymentAccount: '12345678901234567890123456', teacherTypes: 'Lektor Polski'
+  customerType: 'person', customerName: 'Jan Kowalski', address: 'Testowa 1', personalId: '12345678901', lessonCount: 192,
+  monthlyLessonLimit: 24, monthlyInstallmentCents: 39900,
+  internalPaymentAccount: '12345678901234567890123456', teacherVariant: 'polish_english_native',
+  installmentPlan: { paymentCount: 24 }
 };
 
-test('aneks 25 jest dostępny wyłącznie dla elastycznej umowy na 24 raty wewnętrzne', () => {
-  assert.ok(getAnnexRoute('25', contract));
-  assert.equal(getAnnexRoute('25', { ...contract, paymentType: 'credit' }), undefined);
-  assert.equal(getAnnexRoute('25', { ...contract, contractType: 'limit' }), undefined);
-  assert.equal(getAnnexRoute('25', { ...contract, installmentCount: 12 }), undefined);
+test('walidacja aneksu 25 używa kanonicznego wariantu 24 rat wewnętrznych', () => {
+  assert.equal(validateAnnex25Data(contract), contract);
+  assert.doesNotThrow(() => prepareAnnex25(contract, { newInstallment: '300' }, '2026-01-20'));
+  for (const paymentVariant of ['internal_2', 'internal_13', 'internal_4']) {
+    assert.throws(() => validateAnnex25Data({ ...contract, paymentVariant }),
+      /Aneks 25 wymaga umowy na 24 raty wewnętrzne\./);
+  }
+  assert.throws(() => validateAnnex25Data({ ...contract, paymentType: 'credit', paymentVariant: 'credit' }),
+    /Aneks 25 wymaga rat wewnętrznych\./);
+  assert.throws(() => validateAnnex25Data({ ...contract, contractType: 'limit' }),
+    /Aneks 25 wymaga umowy elastycznej\./);
+});
+
+test('walidacja nie wymaga installmentCount i nie analizuje rawText', () => {
+  const withoutLegacyCount = { ...contract, rawText: 'umowa na 2 raty' };
+  delete withoutLegacyCount.installmentCount;
+  assert.doesNotThrow(() => validateAnnex25Data(withoutLegacyCount));
+  assert.doesNotThrow(() => validateAnnex25Data({ ...withoutLegacyCount, rawText: undefined }));
 });
 
 test('normalizacja kwoty przyjmuje obsługiwane formaty i odrzuca NaN, Infinity oraz nadmiar cyfr', () => {

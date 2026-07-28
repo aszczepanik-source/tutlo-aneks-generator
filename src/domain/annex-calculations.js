@@ -79,7 +79,7 @@ function annex25DueDates(contract) {
 export function calculateAnnex25(contract, annexDate, newInstallmentCents) {
   const coursePriceCents = contract.coursePriceCents;
   if (!Number.isSafeInteger(coursePriceCents) || coursePriceCents <= 0) throw new Error('Cena kursu jest nieprawidłowa.');
-  if (contract.installmentCount !== ANNEX_25_INSTALLMENTS) throw new Error('Aneks 25 wymaga umowy na 24 raty.');
+  if (contract.paymentVariant !== 'internal_24') throw new Error('Aneks 25 wymaga umowy na 24 raty wewnętrzne.');
   if (coursePriceCents % ANNEX_25_INSTALLMENTS !== 0) throw new Error('Cena kursu nie dzieli się na 24 pełne raty w groszach.');
   const oldInstallmentCents = coursePriceCents / ANNEX_25_INSTALLMENTS;
   if (!Number.isSafeInteger(newInstallmentCents) || newInstallmentCents <= 0) throw new Error('Nowa rata musi być dodatnią kwotą.');
