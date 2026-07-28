@@ -60,25 +60,30 @@ for (const [name, options, overrides] of fullFixtures) {
 test('fixture: osoba bez PESEL nie jest zgadywana', () => {
   const contract = parseCurrentContract(base({ buyer: 'IMIĘ I NAZWISKO: Jan Kowalski' }));
   assert.equal(contract.customerType, undefined);
-  assert.throws(() => validateCurrentContract(contract), /Nie rozpoznano typu klienta/);
+  assert.throws(() => validateCurrentContract(contract), error =>
+    error.errors.some(item => item.field === 'customerType'));
 });
 
 test('fixture: firma bez NIP nie jest zgadywana', () => {
   const contract = parseCurrentContract(base({ buyer: 'FIRMA: Acme sp. z o.o.' }));
   assert.equal(contract.customerType, undefined);
-  assert.throws(() => validateCurrentContract(contract), /Nie rozpoznano typu klienta/);
+  assert.throws(() => validateCurrentContract(contract), error =>
+    error.errors.some(item => item.field === 'customerType'));
 });
 
 test('fixture: sama etykieta FIRMA bez danych nie ustala typu klienta', () => {
   const contract = parseCurrentContract(base({ buyer: 'FIRMA:' }));
   assert.equal(contract.customerType, undefined);
-  assert.throws(() => validateCurrentContract(contract), { message: 'Nie rozpoznano typu klienta.' });
+  assert.throws(() => validateCurrentContract(contract), error =>
+    error.errors.some(item => item.field === 'customerType'));
 });
 
 test('fixture: błędny numer umowy jest odrzucany konkretnym komunikatem', () => {
   const contract = parseCurrentContract(base().replace('EL/JF/811/192956/3/9/2025', 'EL/JF/błędny'));
   assert.equal(contract.agreementNumber, undefined);
-  assert.throws(() => validateCurrentContract(contract), { message: 'Nie odczytano poprawnego numeru umowy.' });
+  assert.throws(() => validateCurrentContract(contract), error =>
+    error.errors.map(item => item.field).includes('agreementNumber')
+      && error.errors.map(item => item.field).includes('agreementDate'));
 });
 
 test('fixture: błędny teacherVariant', () => {
@@ -138,7 +143,56 @@ test('nierozpoznana forma płatności zachowuje komunikat walidacji dla UI', () 
   const contract = parseCurrentContract(base({ payment: 'forma nierozpoznana' }));
   assert.equal(contract.paymentType, undefined);
   assert.equal(contract.paymentVariant, undefined);
-  assert.throws(() => validateCurrentContract(contract), { message: 'Nie rozpoznano formy płatności.' });
+  assert.throws(() => validateCurrentContract(contract), error =>
+    error.message.includes('Nie odczytano wymaganych danych:')
+      && error.errors.some(item => item.field === 'paymentType'));
+});
+
+test('integracyjnie odczytuje cały currentContract z układu tekstu PDF', () => {
+  const rawText = `UMOWA O ŚWIADCZENIE USŁUG KURSU JĘZYKA ANGIELSKIEGO
+nr EL/JS/966/125049/5/12/2025 zawarta na odległość
+DANE NABYWCY
+FIRMA: Lingua Nova sp. z o.o.
+ADRES: ul. Długa 12, 00-001 Warszawa TELEFON: 500 600 700
+NIP: 521-123-45-67
+SPECYFIKACJA KURSU
+ZASADY KORZYSTANIA Z LEKCJI. Niewykorzystane lekcje nie przechodzą na kolejny miesiąc.
+Liczba Lekcji Indywidualnych: 288
+Maksymalna miesięczna liczba Lekcji Indywidualnych do wykorzystania: 12
+ZAWARTOŚĆ KURSU
+Spotkania indywidualne z English Expertem i Native Speakerami
+WARUNKI PŁATNOŚCI
+Pierwsza wpłata: 499,00 zł. Miesięczna opłata: 399,00 zł.
+Łączna cena usługi: 12.999,99 zł brutto.
+Raty wewnętrzne, płatność następuje w 4 równych ratach.
+Rachunek bankowy Tutlo: mBank S.A. 12 3456 7890 1234 5678 9012 3456
+POSTANOWIENIA KOŃCOWE`;
+  assert.deepEqual(parseCurrentContract(rawText), {
+    rawText, contractType: 'limit', paymentType: 'internal', paymentVariant: 'internal_4',
+    agreementNumber: 'EL/JS/966/125049/5/12/2025', agreementDate: '2025-12-05',
+    customerType: 'company', customerName: 'Lingua Nova sp. z o.o.', personalId: '5211234567',
+    address: 'ul. Długa 12, 00-001 Warszawa', coursePriceCents: 1299999, lessonCount: 288,
+    monthlyLessonLimit: 12, teacherVariant: 'english_native', internalPaymentAccount: ACCOUNT,
+    installmentPlan: Array.from({ length: 4 }, (_, index) =>
+      ({ number: index + 1, dueDate: null, amountCents: null, type: 'internal' }))
+  });
+});
+
+test('walidacja raportuje wszystkie braki w jednym błędzie', () => {
+  const contract = parseCurrentContract(base({ payment: `raty wewnętrzne, płatność następuje w 4 równych ratach ${ACCOUNT}` }));
+  contract.coursePriceCents = undefined;
+  contract.lessonCount = undefined;
+  contract.internalPaymentAccount = undefined;
+  contract.installmentPlan = undefined;
+  assert.throws(() => validateCurrentContract(contract), error => {
+    assert.deepEqual(error.errors, [
+      { field: 'coursePriceCents', message: 'Nie odczytano całkowitej ceny kursu.' },
+      { field: 'lessonCount', message: 'Nie odczytano liczby lekcji.' },
+      { field: 'internalPaymentAccount', message: 'Nie odczytano poprawnego rachunku rat wewnętrznych.' },
+      { field: 'installmentPlan', message: 'Nie odczytano harmonogramu płatności.' }
+    ]);
+    return /całkowitej ceny kursu[\s\S]*liczby lekcji[\s\S]*rachunku rat wewnętrznych[\s\S]*harmonogramu płatności/.test(error.message);
+  });
 });
 
 test('semantyczne finansowanie przez instytucję w sekcji płatności oznacza kredyt', () => {

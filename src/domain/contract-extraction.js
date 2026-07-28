@@ -60,9 +60,9 @@ function paymentSection(text) {
   return text.slice(start, followingSection < 0 ? Math.min(text.length, start + 8000) : start + 1 + followingSection);
 }
 
-function classifyContract(text) {
-  const contractType = /niewykorzystane lekcje.{0,100}nie przechodzą|zasady korzystania z lekcji/iu.test(text)
-    ? 'limit' : /elastyczny kurs językowy|lekcje indywidualne w różnej intensywności/iu.test(text) ? 'flexible' : undefined;
+function classifyContract(text, contractDescription) {
+  const contractType = /niewykorzystane lekcje.{0,100}nie przechodzą|zasady korzystania z lekcji/iu.test(contractDescription)
+    ? 'limit' : /umowa\s+elastyczna|elastyczny kurs językowy|lekcje indywidualne w różnej intensywności/iu.test(contractDescription) ? 'flexible' : undefined;
   const section = paymentSection(text);
   const credit = /raty\s+0%|kredyt\w*|pożyczk\w*|kredytodawc\w*|instytucj\w*\s+finansując\w*|finansowan\w*.{0,60}\bbank\w*|\bbank\w*.{0,60}finansowan\w*|raty\s+kredytow\w*/iu.test(section);
   const internal = /rachunek(?:\s+bankowy)?\s+tutlo|rat(?:a|y|ach)\s+wewnętrzn\w*|harmonogram(?:u|em)?\s+(?:rat|płatności)\s+wewnętrzn\w*|płatnoś\w*.{0,80}bezpośrednio.{0,80}(?:tutlo|rachunek)/iu.test(section);
@@ -99,9 +99,13 @@ function extractTeacherVariant(text) {
   return undefined;
 }
 
-function extractPriceCents(text) {
-  const value = text.match(/całkowita cena kursu(?:\s+wynosi)?\s*:?\s*(\d{1,3}(?:[ .]\d{3})*|\d+)[,.](\d{2})\s*zł/iu);
-  return value ? Number(`${value[1].replace(/[ .]/g, '')}${value[2]}`) : undefined;
+function extractPriceCents(payment) {
+  // The amount is accepted only directly after a total-course-price label. This prevents
+  // installments, deposits and credit amounts from becoming the course price.
+  const label = String.raw`(?:całkowita\s+cena\s+kursu|cena\s+kursu|wynagrodzenie\s+za\s+cały\s+kurs|łączna\s+cena\s+usługi)`;
+  const match = payment.match(new RegExp(`${label}(?:\\s+wynosi)?\\s*:?\\s*(\\d{1,3}(?:[ .]\\d{3})*|\\d+)(?:[,.](\\d{2}))?\\s*zł`, 'iu'));
+  if (!match) return undefined;
+  return (Number(match[1].replace(/[ .]/g, '')) * 100) + Number(match[2] || '00');
 }
 
 export function extractInternalInstallmentAccount(text) {
@@ -135,46 +139,64 @@ function extractInstallmentPlan(text, variant) {
 export function parseCurrentContract(rawText) {
   const text = normalizeContractText(rawText);
   const agreementNumber = extractAgreementNumber(text);
-  const specification = capture(text, /specyfikacja(?:\s+kursu)?\s+(.+?)(?=\s+zawartość kursu\b)/iu) || '';
-  const payment = classifyContract(text);
+  const specification = capture(text, /specyfikacja(?:\s+kursu)?\s+(.+?)(?=\s+zawarto(?:ść|sc)\s+kursu\b)/iu) || '';
+  const header = text.split(/\bdane\s+nabywcy\b/iu, 1)[0];
+  const payment = classifyContract(text, `${header} ${specification}`);
   const monthly = capture(specification, /maksymalna miesięczna liczba lekcji indywidualnych do wykorzystania\s*:?\s*(\d+)/iu);
+  const paymentText = paymentSection(text);
   const contract = {
     rawText: String(rawText || ''), ...payment, agreementNumber,
     agreementDate: parseAgreementDateFromNumber(agreementNumber), ...buyerData(text),
-    coursePriceCents: extractPriceCents(text),
+    coursePriceCents: extractPriceCents(paymentText),
     lessonCount: Number(capture(specification, /liczba lekcji indywidualnych\s*:?\s*(\d+)/iu)) || undefined,
     monthlyLessonLimit: monthly ? Number(monthly) : null,
     teacherVariant: extractTeacherVariant(text),
-    internalPaymentAccount: payment.paymentType === 'credit' ? null : extractInternalInstallmentAccount(text),
-    installmentPlan: extractInstallmentPlan(text, payment.paymentVariant)
+    internalPaymentAccount: payment.paymentType === 'credit' ? null : extractInternalInstallmentAccount(paymentText),
+    installmentPlan: extractInstallmentPlan(paymentText, payment.paymentVariant)
   };
   delete contract.matchedRule;
-  console.debug('Payment classification', {
-    paymentType: payment.paymentType,
-    paymentVariant: payment.paymentVariant,
-    matchedRule: payment.matchedRule,
-    installmentCount: contract.installmentPlan?.length ?? null
+  const diagnosticMode = typeof process !== 'undefined'
+    ? process.env?.NODE_ENV !== 'production'
+    : typeof location !== 'undefined' && /^(?:localhost|127\.0\.0\.1)$/.test(location.hostname);
+  if (diagnosticMode) console.table({
+    contractType: contract.contractType, paymentType: contract.paymentType,
+    paymentVariant: contract.paymentVariant, agreementNumber: Boolean(contract.agreementNumber),
+    agreementDate: Boolean(contract.agreementDate), customerType: contract.customerType,
+    customerName: Boolean(contract.customerName), personalId: Boolean(contract.personalId),
+    address: Boolean(contract.address), coursePriceCents: contract.coursePriceCents,
+    lessonCount: contract.lessonCount, monthlyLessonLimit: contract.monthlyLessonLimit,
+    teacherVariant: contract.teacherVariant,
+    internalPaymentAccount: Boolean(contract.internalPaymentAccount),
+    installmentPlanLength: contract.installmentPlan?.length ?? 0
   });
   return contract;
 }
 
 export function validateCurrentContract(contract) {
-  if (!CONTRACT_TYPES.includes(contract?.contractType)) throw new Error('Nie rozpoznano rodzaju umowy.');
-  if (!PAYMENT_TYPES.includes(contract?.paymentType)) throw new Error('Nie rozpoznano formy płatności.');
-  if (contract.paymentType === 'internal' && !PAYMENT_VARIANTS.slice(1).includes(contract.paymentVariant)) throw new Error('Nie rozpoznano wariantu rat wewnętrznych.');
-  if (contract.paymentType === 'credit' && contract.paymentVariant !== 'credit') throw new Error('Nie rozpoznano formy płatności.');
-  if (!contract.agreementNumber) throw new Error('Nie odczytano poprawnego numeru umowy.');
-  if (!contract.agreementDate) throw new Error('Nie odczytano poprawnej daty umowy.');
-  if (!contract.customerType) throw new Error('Nie rozpoznano typu klienta.');
-  if (!contract.customerName) throw new Error('Nie odczytano nazwy klienta.');
-  if (contract.customerType === 'person' && !/^\d{11}$/.test(contract.personalId || '')) throw new Error('Nie odczytano poprawnego numeru PESEL.');
-  if (contract.customerType === 'company' && !/^\d{10}$/.test(contract.personalId || '')) throw new Error('Nie odczytano poprawnego numeru NIP.');
-  if (!contract.address) throw new Error('Nie odczytano adresu klienta.');
-  if (!Number.isInteger(contract.coursePriceCents) || contract.coursePriceCents <= 0) throw new Error('Nie odczytano całkowitej ceny kursu.');
-  if (!Number.isInteger(contract.lessonCount) || contract.lessonCount <= 0) throw new Error('Nie odczytano liczby lekcji.');
-  if (!TEACHER_VARIANTS.includes(contract.teacherVariant)) throw new Error('Nie rozpoznano prawidłowego wariantu lektorów.');
-  if (contract.paymentType === 'internal' && !/^\d{26}$/.test(contract.internalPaymentAccount || '')) throw new Error('Nie odczytano poprawnego rachunku rat wewnętrznych.');
-  if (contract.paymentType === 'internal' && (!Array.isArray(contract.installmentPlan) || !contract.installmentPlan.length)) throw new Error('Nie odczytano harmonogramu płatności.');
+  const errors = [];
+  const add = (field, message) => errors.push({ field, message });
+  if (!CONTRACT_TYPES.includes(contract?.contractType)) add('contractType', 'Nie rozpoznano rodzaju umowy.');
+  if (!PAYMENT_TYPES.includes(contract?.paymentType)) add('paymentType', 'Nie rozpoznano formy płatności.');
+  if (contract?.paymentType === 'internal' && !PAYMENT_VARIANTS.slice(1).includes(contract.paymentVariant)) add('paymentVariant', 'Nie rozpoznano wariantu rat wewnętrznych.');
+  if (contract?.paymentType === 'credit' && contract.paymentVariant !== 'credit') add('paymentVariant', 'Nie rozpoznano wariantu płatności kredytowej.');
+  if (!contract?.agreementNumber) add('agreementNumber', 'Nie odczytano poprawnego numeru umowy.');
+  if (!contract?.agreementDate) add('agreementDate', 'Nie odczytano poprawnej daty umowy.');
+  if (!contract?.customerType) add('customerType', 'Nie rozpoznano typu klienta.');
+  if (!contract?.customerName) add('customerName', 'Nie odczytano nazwy klienta.');
+  if (contract?.customerType === 'person' && !/^\d{11}$/.test(contract.personalId || '')) add('personalId', 'Nie odczytano poprawnego numeru PESEL.');
+  if (contract?.customerType === 'company' && !/^\d{10}$/.test(contract.personalId || '')) add('personalId', 'Nie odczytano poprawnego numeru NIP.');
+  if (!contract?.address) add('address', 'Nie odczytano adresu klienta.');
+  if (!Number.isInteger(contract?.coursePriceCents) || contract.coursePriceCents <= 0) add('coursePriceCents', 'Nie odczytano całkowitej ceny kursu.');
+  if (!Number.isInteger(contract?.lessonCount) || contract.lessonCount <= 0) add('lessonCount', 'Nie odczytano liczby lekcji.');
+  if (!TEACHER_VARIANTS.includes(contract?.teacherVariant)) add('teacherVariant', 'Nie rozpoznano prawidłowego wariantu lektorów.');
+  if (contract?.paymentType === 'internal' && !/^\d{26}$/.test(contract.internalPaymentAccount || '')) add('internalPaymentAccount', 'Nie odczytano poprawnego rachunku rat wewnętrznych.');
+  if (contract?.paymentType === 'internal' && (!Array.isArray(contract.installmentPlan) || !contract.installmentPlan.length)) add('installmentPlan', 'Nie odczytano harmonogramu płatności.');
+  if (errors.length) {
+    const error = new Error(`Nie odczytano wymaganych danych:\n${errors.map(item => `- ${item.message.replace(/^Nie (?:odczytano|rozpoznano) /, '').replace(/\.$/, '')}`).join('\n')}`);
+    error.name = 'CurrentContractValidationError';
+    error.errors = errors;
+    throw error;
+  }
   return contract;
 }
 
