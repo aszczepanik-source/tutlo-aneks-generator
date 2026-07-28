@@ -88,11 +88,14 @@ const money = value => {
 const moneyAfter = (text, label) => money(text.match(new RegExp(`${label}\\s*:?\\s*(\\d+(?:[ .]\\d{3})*(?:[,.]\\d{1,2})?)`, 'iu'))?.[1]);
 
 function extractTeacherVariant(contents) {
-  const purchased = contents.match(/w\s+formie\s+spotkań\s+indywidualnych\s+z\s+(.+?)(?=[.;]|$)/iu)?.[1];
-  if (!purchased) return undefined;
-  const polish = /lektor\p{L}*\s+polsk\p{L}*/iu.test(purchased);
-  const english = /english\s+expert\p{L}*/iu.test(purchased);
-  const native = /native\s+speaker\p{L}*/iu.test(purchased);
+  const courseContents = normalized(contents);
+  if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development') {
+    console.log(courseContents);
+  }
+
+  const polish = /\blektor(?:em)?\s+polsk(?:i|im)\b/iu.test(courseContents);
+  const english = /\benglish\s+expert\b/iu.test(courseContents);
+  const native = /\bnative\s+speaker(?:em)?\b/iu.test(courseContents);
   return english && native ? (polish ? 'polish_english_native' : 'english_native') : undefined;
 }
 
