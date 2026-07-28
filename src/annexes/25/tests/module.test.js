@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { calculateAnnex25, parseMoneyToCents } from '../../../domain/annex-calculations.js';
+import { renderDocx } from '../../../infrastructure/local-docx-generator.js';
 import { prepareAnnex25 } from '../generator.js';
 import { validateAnnex25Data } from '../validator.js';
 import manifest from '../manifest.json' with { type: 'json' };
@@ -16,7 +17,8 @@ const contract = {
   customerType: 'person', customerName: 'Jan Kowalski', address: 'Testowa 1', personalId: '12345678901', lessonCount: 192,
   monthlyLessonLimit: 24, monthlyInstallmentCents: 39900,
   internalPaymentAccount: '12345678901234567890123456', teacherVariant: 'polish_english_native',
-  installmentPlan: { paymentCount: 24 }
+  installmentPlan: { paymentCount: 24, firstPaymentDueDate: '2025-09-15',
+    recurringStartDate: '2025-10-15', recurringDayOfMonth: 15 }
 };
 
 test('walidacja aneksu 25 używa kanonicznego wariantu 24 rat wewnętrznych', () => {
@@ -59,13 +61,32 @@ test('blokuje ratę równą lub wyższą, brak ceny i niepełny harmonogram', ()
   assert.throws(() => calculateAnnex25(contract, '2026-01-20', 39900), /niższa.*399,00 zł/);
   assert.throws(() => calculateAnnex25(contract, '2026-01-20', 40000), /niższa.*399,00 zł/);
   assert.throws(() => calculateAnnex25({ ...contract, coursePriceCents: undefined }, '2026-01-20', 30000), /Cena kursu/);
-  assert.throws(() => calculateAnnex25({ ...contract, installments: installments.slice(1), courseStartDate: undefined }, '2026-01-20', 30000), /daty rozpoczęcia/);
+  assert.throws(() => calculateAnnex25({ ...contract, installmentPlan: { paymentCount: 24 } }, '2026-01-20', 30000), /daty rozpoczęcia/);
 });
 
 test('prepareAnnex25 wypełnia dokładnie wszystkie rzeczywiste placeholdery', () => {
   const prepared = prepareAnnex25(contract, { newInstallment: '300,00 zł' }, '2026-01-20');
   assert.deepEqual(Object.keys(prepared.values).sort(), [...manifest.requiredFields].sort());
   assert.equal(Object.values(prepared.values).some(value => /NaN|Infinity|undefined|null|\{\{/.test(String(value))), false);
+});
+
+test('prepareAnnex25 korzysta z installmentPlan i generuje DOCX', async () => {
+  const prepared = prepareAnnex25(contract, { newInstallment: '300,00 zł' }, '2026-01-20');
+  assert.deepEqual(prepared.calculation.installments.slice(0, 3).map(item => item.dueDate),
+    ['2025-09-15', '2025-10-15', '2025-11-15']);
+  class FakeZip {
+    constructor() { this.files = { 'word/document.xml': true }; this.xml = '{{NUMER_UMOWY}}'; }
+    file() { return { asText: () => this.xml }; }
+    generate() { return new TextEncoder().encode(this.xml); }
+  }
+  class FakeDocxtemplater {
+    constructor(zip) { this.zip = zip; }
+    render(values) { this.zip.xml = this.zip.xml.replace('{{NUMER_UMOWY}}', values.NUMER_UMOWY); }
+    getZip() { return this.zip; }
+  }
+  const document = renderDocx(new Uint8Array(), prepared,
+    { PizZip: FakeZip, docxtemplater: FakeDocxtemplater });
+  assert.ok(document.byteLength > 0);
 });
 
 test('formularz aneksu 25 zawiera wyłącznie pole nowej raty', async () => {

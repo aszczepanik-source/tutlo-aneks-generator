@@ -63,17 +63,14 @@ const firstOfNextMonth = value => {
 };
 
 function annex25DueDates(contract) {
-  if (Array.isArray(contract.installments) && contract.installments.length === ANNEX_25_INSTALLMENTS) {
-    return contract.installments.map(item => iso(parseDate(item.dueDate, 'termin raty')));
+  const plan = contract.installmentPlan;
+  if (!plan?.firstPaymentDueDate || !plan?.recurringStartDate) {
+    throw new Error('Brak daty rozpoczęcia harmonogramu rat w danych umowy.');
   }
-  if (Array.isArray(contract.installmentDueDates) && contract.installmentDueDates.length === ANNEX_25_INSTALLMENTS) {
-    return contract.installmentDueDates.map(value => iso(parseDate(value, 'termin raty')));
-  }
-  // In the §2(2) variant the schedule starts on the course start date and
-  // preserves its day (including end-of-month clamping) for all 24 months.
-  if (!contract.courseStartDate) throw new Error('Brak daty rozpoczęcia harmonogramu rat w danych umowy.');
-  const start = iso(parseDate(contract.courseStartDate, 'data rozpoczęcia harmonogramu'));
-  return Array.from({ length: ANNEX_25_INSTALLMENTS }, (_, index) => addMonths(start, index));
+  const firstDueDate = iso(parseDate(plan.firstPaymentDueDate, 'termin pierwszej raty'));
+  const recurringStartDate = iso(parseDate(plan.recurringStartDate, 'data rozpoczęcia kolejnych rat'));
+  return [firstDueDate, ...Array.from({ length: ANNEX_25_INSTALLMENTS - 1 },
+    (_, index) => addMonths(recurringStartDate, index))];
 }
 
 export function calculateAnnex25(contract, annexDate, newInstallmentCents) {

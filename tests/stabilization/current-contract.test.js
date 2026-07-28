@@ -72,6 +72,25 @@ test('fixture A: pełny currentContract umowy elastycznej z 24 ratami wewnętrzn
   assert.equal(validateCurrentContract(parseCurrentContract(fixtureA)).installmentPlan.paymentCount, 24);
 });
 
+test('harmonogram rat odczytuje terminy podane w §2 warunków płatności', () => {
+  const text = fixtureA.replace(
+    'Pierwsza rata wynosi 580,00 zł, a kolejnych 23 rat wynosi po 580,00 zł, płatne',
+    `pierwsza rata w wysokości 580,00 zł płatna najpóźniej w ciągu 1 dnia od dnia zawarcia Umowy,
+kolejnych 23 rat w wysokości 580,00 zł płatne z góry do dnia 5. każdego miesiąca począwszy od 3 miesiąca trwania Umowy, to jest od grudnia 2025, płatne`
+  );
+  const plan = parseCurrentContract(text).installmentPlan;
+  assert.deepEqual(plan, {
+    paymentCount: 24,
+    firstPaymentAmountCents: 58000,
+    recurringPaymentAmountCents: 58000,
+    followingPaymentsCount: 23,
+    paymentVariant: 'internal_24',
+    firstPaymentDueDate: '2025-11-01',
+    recurringStartDate: '2025-12-05',
+    recurringDayOfMonth: 5
+  });
+});
+
 test('fixture B: pełny currentContract umowy z limitem i kredytem', () => {
   assert.deepEqual(parseCurrentContract(fixtureB), expectedB);
   assert.deepEqual(Object.keys(parseCurrentContract(fixtureB)), CURRENT_CONTRACT_FIELDS);

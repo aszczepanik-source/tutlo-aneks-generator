@@ -118,7 +118,46 @@ export function extractInternalInstallmentAccount(paymentSection) {
   return /^\d{26}$/.test(candidate || '') ? candidate : undefined;
 }
 
-function extractPayment(payment) {
+const POLISH_MONTHS = Object.freeze({
+  styczen: 1, stycznia: 1, luty: 2, lutego: 2, marzec: 3, marca: 3,
+  kwiecien: 4, kwietnia: 4, maj: 5, maja: 5, czerwiec: 6, czerwca: 6,
+  lipiec: 7, lipca: 7, sierpien: 8, sierpnia: 8, wrzesien: 9, wrzesnia: 9,
+  pazdziernik: 10, pazdziernika: 10, listopad: 11, listopada: 11,
+  grudzien: 12, grudnia: 12
+});
+
+const monthNumber = value => POLISH_MONTHS[String(value || '').normalize('NFD')
+  .replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('pl-PL')];
+
+function extractInstallmentDates(payment, agreementDate) {
+  const firstPaymentDelayDays = Number(payment.match(
+    /pierwsz\p{L}*\s+rat\p{L}*.{0,160}?najpóźniej\s+w\s+ciągu\s+(\d+)\s+dni(?:a)?\s+od\s+dnia\s+zawarcia\s+Umowy/iu
+  )?.[1]);
+  let firstPaymentDueDate;
+  if (agreementDate && Number.isInteger(firstPaymentDelayDays)) {
+    const date = new Date(`${agreementDate}T12:00:00Z`);
+    date.setUTCDate(date.getUTCDate() + firstPaymentDelayDays);
+    firstPaymentDueDate = date.toISOString().slice(0, 10);
+  }
+
+  const recurring = payment.match(
+    /kolejn(?:ych|e)\s+\d+\s+(?:miesięcznych\s+)?rat\p{L}*.{0,180}?do\s+dnia\s+(\d{1,2})\s*\.?\s+każdego\s+miesiąca.{0,180}?(?:to\s+jest\s+)?od\s+([\p{L}]+)\s+(\d{4})/iu
+  );
+  const recurringDayOfMonth = Number(recurring?.[1]) || undefined;
+  const recurringMonth = monthNumber(recurring?.[2]);
+  const recurringYear = Number(recurring?.[3]);
+  let recurringStartDate;
+  if (recurringMonth && recurringYear && recurringDayOfMonth) {
+    const date = new Date(Date.UTC(recurringYear, recurringMonth - 1, recurringDayOfMonth, 12));
+    if (date.getUTCMonth() === recurringMonth - 1 && date.getUTCDate() === recurringDayOfMonth) {
+      recurringStartDate = date.toISOString().slice(0, 10);
+    }
+  }
+  return { ...(firstPaymentDueDate && { firstPaymentDueDate }),
+    ...(recurringStartDate && { recurringStartDate, recurringDayOfMonth }) };
+}
+
+function extractPayment(payment, agreementDate) {
   const credit = /Forma\s+płatności\s*:\s*raty\s*0\s*%\s*przy\s+wykorzystaniu\s+kredytu\s+konsumenckiego\s+udzielonego/iu.test(payment);
   const internal = !credit && /(?:bezpośrednio\s+)?na\s+następujący\s+rachunek\s+bankowy\s+Tutlo/iu.test(payment);
   if (credit) return { paymentType: 'credit', paymentVariant: 'credit', internalPaymentAccount: null, installmentPlan: undefined };
@@ -135,7 +174,8 @@ function extractPayment(payment) {
   return { paymentType: 'internal', paymentVariant,
     internalPaymentAccount: extractInternalInstallmentAccount(payment),
     installmentPlan: paymentCount ? { paymentCount, firstPaymentAmountCents,
-      recurringPaymentAmountCents, followingPaymentsCount: followingPaymentsCount || Math.max(0, paymentCount - 1), paymentVariant } : undefined };
+      recurringPaymentAmountCents, followingPaymentsCount: followingPaymentsCount || Math.max(0, paymentCount - 1), paymentVariant,
+      ...extractInstallmentDates(payment, agreementDate) } : undefined };
 }
 
 export function parseCurrentContract(rawText) {
@@ -147,13 +187,14 @@ export function parseCurrentContract(rawText) {
   const monthlyLessonLimit = integerAfter(specification, String.raw`Maksymalna\s+miesięczna\s+liczba\s+Lekcji\s+Indywidualnych\s+do\s+wykorzystania`);
   const hasPeriod = /okres\s+trwania\s+kursu|data\s+rozpoczęcia\s+kursu.{0,100}data\s+zakończenia\s+kursu/iu.test(specification);
   const contractType = hasMinimum ? 'flexible' : hasPeriod && lessonCount && monthlyLessonLimit ? 'limit' : undefined;
-  const payment = extractPayment(sections.payment);
+  const agreementDate = parseAgreementDateFromNumber(agreementNumber);
+  const payment = extractPayment(sections.payment, agreementDate);
   const extractedTeacherVariant = extractTeacherVariant(sections.contents);
   console.debug('TEACHER_EXTRACTOR_RESULT', extractedTeacherVariant);
   const currentContract = {
     rawText: String(rawText || ''), contractType, paymentType: payment.paymentType,
     paymentVariant: payment.paymentVariant, agreementNumber,
-    agreementDate: parseAgreementDateFromNumber(agreementNumber), ...extractBuyer(sections.buyer),
+    agreementDate, ...extractBuyer(sections.buyer),
     coursePriceCents: moneyAfter(sections.payment, String.raw`Całkowita\s+cena\s+(?:pakietu\s+)?kursu\s+wynosi`),
     monthlyInstallmentCents: moneyAfter(sections.payment, String.raw`(?:Opłata\s+miesięczna|wynagrodzenie\s+przysługujące\s+Tutlo)\s+(?:za\s+każdy\s+miesiąc\s+trwania\s+Umowy\s+)?wynosi`),
     lessonCount, monthlyLessonLimit, teacherVariant: extractedTeacherVariant,
