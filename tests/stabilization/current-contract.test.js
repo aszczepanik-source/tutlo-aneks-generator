@@ -100,6 +100,26 @@ test('rzeczywista umowa z trzema typami lektorów ma wariant polish_english_nati
   assert.equal(parseCurrentContract(fixtureA).teacherVariant, 'polish_english_native');
 });
 
+test('teacherVariant odczytuje trzy typy z tekstu PDF.js rozbitego przed Speakerem', () => {
+  const text = `ZAWARTOŚĆ KURSU
+Przedmiotem Umowy jest świadczenie przez Tutlo na rzecz Użytkownika kursu z języka angielskiego online obejmującego:
+288 Lekcji Indywidualnych o długości 20 minut każda w formie spotkań indywidualnych z Lektorem Polskim, English Expert, Native
+Speakerem realizowanych w platformie internetowej pod adresem tutlo.com.
+§ 2
+WARUNKI PŁATNOŚCI`;
+
+  assert.equal(parseCurrentContract(text).teacherVariant, 'polish_english_native');
+});
+
+test('teacherVariant odczytuje English Expert i Native Speakera z tekstu PDF.js', () => {
+  const text = `ZAWARTOŚĆ KURSU
+... z English Expert, Native
+Speakerem ...
+§2 WARUNKI PŁATNOŚCI`;
+
+  assert.equal(parseCurrentContract(text).teacherVariant, 'english_native');
+});
+
 test('teacherVariant ignoruje listę wszystkich lektorów w załączniku', () => {
   const text = fixtureB.replace('Lektorem Polskim, English Expert oraz Native Speakerem',
     'English\nExpert oraz Native\nSpeakerem');
