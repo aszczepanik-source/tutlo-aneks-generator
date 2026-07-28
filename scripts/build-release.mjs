@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 
 const root = new URL('../', import.meta.url);
 const dist = new URL('../dist/', import.meta.url);
-const version = '1.1.0';
+const version = '1.1.1';
 
 await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });

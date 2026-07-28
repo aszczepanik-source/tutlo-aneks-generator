@@ -101,12 +101,15 @@ const moneyAfter = (text, label) => money(text.match(new RegExp(`${label}\\s*:?\
 
 function extractTeacherVariant(contents) {
   const section = normalizeCourseContentText(contents);
-  const hasPolish = /\bLektor(?:em)?\s+Polsk(?:im|i)\b/i.test(section);
-  const hasEnglish = /\bEnglish\s+Expert\b/i.test(section);
-  const hasNative = /\bNative\s+Speaker(?:em|zy)?\b/i.test(section);
+  const courseSentence = section.match(/\bLekcji\s+Indywidualnych\s+o\s+długości\s+20\s+minut\s+każda\s+w\s+formie\s+spotkań\s+indywidualnych\s+z\s+.+?\s+realizowanych\s+w\s+platformie\b/i)?.[0];
+  if (!courseSentence) return undefined;
 
-  if (hasPolish && hasEnglish && hasNative) return 'polish_english_native';
-  if (!hasPolish && hasEnglish && hasNative) return 'english_native';
+  const hasPolishTeacher = /lektor(?:em|zy)?\s+polsk(?:i|im|imi|ich)|polscy\s+lektorzy|polskimi\s+lektorami/i.test(courseSentence);
+  const hasEnglishExpert = /english\s+expert/i.test(courseSentence);
+  const hasNativeSpeaker = /native\s+speaker/i.test(courseSentence);
+
+  if (hasPolishTeacher) return 'polish_english_native';
+  if (hasEnglishExpert && hasNativeSpeaker) return 'english_native';
   return undefined;
 }
 
@@ -145,18 +148,23 @@ export function parseCurrentContract(rawText) {
   const hasPeriod = /okres\s+trwania\s+kursu|data\s+rozpoczęcia\s+kursu.{0,100}data\s+zakończenia\s+kursu/iu.test(specification);
   const contractType = hasMinimum ? 'flexible' : hasPeriod && lessonCount && monthlyLessonLimit ? 'limit' : undefined;
   const payment = extractPayment(sections.payment);
-  return {
+  const extractedTeacherVariant = extractTeacherVariant(sections.contents);
+  console.debug('TEACHER_EXTRACTOR_RESULT', extractedTeacherVariant);
+  const currentContract = {
     rawText: String(rawText || ''), contractType, paymentType: payment.paymentType,
     paymentVariant: payment.paymentVariant, agreementNumber,
     agreementDate: parseAgreementDateFromNumber(agreementNumber), ...extractBuyer(sections.buyer),
     coursePriceCents: moneyAfter(sections.payment, String.raw`Całkowita\s+cena\s+(?:pakietu\s+)?kursu\s+wynosi`),
     monthlyInstallmentCents: moneyAfter(sections.payment, String.raw`(?:Opłata\s+miesięczna|wynagrodzenie\s+przysługujące\s+Tutlo)\s+(?:za\s+każdy\s+miesiąc\s+trwania\s+Umowy\s+)?wynosi`),
-    lessonCount, monthlyLessonLimit, teacherVariant: extractTeacherVariant(sections.contents),
+    lessonCount, monthlyLessonLimit, teacherVariant: extractedTeacherVariant,
     internalPaymentAccount: payment.internalPaymentAccount, installmentPlan: payment.installmentPlan
   };
+  console.debug('CURRENT_CONTRACT_TEACHER_VARIANT', currentContract.teacherVariant);
+  return currentContract;
 }
 
 export function validateCurrentContract(contract) {
+  console.debug('VALIDATION_TEACHER_VARIANT', contract.teacherVariant);
   const errors = [];
   const required = [
     ['contractType', CONTRACT_TYPES.includes(contract?.contractType), 'rodzaju umowy'],

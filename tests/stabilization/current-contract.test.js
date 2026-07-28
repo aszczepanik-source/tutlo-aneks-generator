@@ -16,8 +16,8 @@ Liczba Lekcji Indywidualnych: 480
 Maksymalna miesięczna liczba
 Lekcji Indywidualnych do wykorzystania: 60
 ZAWARTOŚĆ KURSU
-Kurs w formie spotkań indywidualnych z Lektorem Polskim, English Expert i Native
-Speakerem.
+480 Lekcji Indywidualnych o długości 20 minut każda w formie spotkań indywidualnych z Lektorem Polskim, English Expert i Native
+Speakerem realizowanych w platformie internetowej.
 § 2 WARUNKI PŁATNOŚCI
 Całkowita cena kursu wynosi 13920,00 zł brutto. Dopłata Tutlo Plus: 200,00 zł.
 Opłata miesięczna za każdy miesiąc trwania Umowy wynosi: 580,00 zł brutto.
@@ -37,7 +37,7 @@ Okres trwania kursu: 24 miesiące
 Liczba Lekcji Indywidualnych: 288
 Maksymalna miesięczna liczba Lekcji Indywidualnych do wykorzystania: 12
 ZAWARTOŚĆ KURSU
-Kurs w formie spotkań indywidualnych z Lektorem Polskim, English Expert oraz Native Speakerem.
+288 Lekcji Indywidualnych o długości 20 minut każda w formie spotkań indywidualnych z Lektorem Polskim, English Expert oraz Native Speakerem realizowanych w platformie internetowej.
 § 2 WARUNKI PŁATNOŚCI
 Całkowita cena pakietu kursu wynosi: 9576.0 zł brutto. Dopłata Tutlo Plus wynosi 999,00 zł.
 wynagrodzenie przysługujące Tutlo za każdy miesiąc trwania Umowy wynosi 399.0 zł brutto.
@@ -113,8 +113,8 @@ WARUNKI PŁATNOŚCI`;
 
 test('teacherVariant odczytuje English Expert i Native Speakera z tekstu PDF.js', () => {
   const text = `ZAWARTOŚĆ KURSU
-... z English Expert, Native
-Speakerem ...
+288 Lekcji Indywidualnych o długości 20 minut każda w formie spotkań indywidualnych z English Expert, Native
+Speakerem realizowanych w platformie internetowej.
 §2 WARUNKI PŁATNOŚCI`;
 
   assert.equal(parseCurrentContract(text).teacherVariant, 'english_native');
