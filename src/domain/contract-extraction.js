@@ -51,19 +51,39 @@ function buyerData(text) {
   return { ...identity, address: capture(section, new RegExp(String.raw`adres\s*:?\s*(.+?)${boundary}`, 'iu')) };
 }
 
+function paymentSection(text) {
+  const heading = /(?:warunki|forma|harmonogram)\s+płatności\b/giu;
+  const starts = [...text.matchAll(heading)].map(match => match.index);
+  if (!starts.length) return '';
+  const start = Math.min(...starts);
+  const followingSection = text.slice(start + 1).search(/\s(?:dane\s+nabywcy|specyfikacja(?:\s+kursu)?|zawartość\s+kursu|postanowienia\s+końcowe|podpisy)\b/iu);
+  return text.slice(start, followingSection < 0 ? Math.min(text.length, start + 8000) : start + 1 + followingSection);
+}
+
 function classifyContract(text) {
   const contractType = /niewykorzystane lekcje.{0,100}nie przechodzą|zasady korzystania z lekcji/iu.test(text)
     ? 'limit' : /elastyczny kurs językowy|lekcje indywidualne w różnej intensywności/iu.test(text) ? 'flexible' : undefined;
-  const credit = /raty 0%|kredyt(?:u|em|owy)?\s+(?:bankow|konsumenck)|pożyczk\w*\s+bankow/iu.test(text);
-  const internal = /rachunek bankowy tutlo|rat(?:a|y|ach) wewnętrzn|kolejn(?:ych|e)\s+23\s+rat|płatność następuje w\s*[24]\s+(?:równych\s+)?ratach/iu.test(text);
-  const paymentType = credit && !internal ? 'credit' : internal && !credit ? 'internal' : undefined;
+  const section = paymentSection(text);
+  const credit = /raty\s+0%|kredyt\w*|pożyczk\w*|kredytodawc\w*|instytucj\w*\s+finansując\w*|finansowan\w*.{0,60}\bbank\w*|\bbank\w*.{0,60}finansowan\w*|raty\s+kredytow\w*/iu.test(section);
+  const internal = /rachunek(?:\s+bankowy)?\s+tutlo|rat(?:a|y|ach)\s+wewnętrzn\w*|harmonogram(?:u|em)?\s+(?:rat|płatności)\s+wewnętrzn\w*|płatnoś\w*.{0,80}bezpośrednio.{0,80}(?:tutlo|rachunek)/iu.test(section);
+  const paymentType = credit ? 'credit' : internal ? 'internal' : undefined;
   let paymentVariant;
-  if (paymentType === 'credit') paymentVariant = 'credit';
-  else if (/kolejn(?:ych|e)\s+23\s+rat|24\s+(?:miesięczn\w*\s+)?rat/iu.test(text)) paymentVariant = 'internal_24';
-  else if (/pierwsz\w*\s+rok\w*\s+(?:opłacon\w*\s+)?z\s+góry.{0,180}(?:12|dwanaście)\s+rat/iu.test(text)) paymentVariant = 'internal_13';
-  else if (/(?:płatność następuje w\s*)?2\s+(?:równych\s+)?ratach?/iu.test(text)) paymentVariant = 'internal_2';
-  else if (/(?:płatność następuje w\s*)?4\s+(?:równych\s+)?ratach?/iu.test(text)) paymentVariant = 'internal_4';
-  return { contractType, paymentType, paymentVariant };
+  let matchedRule = 'unrecognized';
+  if (paymentType === 'credit') {
+    paymentVariant = 'credit';
+    matchedRule = 'credit-financing-in-payment-section';
+  } else if (paymentType === 'internal') {
+    if (/pierwsz\w*\s+rok\w*.{0,80}(?:z\s+góry|jednorazow\w*).{0,240}(?:drugi\w*\s+rok\w*.{0,100})?(?:12|dwanaście)\s+(?:miesięczn\w*\s+)?rat/iu.test(section)) {
+      paymentVariant = 'internal_13'; matchedRule = 'internal-first-year-plus-12';
+    } else if (/kolejn(?:ych|e)\s+23\s+(?:miesięczn\w*\s+)?(?:rat|płatności)|24\s+(?:miesięczn\w*\s+)?(?:rat|płatności)/iu.test(section)) {
+      paymentVariant = 'internal_24'; matchedRule = 'internal-24-monthly';
+    } else if (/(?:liczba\s+rat\s*:?\s*|płatność\s+następuje\s+w\s*|raty\s+wewnętrzne.{0,40}?\s+w\s*|harmonogram.{0,60})2\s+(?:równych\s+)?(?:ratach?|płatnościach?)/iu.test(section)) {
+      paymentVariant = 'internal_2'; matchedRule = 'internal-2-payments';
+    } else if (/(?:liczba\s+rat\s*:?\s*|płatność\s+następuje\s+w\s*|raty\s+wewnętrzne.{0,40}?\s+w\s*|harmonogram.{0,60})4\s+(?:równych\s+)?(?:ratach?|płatnościach?)/iu.test(section)) {
+      paymentVariant = 'internal_4'; matchedRule = 'internal-4-payments';
+    } else matchedRule = 'internal-without-recognized-schedule';
+  }
+  return { contractType, paymentType, paymentVariant, matchedRule };
 }
 
 function extractTeacherVariant(text) {
@@ -115,7 +135,7 @@ export function parseCurrentContract(rawText) {
   const specification = capture(text, /specyfikacja(?:\s+kursu)?\s+(.+?)(?=\s+zawartość kursu\b)/iu) || '';
   const payment = classifyContract(text);
   const monthly = capture(specification, /maksymalna miesięczna liczba lekcji indywidualnych do wykorzystania\s*:?\s*(\d+)/iu);
-  return {
+  const contract = {
     rawText: String(rawText || ''), ...payment, agreementNumber,
     agreementDate: parseAgreementDateFromNumber(agreementNumber), ...buyerData(text),
     coursePriceCents: extractPriceCents(text),
@@ -125,6 +145,14 @@ export function parseCurrentContract(rawText) {
     internalPaymentAccount: payment.paymentType === 'credit' ? null : extractInternalInstallmentAccount(text),
     installmentPlan: extractInstallmentPlan(text, payment.paymentVariant)
   };
+  delete contract.matchedRule;
+  console.debug('Payment classification', {
+    paymentType: payment.paymentType,
+    paymentVariant: payment.paymentVariant,
+    matchedRule: payment.matchedRule,
+    installmentCount: contract.installmentPlan?.length ?? null
+  });
+  return contract;
 }
 
 export function validateCurrentContract(contract) {
