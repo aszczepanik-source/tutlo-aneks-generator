@@ -356,6 +356,12 @@
           <div class="label">Wariant płatności</div>
           <div class="value" id="paymentVariant">—</div>
         </div>
+        <div class="result-row"><div class="label">Numer umowy</div><div class="value" id="agreementNumber">—</div></div>
+        <div class="result-row"><div class="label">Data umowy</div><div class="value" id="agreementDate">—</div></div>
+        <div class="result-row"><div class="label">Cena kursu</div><div class="value" id="coursePrice">—</div></div>
+        <div class="result-row"><div class="label">Liczba lekcji</div><div class="value" id="lessonCount">—</div></div>
+        <div class="result-row"><div class="label">Wariant lektorów</div><div class="value" id="teacherVariant">—</div></div>
+        <div class="result-row" id="internalAccountRow"><div class="label">Rachunek Tutlo</div><div class="value" id="internalAccount">—</div></div>
         <div class="result-row">
           <div class="label">Pewność klasyfikacji</div>
           <div><span class="confidence" id="confidence">—</span></div>
@@ -456,6 +462,7 @@
   import { downloadAnnex26 } from './src/infrastructure/local-docx-generator.js';
   import { prepareAnnex26 } from './src/annexes/26/index.js';
   import { recognizeCurrentContract } from './src/application/recognize-contract.js';
+  import { extractPdfText } from './src/infrastructure/pdf-text-extractor.js';
   import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
@@ -476,6 +483,10 @@
     personalId:document.getElementById('personalId'),
     payment:document.getElementById('paymentType'),
     variant:document.getElementById('paymentVariant'),
+    agreementNumber:document.getElementById('agreementNumber'), agreementDate:document.getElementById('agreementDate'),
+    coursePrice:document.getElementById('coursePrice'), lessonCount:document.getElementById('lessonCount'),
+    teacherVariant:document.getElementById('teacherVariant'), internalAccount:document.getElementById('internalAccount'),
+    internalAccountRow:document.getElementById('internalAccountRow'),
     confidence:document.getElementById('confidence'),
     reasons:document.getElementById('reasonsList'),
     annexSection:document.getElementById('annexSection'),
@@ -487,17 +498,6 @@
   function setStatus(text,kind='ok'){
     els.status.textContent=text;
     els.status.className=`status show ${kind}`;
-  }
-  async function extractPdfText(file){
-    const buffer=await file.arrayBuffer();
-    const pdf=await pdfjsLib.getDocument({data:buffer}).promise;
-    let full='';
-    for(let i=1;i<=pdf.numPages;i++){
-      const page=await pdf.getPage(i);
-      const content=await page.getTextContent();
-      full+=' '+content.items.map(x=>x.str).join(' ');
-    }
-    return full;
   }
   function humanType(v){return v==='flexible'?'Umowa elastyczna':v==='limit'?'Umowa z limitem':'Nie rozpoznano';}
   function humanPayment(v){return v==='credit'?'Kredyt / pożyczka':v==='internal'?'Raty wewnętrzne':'Nie rozpoznano';}
@@ -572,6 +572,13 @@
     els.personalId.textContent=contract.personalId||'—';
     els.payment.textContent=humanPayment(c.payment);
     els.variant.textContent=c.variant;
+    els.agreementNumber.textContent=contract.agreementNumber;
+    els.agreementDate.textContent=contract.agreementDate;
+    els.coursePrice.textContent=new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(contract.coursePriceCents/100);
+    els.lessonCount.textContent=String(contract.lessonCount);
+    els.teacherVariant.textContent=contract.teacherVariant;
+    els.internalAccountRow.style.display=contract.paymentType==='internal'?'grid':'none';
+    els.internalAccount.textContent=contract.internalPaymentAccount||'—';
     els.confidence.textContent=c.score>=90?'Wysoka':c.score>=60?'Średnia':'Niska';
     els.reasons.innerHTML=c.reasons.map(x=>`<li>${x}</li>`).join('');
 
@@ -588,34 +595,43 @@
     if(!currentFile)return;
     els.analyze.disabled=true;
     setStatus('Odczytuję PDF i klasyfikuję umowę…','warn');
+    let rawText;
     try{
-      const text=await extractPdfText(currentFile);
-      currentContract=recognizeCurrentContract(text);
+      rawText=await extractPdfText(currentFile,pdfjsLib);
+    }catch(error){
+      console.error(error);
+      setStatus('Nie udało się odczytać tekstu z PDF.','error');
+      els.analyze.disabled=false;
+      return;
+    }
+    try{
+      currentContract=recognizeCurrentContract(rawText);
       const c={type:currentContract.contractType,payment:currentContract.paymentType,
         variant:currentContract.paymentVariant,score:100,
         reasons:['Typ umowy, klient i wariant płatności zostały zweryfikowane przez wspólny parser.']};
       currentClassification=currentContract;
       renderResult(c,currentContract);
       setStatus(c.type&&c.payment?'Umowa została rozpoznana. Wybierz aneks.':'Nie udało się rozpoznać dokumentu. Użyj opcji „Wybierz aneks ręcznie”.',c.type&&c.payment?'ok':'warn');
-    }catch(err){
-      console.error(err);
-      setStatus('Nie udało się odczytać PDF. Użyj opcji „Wybierz aneks ręcznie”.','error');
+    }catch(error){
+      console.error(error);
+      setStatus(error instanceof Error?error.message:'Nie udało się rozpoznać umowy.','error');
     }finally{
       els.analyze.disabled=false;
     }
   }
 
-  function selectFile(file){
+  function handlePdfFile(file){
     if(!file||file.type!=='application/pdf'){setStatus('Wybierz plik PDF.','error');return;}
     currentFile=file;
     els.analyze.disabled=false;
     setStatus(`Wybrano: ${file.name}`,'ok');
   }
 
-  els.input.addEventListener('change',e=>selectFile(e.target.files[0]));
+  els.input.addEventListener('change',e=>handlePdfFile(e.target.files[0]));
   els.dropzone.addEventListener('dragover',e=>{e.preventDefault();e.stopPropagation();els.dropzone.classList.add('drag')});
+  els.dropzone.addEventListener('dragenter',e=>{e.preventDefault();e.stopPropagation();els.dropzone.classList.add('drag')});
   els.dropzone.addEventListener('dragleave',e=>{e.preventDefault();e.stopPropagation();els.dropzone.classList.remove('drag')});
-  els.dropzone.addEventListener('drop',e=>{e.preventDefault();e.stopPropagation();els.dropzone.classList.remove('drag');selectFile(e.dataTransfer.files[0])});
+  els.dropzone.addEventListener('drop',e=>{e.preventDefault();e.stopPropagation();els.dropzone.classList.remove('drag');handlePdfFile(e.dataTransfer.files[0])});
   els.analyze.addEventListener('click',analyze);
   els.reset.addEventListener('click',()=>{
     currentFile=null;currentContract=null;currentClassification=null;els.input.value='';els.analyze.disabled=true;els.status.className='status';

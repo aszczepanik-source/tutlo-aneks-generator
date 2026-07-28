@@ -4,6 +4,7 @@ import { parseCurrentContract } from '../../src/domain/contract-extraction.js';
 import { prepareAnnex26 } from '../../src/annexes/26/index.js';
 import { annexModules } from '../../src/annexes/catalog.js';
 import { getAvailableAnnexCards } from '../../src/annexes/availability.js';
+import { readFile } from 'node:fs/promises';
 
 const raw = buyer => `UMOWA nr EL/JF/811/192956/3/9/2025
 DANE NABYWCY ${buyer} ADRES: Testowa 1 TELEFON: 500500500
@@ -40,4 +41,9 @@ test('automatyczny router i katalog eksponują wyłącznie aneks 26', () => {
   assert.deepEqual(getAvailableAnnexCards({ contractType: 'flexible', paymentType: 'credit', paymentVariant: 'credit' })
     .map(card => card.no), ['26']);
   assert.deepEqual(getAvailableAnnexCards({ contractType: 'limit', paymentType: 'internal', paymentVariant: 'internal_4' }), []);
+});
+
+test('aneks 26 nie parsuje ponownie rawText', async () => {
+  const source = await readFile(new URL('../../src/annexes/26/generator.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(source, /parseCurrentContract|extractContractData|contract\.rawText/);
 });
