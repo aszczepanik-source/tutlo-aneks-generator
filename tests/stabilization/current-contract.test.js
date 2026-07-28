@@ -87,6 +87,35 @@ test('fixture: błędny teacherVariant', () => {
   assert.throws(() => validateCurrentContract(contract), /wariantu lektorów/);
 });
 
+test('teacherVariant jest rozpoznawany tylko wewnątrz sekcji ZAWARTOŚĆ KURSU', () => {
+  const contract = parseCurrentContract(base({
+    teachers: 'Zajęcia prowadzone przez English Expert oraz Native Speakera',
+    extra: 'Oferta obejmuje również zajęcia z Lektorem Polskim.'
+  }));
+  assert.equal(contract.teacherVariant, 'english_native');
+});
+
+test('teacherVariant uwzględnia odmiany gramatyczne i podziały linii', () => {
+  const contract = parseCurrentContract(base({
+    teachers: 'Spotkania z LEKTORAMI\nPOLSKIMI, English\nExpertem i Native\nSpeakerami'
+  }));
+  assert.equal(contract.teacherVariant, 'polish_english_native');
+});
+
+test('teacherVariant rozpoznaje odpowiadający nagłówek bez polskich znaków', () => {
+  const contract = parseCurrentContract(base({ teachers: 'English Expert i Native Speaker' })
+    .replace('ZAWARTOŚĆ KURSU', 'ZAWARTOSC\nKURSU'));
+  assert.equal(contract.teacherVariant, 'english_native');
+});
+
+test('teacherVariant nie jest szukany po opuszczeniu sekcji zawartości kursu', () => {
+  const contract = parseCurrentContract(base({
+    teachers: 'Zajęcia z English Expert',
+    payment: 'Native Speaker i Lektor Polski; raty 0% przy wykorzystaniu kredytu konsumenckiego'
+  }));
+  assert.equal(contract.teacherVariant, undefined);
+});
+
 test('fixture: nierozpoznany wariant płatności', () => {
   const contract = parseCurrentContract(base({ payment: 'raty wewnętrzne według indywidualnego harmonogramu' }));
   assert.equal(contract.paymentVariant, undefined);
