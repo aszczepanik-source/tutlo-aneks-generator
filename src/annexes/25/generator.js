@@ -1,5 +1,5 @@
 import manifest from './manifest.json' with { type: 'json' };
-import { calculateAnnex25, formatDate, money, parseMoneyToCents } from '../../domain/annex-calculations.js';
+import { calculateAnnex25, formatDate, parseMoneyToCents } from '../../domain/annex-calculations.js';
 import { validateAnnex25Data } from './validator.js';
 
 const required = (value, label) => {
@@ -11,9 +11,10 @@ const contractBankAccount = value => {
   if (!/^\d{26}$/.test(normalized)) throw new Error('Nie odczytano numeru rachunku z umowy.');
   return normalized;
 };
+const formatAmountWithoutCurrency = cents => (cents / 100).toFixed(2).replace('.', ',');
 const scheduleValues = installments => Object.fromEntries(installments.flatMap(item => {
   const key = String(item.nr).padStart(2, '0');
-  return [[`RATA_${key}_KWOTA`, money(item.amountCents)], [`RATA_${key}_TERMIN`, formatDate(item.dueDate)]];
+  return [[`RATA_${key}_KWOTA`, formatAmountWithoutCurrency(item.amountCents)], [`RATA_${key}_TERMIN`, formatDate(item.dueDate)]];
 }));
 
 const teacherTypes = variant => {
@@ -31,9 +32,9 @@ export function prepareAnnex25(currentContract, inputs = {}, annexDate = new Dat
     DATA_ZAWARCIA_UMOWY: formatDate(required(currentContract.agreementDate, 'data zawarcia umowy')),
     IMIE_NAZWISKO: required(currentContract.customerName, 'imię i nazwisko'),
     LIMIT_MIESIECZNY: String(required(currentContract.monthlyLessonLimit, 'limit miesięczny')),
-    NOWA_CENA: money(calculation.newPriceCents),
+    NOWA_CENA: formatAmountWithoutCurrency(calculation.newPriceCents),
     NOWA_LICZBA_LEKCJI: String(Math.round(lessonCount * calculation.newPriceCents / currentContract.coursePriceCents)),
-    NOWA_SREDNIA_RATA: money(calculation.newAverageInstallmentCents),
+    NOWA_SREDNIA_RATA: formatAmountWithoutCurrency(calculation.newAverageInstallmentCents),
     NUMER_KONTA: contractBankAccount(currentContract.internalPaymentAccount),
     NUMER_UMOWY: required(currentContract.agreementNumber, 'numer umowy'),
     PESEL: required(currentContract.personalId, 'PESEL'),
