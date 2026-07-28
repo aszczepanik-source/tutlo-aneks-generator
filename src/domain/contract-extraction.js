@@ -27,6 +27,19 @@ const sliceBetween = (text, startPattern, endPattern) => {
   return text.slice(contentStart, end < 0 ? text.length : contentStart + end).trim();
 };
 
+const normalizeCourseContentText = text => String(text || '')
+  .normalize('NFKC')
+  .replace(/\u00A0/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim();
+
+const extractCourseContentSection = text => {
+  const normalizedText = normalizeCourseContentText(text);
+  const section = sliceBetween(normalizedText, /ZAWARTOŚĆ\s+KURSU/i,
+    /§\s*2\s+WARUNKI\s+PŁATNOŚCI/i);
+  return normalizeCourseContentText(section);
+};
+
 /** Splits the fixed Tutlo layout before any field extraction takes place. */
 export function extractContractSections(rawText) {
   const text = normalized(rawText);
@@ -38,8 +51,7 @@ export function extractContractSections(rawText) {
       /\bDANE\s+UŻYTKOWNIKA\b|(?:§\s*1\s*)?\bSPECYFIKACJA\s+KURSU\b/iu),
     specification: sliceBetween(text, /(?:§\s*1\s*)?\bSPECYFIKACJA\s+KURSU\b\s*:?/iu,
       /\bZAWARTOŚĆ\s+KURSU\b|§\s*2\b/iu),
-    contents: sliceBetween(text, /\bZAWARTOŚĆ\s+KURSU\b\s*:?/iu,
-      /§\s*2\b|\bWARUNKI\s+PŁATNOŚCI\b|§\s*\d+\b/iu),
+    contents: extractCourseContentSection(rawText),
     payment: sliceBetween(text, /(?:§\s*2\s*)?\bWARUNKI\s+PŁATNOŚCI\b\s*:?/iu,
       /§\s*3\s*(?:\bWARUNKI\s+UMOWY\b)?/iu)
   };
@@ -88,15 +100,14 @@ const money = value => {
 const moneyAfter = (text, label) => money(text.match(new RegExp(`${label}\\s*:?\\s*(\\d+(?:[ .]\\d{3})*(?:[,.]\\d{1,2})?)`, 'iu'))?.[1]);
 
 function extractTeacherVariant(contents) {
-  const courseContents = normalized(contents);
-  if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development') {
-    console.log(courseContents);
-  }
+  const section = normalizeCourseContentText(contents);
+  const hasPolish = /\bLektor(?:em)?\s+Polsk(?:im|i)\b/i.test(section);
+  const hasEnglish = /\bEnglish\s+Expert\b/i.test(section);
+  const hasNative = /\bNative\s+Speaker(?:em|zy)?\b/i.test(section);
 
-  const polish = /\blektor(?:em)?\s+polsk(?:i|im)\b/iu.test(courseContents);
-  const english = /\benglish\s+expert\b/iu.test(courseContents);
-  const native = /\bnative\s+speaker(?:em)?\b/iu.test(courseContents);
-  return english && native ? (polish ? 'polish_english_native' : 'english_native') : undefined;
+  if (hasPolish && hasEnglish && hasNative) return 'polish_english_native';
+  if (!hasPolish && hasEnglish && hasNative) return 'english_native';
+  return undefined;
 }
 
 export function extractInternalInstallmentAccount(paymentSection) {
