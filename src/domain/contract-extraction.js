@@ -87,10 +87,13 @@ function classifyContract(text) {
 }
 
 function extractTeacherVariant(text) {
-  const contents = capture(text, /zawartość kursu\s+(.+?)(?=\s+(?:warunki płatności|całkowita cena kursu)\b)/iu) || '';
-  const polish = /lektor(?:em)?\s+polsk/iu.test(contents);
-  const english = /english\s+expert/iu.test(contents);
-  const native = /native\s+speaker(?:em)?/iu.test(contents);
+  // Teacher names elsewhere in an agreement describe neither the purchased course nor its variant.
+  // Keep this deliberately section-scoped: the supported layouts put payment details immediately next.
+  const contents = capture(text,
+    /zawarto(?:ść|sc)\s+kursu\b\s*:?[\s-]*(.*?)(?=\s+(?:(?:warunki|forma|harmonogram)\s+płatności|całkowita\s+cena\s+kursu|postanowienia\s+końcowe|podpisy)\b|$)/iu) || '';
+  const polish = /(?:lektor\p{L}*\s+polsk\p{L}*|polsk\p{L}*\s+lektor\p{L}*)/iu.test(contents);
+  const english = /english\s+expert\p{L}*/iu.test(contents);
+  const native = /native\s+speaker\p{L}*/iu.test(contents);
   if (polish && english && native) return 'polish_english_native';
   if (!polish && english && native) return 'english_native';
   return undefined;
