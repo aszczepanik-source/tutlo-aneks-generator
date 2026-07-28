@@ -93,6 +93,31 @@ test('fixture: nierozpoznany wariant płatności', () => {
   assert.throws(() => validateCurrentContract(contract), /wariantu rat wewnętrznych/);
 });
 
+test('przypadkowa liczba 24 poza sekcją płatności nie wybiera wariantu 24-ratalnego', () => {
+  const contract = parseCurrentContract(`24 lekcje w pakiecie. WARUNKI PŁATNOŚCI raty wewnętrzne według indywidualnego harmonogramu`);
+  assert.equal(contract.paymentType, 'internal');
+  assert.equal(contract.paymentVariant, undefined);
+});
+
+test('nazwa banku poza sekcją płatności nie klasyfikuje umowy jako kredytowej', () => {
+  const contract = parseCurrentContract(`Kupujący korzysta z usług Alior Bank. WARUNKI PŁATNOŚCI forma nierozpoznana`);
+  assert.equal(contract.paymentType, undefined);
+  assert.equal(contract.paymentVariant, undefined);
+});
+
+test('nierozpoznana forma płatności zachowuje komunikat walidacji dla UI', () => {
+  const contract = parseCurrentContract(base({ payment: 'forma nierozpoznana' }));
+  assert.equal(contract.paymentType, undefined);
+  assert.equal(contract.paymentVariant, undefined);
+  assert.throws(() => validateCurrentContract(contract), { message: 'Nie rozpoznano formy płatności.' });
+});
+
+test('semantyczne finansowanie przez instytucję w sekcji płatności oznacza kredyt', () => {
+  const contract = parseCurrentContract(base({ payment: 'Finansowanie przez instytucję finansującą; raty kredytowe zgodnie z umową pożyczki.' }));
+  assert.equal(contract.paymentType, 'credit');
+  assert.equal(contract.paymentVariant, 'credit');
+});
+
 test('przepływ wywołuje parser dokładnie raz i nie wprowadza aliasów', () => {
   const rawText = base();
   let calls = 0;
