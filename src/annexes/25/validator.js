@@ -1,4 +1,15 @@
-import manifest from './manifest.json' with { type: 'json' };
-import { createRequiredFieldsValidator } from '../shared/validation.js';
+export function validateAnnex25Data(contract) {
+  if (contract?.contractType !== 'flexible') {
+    throw new Error('Aneks 25 wymaga umowy elastycznej.');
+  }
 
-export const validate = createRequiredFieldsValidator(manifest.requiredFields);
+  if (contract.paymentType !== 'internal') {
+    throw new Error('Aneks 25 wymaga rat wewnętrznych.');
+  }
+
+  if (contract.paymentVariant !== 'internal_24') {
+    throw new Error('Aneks 25 wymaga umowy na 24 raty wewnętrzne.');
+  }
+
+  return contract;
+}

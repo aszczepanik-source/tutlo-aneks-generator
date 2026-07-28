@@ -1,5 +1,6 @@
 import manifest from './manifest.json' with { type: 'json' };
 import { calculateAnnex25, formatDate, money, parseMoneyToCents } from '../../domain/annex-calculations.js';
+import { validateAnnex25Data } from './validator.js';
 
 const required = (value, label) => {
   if (value === undefined || value === null || String(value).trim() === '') throw new Error(`Brak danych umowy: ${label}.`);
@@ -15,24 +16,28 @@ const scheduleValues = installments => Object.fromEntries(installments.flatMap(i
   return [[`RATA_${key}_KWOTA`, money(item.amountCents)], [`RATA_${key}_TERMIN`, formatDate(item.dueDate)]];
 }));
 
+const teacherTypes = variant => {
+  if (variant === 'polish_english_native') return 'Lektor Polski, English Expert, Native Speaker';
+  if (variant === 'english_native') return 'English Expert, Native Speaker';
+  return variant;
+};
+
 export function prepareAnnex25(currentContract, inputs = {}, annexDate = new Date().toISOString().slice(0, 10)) {
-  if (currentContract?.contractType !== 'flexible' || currentContract?.paymentType !== 'internal') {
-    throw new Error('Aneks 25 jest dostępny wyłącznie dla elastycznej umowy z ratami wewnętrznymi.');
-  }
+  validateAnnex25Data(currentContract);
   const calculation = calculateAnnex25(currentContract, annexDate, parseMoneyToCents(inputs.newInstallment, 'nowa rata'));
   const lessonCount = Number(required(currentContract.lessonCount, 'liczba lekcji'));
   const values = {
     ADRES: required(currentContract.address, 'adres'), DATA_ANEKSU: formatDate(annexDate),
     DATA_ZAWARCIA_UMOWY: formatDate(required(currentContract.agreementDate, 'data zawarcia umowy')),
     IMIE_NAZWISKO: required(currentContract.customerName, 'imię i nazwisko'),
-    LIMIT_MIESIECZNY: String(required(currentContract.monthlyLimit, 'limit miesięczny')),
+    LIMIT_MIESIECZNY: String(required(currentContract.monthlyLessonLimit, 'limit miesięczny')),
     NOWA_CENA: money(calculation.newPriceCents),
     NOWA_LICZBA_LEKCJI: String(Math.round(lessonCount * calculation.newPriceCents / currentContract.coursePriceCents)),
     NOWA_SREDNIA_RATA: money(calculation.newAverageInstallmentCents),
     NUMER_KONTA: contractBankAccount(currentContract.internalPaymentAccount),
     NUMER_UMOWY: required(currentContract.agreementNumber, 'numer umowy'),
-    PESEL: required(currentContract.pesel, 'PESEL'),
-    TYPY_LEKTOROW: required(currentContract.teacherTypes, 'typy lektorów'),
+    PESEL: required(currentContract.personalId, 'PESEL'),
+    TYPY_LEKTOROW: required(teacherTypes(currentContract.teacherVariant), 'typy lektorów'),
     ...scheduleValues(calculation.installments)
   };
   const missing = manifest.requiredFields.filter(field => values[field] === undefined || String(values[field]).trim() === '');
