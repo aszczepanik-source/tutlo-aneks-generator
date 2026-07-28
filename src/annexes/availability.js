@@ -26,7 +26,7 @@ const FLEXIBLE_INTERNAL_EXTERNAL = Object.freeze([
   EXTEND_ACCESS, EXTRA_LESSONS, SPLIT_PAYMENT, TUTLO_PREMIUM
 ]);
 const FLEXIBLE_INTERNAL_PLANNED = Object.freeze([
-  card('11', 'Aneks 11', 'planned'),
+  card('11', 'Aneks 11 — Zawieszenie dostępu', 'planned'),
   card('29', 'Aneks 29 — Spłata jednej raty wewnętrznej', 'planned'),
   card('29a', 'Aneks 29a — Spłata dwóch rat wewnętrznych', 'planned'),
   card('45', 'Aneks 45 — Kurs z limitem tygodniowym, raty wewnętrzne', 'planned')
@@ -71,7 +71,8 @@ export function getAvailableAnnexCards(currentContract) {
       && INTERNAL_VARIANTS.has(paymentVariant)) {
     return paymentVariant === 'internal_24'
       ? [card('25', 'Aneks 25 — Zmniejszenie rat wewnętrznych', 'tutlo'),
-          ...FLEXIBLE_INTERNAL_EXTERNAL, ...FLEXIBLE_INTERNAL_PLANNED]
+          ...FLEXIBLE_INTERNAL_EXTERNAL,
+          ...FLEXIBLE_INTERNAL_PLANNED.map(item => item.no === '11' ? card(item.no, item.name, 'tutlo') : item)]
       : [...FLEXIBLE_INTERNAL_EXTERNAL, ...FLEXIBLE_INTERNAL_PLANNED];
   }
   if (contractType === 'flexible' && paymentType === 'credit' && paymentVariant === 'credit') {

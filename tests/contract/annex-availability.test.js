@@ -11,7 +11,7 @@ const flexibleInternalIds = variant => [
 const flexibleInternalStatuses = variant => [
   ...(variant === 'internal_24' ? ['tutlo'] : []),
   'external', 'external', 'external', 'external',
-  'planned', 'planned', 'planned', 'planned'
+  ...(variant === 'internal_24' ? ['tutlo'] : ['planned']), 'planned', 'planned', 'planned'
 ];
 const limitInternalIds = [
   'wydluzenie-dostepu', '20-lekcji-gratis', 'rozlozenie-platnosci', 'tutlo-premium',
@@ -79,7 +79,7 @@ test('yellow generators occur only in their exact supported combinations', () =>
     const yellowIds = getAvailableAnnexCards(contract)
       .filter(card => card.status === 'tutlo').map(card => card.no);
     const expected = contract.contractType === 'flexible' && contract.paymentVariant === 'internal_24'
-      ? ['25']
+      ? ['25', '11']
       : contract.contractType === 'flexible' && contract.paymentVariant === 'credit' ? ['26'] : [];
     assert.deepEqual(yellowIds, expected);
   }
