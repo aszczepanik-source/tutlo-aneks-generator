@@ -90,9 +90,19 @@ test('lista kredytów wyłącznie w załączniku nie ustawia płatności kredyto
   assert.equal(result.paymentType, undefined);
 });
 
-test('lista wszystkich lektorów w załączniku nie rozszerza zakupionego wariantu', () => {
+test('rzeczywista umowa z English Expert i Native Speakerem ma wariant english_native', () => {
   const text = fixtureB.replace('Lektorem Polskim, English Expert oraz Native Speakerem',
     'English Expert oraz Native Speakerem');
+  assert.equal(parseCurrentContract(text).teacherVariant, 'english_native');
+});
+
+test('rzeczywista umowa z trzema typami lektorów ma wariant polish_english_native', () => {
+  assert.equal(parseCurrentContract(fixtureA).teacherVariant, 'polish_english_native');
+});
+
+test('teacherVariant ignoruje listę wszystkich lektorów w załączniku', () => {
+  const text = fixtureB.replace('Lektorem Polskim, English Expert oraz Native Speakerem',
+    'English\nExpert oraz Native\nSpeakerem');
   assert.equal(parseCurrentContract(text).teacherVariant, 'english_native');
 });
 
