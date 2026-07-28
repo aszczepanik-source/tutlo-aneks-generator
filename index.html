@@ -415,6 +415,26 @@
   </div>
 </dialog>
 
+<dialog id="annex11Dialog">
+  <div class="modal-head">
+    <h3>Aneks 11 – Zawieszenie dostępu</h3>
+    <button class="close" data-close="annex11Dialog" type="button">×</button>
+  </div>
+  <div class="modal-body">
+    <form id="annex11Form" class="annex-form">
+      <label>Data aneksu<input id="annex11AnnexDate" type="date" required></label>
+      <label>Początek zawieszenia<input id="annex11SuspensionStart" type="date" required></label>
+      <label>Koniec zawieszenia<input id="annex11SuspensionEnd" type="date" required></label>
+      <label>Długość zawieszenia (pełne miesiące)<input id="annex11SuspensionLength" type="number" min="1" step="1" required></label>
+      <label>Nowy koniec umowy<input id="annex11NewAgreementEnd" type="date" required></label>
+      <label>Data wznowienia płatności<input id="annex11PaymentResumeDate" type="date" required></label>
+      <label>Data wejścia aneksu w życie<input id="annex11EffectiveDate" type="date" required></label>
+      <div class="actions"><button class="btn" type="submit">Pobierz aneks</button></div>
+      <div id="annex11Status" class="status"></div>
+    </form>
+  </div>
+</dialog>
+
 <dialog id="annex26Dialog">
   <div class="modal-head">
     <h3>Aneks 26 – Zmniejszenie rat kredytowych</h3>
@@ -459,7 +479,8 @@
 <script type="module">
   import { getAnnexRoute } from './router.js';
   import { ANNEX_STATUSES, getAvailableAnnexCards } from './src/annexes/availability.js';
-  import { downloadAnnex25, downloadAnnex26 } from './src/infrastructure/local-docx-generator.js';
+  import { downloadAnnex11, downloadAnnex25, downloadAnnex26 } from './src/infrastructure/local-docx-generator.js';
+  import { prepareAnnex11 } from './src/annexes/11/index.js';
   import { prepareAnnex25 } from './src/annexes/25/index.js';
   import { prepareAnnex26 } from './src/annexes/26/index.js';
   import { recognizeCurrentContract } from './src/application/recognize-contract.js?v=1.1.1';
@@ -525,6 +546,11 @@
     if(no==='26'){
       if(!currentContract){ alert('Najpierw wczytaj i rozpoznaj umowę kredytową.'); return; }
       document.getElementById('annex26Dialog').showModal();
+      return;
+    }
+    if(no==='11'){
+      if(!currentContract){ alert('Najpierw wczytaj i rozpoznaj umowę.'); return; }
+      document.getElementById('annex11Dialog').showModal();
       return;
     }
     if(no==='25'){
@@ -652,6 +678,27 @@
   annex26BankAccount.addEventListener('input',()=>{
     annex26BankAccount.value=annex26BankAccount.value.replace(/\D/g,'').slice(0,26);
     annex26BankAccount.setCustomValidity(annex26BankAccount.value.length===26?'':'Numer rachunku musi zawierać dokładnie 26 cyfr.');
+  });
+
+  document.getElementById('annex11Form').addEventListener('submit',async event=>{
+    event.preventDefault();
+    const status=document.getElementById('annex11Status');
+    status.textContent='Tworzę dokument…';status.className='status show warn';
+    try{
+      const prepared=prepareAnnex11(currentContract,{
+        annexDate:document.getElementById('annex11AnnexDate').value,
+        suspensionStart:document.getElementById('annex11SuspensionStart').value,
+        suspensionEnd:document.getElementById('annex11SuspensionEnd').value,
+        suspensionLength:document.getElementById('annex11SuspensionLength').value,
+        newAgreementEnd:document.getElementById('annex11NewAgreementEnd').value,
+        paymentResumeDate:document.getElementById('annex11PaymentResumeDate').value,
+        effectiveDate:document.getElementById('annex11EffectiveDate').value
+      });
+      await downloadAnnex11(prepared,{requiredFields:prepared.requiredFields});
+      status.textContent='Aneks został pobrany';status.className='status show ok';
+    }catch(error){
+      status.textContent=error.message;status.className='status show error';
+    }
   });
 
   document.getElementById('annex25Form').addEventListener('submit',async event=>{

@@ -39,7 +39,7 @@ jobs:
 
       - name: Verify Pages build contents
         run: |
-          for annex in 25 26; do
+          for annex in 11 25 26; do
             if [ ! -s "dist/src/annexes/$annex/template.docx" ]; then
               echo "Błąd: brak szablonu aneksu $annex w dist lub plik jest pusty." >&2
               exit 1

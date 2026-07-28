@@ -26,6 +26,10 @@ export function annex25Filename(values) {
   return `Aneks_25_${sanitizeFilenamePart(values.NUMER_UMOWY)}_${sanitizeFilenamePart(values.IMIE_NAZWISKO)}.docx`;
 }
 
+export function annex11Filename(values) {
+  return `Aneks_11_${sanitizeFilenamePart(values.NUMER_UMOWY)}_${sanitizeFilenamePart(values.IMIE_NAZWISKO)}.docx`;
+}
+
 export function remainingPlaceholders(zip) {
   const names = Object.keys(zip.files).filter(name => /^word\/.+\.xml$/.test(name));
   const found = new Set();
@@ -57,6 +61,10 @@ export function annex26TemplateUrl(moduleUrl = import.meta.url) {
 
 export function annex25TemplateUrl(moduleUrl = import.meta.url) {
   return new URL('../annexes/25/template.docx', moduleUrl).href;
+}
+
+export function annex11TemplateUrl(moduleUrl = import.meta.url) {
+  return new URL('../annexes/11/template.docx', moduleUrl).href;
 }
 
 function templateFetchError(url, response) {
@@ -100,6 +108,24 @@ export async function downloadAnnex25(prepared, options = {}) {
   if (!response.ok) throw templateFetchError(templateUrl, response);
   const bytes = renderDocx(await response.arrayBuffer(), input, options.dependencies || globalThis);
   const filename = annex25Filename(input.values);
+  const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+  const url = URL.createObjectURL(blob); const anchor = document.createElement('a');
+  anchor.href = url; anchor.download = filename; anchor.style.display = 'none'; document.body.appendChild(anchor);
+  anchor.click(); anchor.remove(); URL.revokeObjectURL(url);
+  return { filename, bytes };
+}
+
+export async function downloadAnnex11(prepared, options = {}) {
+  const input = { ...prepared, requiredFields: options.requiredFields || prepared.requiredFields || [] };
+  validateTemplateValues(input.values, input.requiredFields);
+  const templateUrl = options.templateUrl
+    ? new URL(options.templateUrl, options.baseUrl || globalThis.document?.baseURI || import.meta.url).href
+    : annex11TemplateUrl();
+  let response;
+  try { response = await (options.fetch || globalThis.fetch)(templateUrl); } catch { throw templateFetchError(templateUrl, null); }
+  if (!response.ok) throw templateFetchError(templateUrl, response);
+  const bytes = renderDocx(await response.arrayBuffer(), input, options.dependencies || globalThis);
+  const filename = annex11Filename(input.values);
   const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
   const url = URL.createObjectURL(blob); const anchor = document.createElement('a');
   anchor.href = url; anchor.download = filename; anchor.style.display = 'none'; document.body.appendChild(anchor);
