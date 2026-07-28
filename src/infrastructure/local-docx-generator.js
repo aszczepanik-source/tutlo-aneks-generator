@@ -55,6 +55,10 @@ export function annex26TemplateUrl(moduleUrl = import.meta.url) {
   return new URL('../annexes/26/template.docx', moduleUrl).href;
 }
 
+export function annex25TemplateUrl(moduleUrl = import.meta.url) {
+  return new URL('../annexes/25/template.docx', moduleUrl).href;
+}
+
 function templateFetchError(url, response) {
   const status = response ? String(response.status) : 'niedostępny (błąd sieci)';
   const statusText = response?.statusText || 'niedostępny';
@@ -88,8 +92,9 @@ export async function downloadAnnex26(prepared, options = {}) {
 export async function downloadAnnex25(prepared, options = {}) {
   const input = { ...prepared, requiredFields: options.requiredFields || prepared.requiredFields || [] };
   validateTemplateValues(input.values, input.requiredFields);
-  const templateUrl = new URL(options.templateUrl || '../annexes/25/template.docx',
-    options.baseUrl || globalThis.document?.baseURI || import.meta.url).href;
+  const templateUrl = options.templateUrl
+    ? new URL(options.templateUrl, options.baseUrl || globalThis.document?.baseURI || import.meta.url).href
+    : annex25TemplateUrl();
   let response;
   try { response = await (options.fetch || globalThis.fetch)(templateUrl); } catch { throw templateFetchError(templateUrl, null); }
   if (!response.ok) throw templateFetchError(templateUrl, response);

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import manifest from '../../src/annexes/26/manifest.json' with { type: 'json' };
-import { annex26Filename, annex26TemplateUrl, downloadAnnex26, remainingPlaceholders, renderDocx, validateTemplateValues } from '../../src/infrastructure/local-docx-generator.js';
+import { annex25TemplateUrl, annex26Filename, annex26TemplateUrl, downloadAnnex26, remainingPlaceholders, renderDocx, validateTemplateValues } from '../../src/infrastructure/local-docx-generator.js';
 
 const values = Object.fromEntries(manifest.requiredFields.map(field => [field, `wartość-${field}`]));
 values.NUMER_UMOWY = 'EL/12:34?';
@@ -60,6 +60,12 @@ test('URL szablonu zachowuje podkatalog wdrożenia GitHub Pages', () => {
   const url = annex26TemplateUrl('https://aszczepanik-source.github.io/tutlo-aneks-generator/src/infrastructure/local-docx-generator.js');
   assert.equal(url, 'https://aszczepanik-source.github.io/tutlo-aneks-generator/src/annexes/26/template.docx');
   assert.notEqual(new URL(url).pathname, '/src/annexes/26/template.docx');
+});
+
+test('URL szablonu aneksu 25 używa tego samego mechanizmu i zachowuje podkatalog wdrożenia', () => {
+  const url = annex25TemplateUrl('https://aszczepanik-source.github.io/tutlo-aneks-generator/src/infrastructure/local-docx-generator.js');
+  assert.equal(url, 'https://aszczepanik-source.github.io/tutlo-aneks-generator/src/annexes/25/template.docx');
+  assert.notEqual(new URL(url).pathname, '/src/annexes/25/template.docx');
 });
 
 test('błąd sieci przy pobieraniu szablonu podaje nazwę i pełny URL', async () => {
