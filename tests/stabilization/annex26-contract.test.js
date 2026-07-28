@@ -36,11 +36,19 @@ for (const identity of [
   });
 }
 
-test('automatyczny router i katalog eksponują wyłącznie aneks 26', () => {
+test('katalog generatorów pozostaje niezależny od centralnej macierzy kart', () => {
   assert.deepEqual([...annexModules.keys()], ['26']);
   assert.deepEqual(getAvailableAnnexCards({ contractType: 'flexible', paymentType: 'credit', paymentVariant: 'credit' })
-    .map(card => card.no), ['26']);
-  assert.deepEqual(getAvailableAnnexCards({ contractType: 'limit', paymentType: 'internal', paymentVariant: 'internal_4' }), []);
+    .map(card => card.no), [
+      '26', 'wydluzenie-dostepu', '20-lekcji-gratis', 'tutlo-premium',
+      '30', '30a', '10', '35'
+    ]);
+  assert.deepEqual(getAvailableAnnexCards({
+    contractType: 'limit', paymentType: 'internal', paymentVariant: 'internal_4'
+  }).map(({ no }) => no), [
+    'wydluzenie-dostepu', '20-lekcji-gratis', 'rozlozenie-platnosci', 'tutlo-premium',
+    'lektorzy-pl', '45', '35', '48', '29', '29a'
+  ]);
 });
 
 test('aneks 26 nie parsuje ponownie rawText', async () => {

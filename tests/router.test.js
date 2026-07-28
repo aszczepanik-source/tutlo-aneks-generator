@@ -56,7 +56,7 @@ test('interface presents the requested annex statuses and click messages', async
 test('obie listy kart UI korzystają bezpośrednio z centralnej reguły dostępności', async () => {
   const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 
-  assert.match(html, /const items=getAvailableAnnexCards\(c\)/);
+  assert.match(html, /const items=getAvailableAnnexCards\(contract\)/);
   assert.match(html, /getAvailableAnnexCards\(currentClassification\)\.forEach/);
   assert.doesNotMatch(html, /function availableAnnexes/);
 });
