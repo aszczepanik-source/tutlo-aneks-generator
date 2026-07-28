@@ -8,9 +8,9 @@ import { readFile } from 'node:fs/promises';
 
 const raw = buyer => `UMOWA nr EL/JF/811/192956/3/9/2025
 DANE NABYWCY ${buyer} ADRES: Testowa 1 TELEFON: 500500500
-SPECYFIKACJA KURSU ELASTYCZNY KURS JĘZYKOWY Liczba Lekcji Indywidualnych: 192 Maksymalna miesięczna liczba lekcji indywidualnych do wykorzystania: 12
-ZAWARTOŚĆ KURSU Lektorem Polskim, English Expert, Native Speaker WARUNKI PŁATNOŚCI
-Całkowita cena kursu wynosi 7 176,00 zł Raty 0% przy wykorzystaniu kredytu konsumenckiego`;
+§ 1 SPECYFIKACJA KURSU Okres trwania kursu: 24 miesiące Minimalny czas zobowiązania Nabywcy wynikający z Umowy: 12 miesięcy Liczba Lekcji Indywidualnych: 192 Maksymalna miesięczna liczba lekcji indywidualnych do wykorzystania: 12
+ZAWARTOŚĆ KURSU Kurs w formie spotkań indywidualnych z Lektorem Polskim, English Expert, Native Speakerem. § 2 WARUNKI PŁATNOŚCI
+Całkowita cena kursu wynosi 7 176,00 zł. Opłata miesięczna za każdy miesiąc trwania Umowy wynosi: 299,00 zł. Forma płatności: raty 0% przy wykorzystaniu kredytu konsumenckiego udzielonego przez bank. § 3 WARUNKI UMOWY`;
 const form = { newInstallment: '250,00', bank: 'Inbank', bankAccount: '12345678901234567890123456' };
 
 const expectedValues = identity => ({
