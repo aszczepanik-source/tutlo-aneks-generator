@@ -6,7 +6,7 @@ import { renderDocx } from '../../../infrastructure/local-docx-generator.js';
 import { prepareAnnex25 } from '../generator.js';
 import { validateAnnex25Data } from '../validator.js';
 import manifest from '../manifest.json' with { type: 'json' };
-import { extractDocxPlaceholders } from '../../shared/template-inspection.js';
+import { extractDocxPlaceholders, readZipEntry } from '../../shared/template-inspection.js';
 
 const installments = Array.from({ length: 24 }, (_, index) => ({
   dueDate: `${2025 + Math.floor((index + 8) / 12)}-${String((index + 8) % 12 + 1).padStart(2, '0')}-15`
@@ -68,6 +68,24 @@ test('prepareAnnex25 wypełnia dokładnie wszystkie rzeczywiste placeholdery', (
   const prepared = prepareAnnex25(contract, { newInstallment: '300,00 zł' }, '2026-01-20');
   assert.deepEqual(Object.keys(prepared.values).sort(), [...manifest.requiredFields].sort());
   assert.equal(Object.values(prepared.values).some(value => /NaN|Infinity|undefined|null|\{\{/.test(String(value))), false);
+});
+
+test('kwoty aneksu 25 nie powielają waluty zapisanej w szablonie', async () => {
+  const prepared = prepareAnnex25(contract, { newInstallment: '300,00 zł' }, '2026-01-20');
+  const amountFields = ['NOWA_CENA', 'NOWA_SREDNIA_RATA',
+    ...Array.from({ length: 24 }, (_, index) => `RATA_${String(index + 1).padStart(2, '0')}_KWOTA`)];
+
+  assert.ok(amountFields.every(field => /^\d+,\d{2}$/.test(prepared.values[field])));
+  assert.ok(amountFields.every(field => !prepared.values[field].includes('zł')));
+
+  const template = await readFile(new URL('../template.docx', import.meta.url));
+  const documentXml = readZipEntry(template, 'word/document.xml').toString('utf8');
+  for (const field of amountFields) {
+    const placeholderEnd = documentXml.indexOf('}}', documentXml.indexOf(field));
+    assert.notEqual(placeholderEnd, -1, `brak placeholdera ${field}`);
+    assert.match(documentXml.slice(placeholderEnd + 2, placeholderEnd + 300).replace(/<[^>]+>/g, ''), /^\s*zł/,
+      `brak waluty po placeholderze ${field}`);
+  }
 });
 
 test('prepareAnnex25 korzysta z installmentPlan i generuje DOCX', async () => {
