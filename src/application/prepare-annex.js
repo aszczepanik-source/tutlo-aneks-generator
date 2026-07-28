@@ -3,7 +3,7 @@ import manifest26 from '../annexes/26/manifest.json' with { type: 'json' };
 import manifest29 from '../annexes/29/manifest.json' with { type: 'json' };
 import manifest29a from '../annexes/29a/manifest.json' with { type: 'json' };
 import { prepareAnnex26 } from '../annexes/26/index.js';
-import { BLOCKED_RULES, calculateAnnex11, calculateAnnex29, calculateAnnex29a, formatDate, money } from '../domain/annex-calculations.js';
+import { addDays, BLOCKED_RULES, calculateAnnex11, calculateAnnex29, calculateAnnex29a, formatDate, money } from '../domain/annex-calculations.js';
 
 const manifests = { '11': manifest11, '26': manifest26, '29': manifest29, '29a': manifest29a };
 const base = contract => ({
@@ -25,8 +25,8 @@ export function prepareAnnex(annexId, contract, inputs = {}, today = new Date().
   let calculation;
   let values = base(contract);
   if (annexId === '11') {
-    calculation = calculateAnnex11(contract, inputs.annexDate || today, Number(inputs.suspensionMonths));
-    values = { ...values, DATA_ANEKSU: formatDate(calculation.annexDate), DATA_WEJSCIA_W_ZYCIE: formatDate(calculation.annexDate),
+    calculation = calculateAnnex11(contract, today, Number(inputs.suspensionMonths));
+    values = { ...values, DATA_ANEKSU: formatDate(calculation.annexDate), DATA_WEJSCIA_W_ZYCIE: formatDate(addDays(calculation.annexDate, 1)),
       'DATA-WZNOWIENIA-PŁATNOŚCI': formatDate(calculation.paymentResumeDate), 'DŁUGOŚĆ_ZAWIESZENIA': String(calculation.suspensionMonths),
       START_ZAWIESZENIA: formatDate(calculation.suspensionStart), KONIEC_ZAWIESZENIA: formatDate(calculation.suspensionEnd),
       NOWY_KONIEC_UMOWY: formatDate(calculation.newContractEndDate), ...scheduleValues(calculation.installments) };
