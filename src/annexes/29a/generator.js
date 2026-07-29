@@ -1,9 +1,36 @@
 import manifest from './manifest.json' with { type: 'json' };
-import { createGenerationPlanFactory } from '../shared/generator.js';
-import { validate } from './validator.js';
+import { addDays, formatDate, iso, parseDate } from '../../domain/annex-calculations.js';
+import { validateAnnex29aData } from './validator.js';
 
-export const createGenerationPlan = createGenerationPlanFactory({
-  annexId: manifest.id,
-  templateUrl: new URL(manifest.template, import.meta.url),
-  validate
-});
+const amount = cents => `${Math.floor(cents / 100)}`.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+  + `,${String(cents % 100).padStart(2, '0')}`;
+
+export function prepareAnnex29a(currentContract, options = {}) {
+  validateAnnex29aData(currentContract);
+  const annexDate = options.today || iso(new Date());
+  parseDate(annexDate, 'data aneksu');
+  const effectiveDate = addDays(annexDate, 1);
+  const newCoursePriceCents = currentContract.coursePriceCents - 2 * currentContract.monthlyInstallmentCents;
+  const values = {
+    ADRES: currentContract.address,
+    DATA_ANEKSU: formatDate(annexDate),
+    DATA_WEJSCIA_W_ZYCIE: formatDate(effectiveDate),
+    DATA_ZAWARCIA_UMOWY: formatDate(currentContract.agreementDate, 'data zawarcia umowy'),
+    IMIE_NAZWISKO: currentContract.customerName,
+    NOWA_CENA: amount(newCoursePriceCents),
+    NUMER_UMOWY: currentContract.agreementNumber,
+    PESEL: currentContract.personalId
+  };
+  return { annexId: manifest.id, template: manifest.template, templateVersion: manifest.templateVersion,
+    requiredFields: manifest.requiredFields, values,
+    calculation: { annexDate, effectiveDate, newCoursePriceCents } };
+}
+
+export function createGenerationPlan(input) {
+  try {
+    const prepared = prepareAnnex29a(input?.currentContract, input?.options);
+    return { ok: true, ...prepared, templateUrl: new URL(manifest.template, import.meta.url) };
+  } catch (error) {
+    return { ok: false, annexId: manifest.id, issues: [{ message: error.message }] };
+  }
+}

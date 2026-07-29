@@ -6,7 +6,7 @@
   "template": "template.docx",
   "templateVersion": "1.0.0",
   "allowedContractVariants": [
-    "flexible/internal"
+    "flexible/internal/internal_24"
   ],
   "requiredFields": [
     "ADRES",

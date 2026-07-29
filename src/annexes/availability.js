@@ -72,7 +72,8 @@ export function getAvailableAnnexCards(currentContract) {
     return paymentVariant === 'internal_24'
       ? [card('25', 'Aneks 25 — Zmniejszenie rat wewnętrznych', 'tutlo'),
           ...FLEXIBLE_INTERNAL_EXTERNAL,
-          ...FLEXIBLE_INTERNAL_PLANNED.map(item => item.no === '11' ? card(item.no, item.name, 'tutlo') : item)]
+          ...FLEXIBLE_INTERNAL_PLANNED.map(item => ['11', '29', '29a'].includes(item.no)
+            ? card(item.no, item.name, 'tutlo') : item)]
       : [...FLEXIBLE_INTERNAL_EXTERNAL, ...FLEXIBLE_INTERNAL_PLANNED];
   }
   if (contractType === 'flexible' && paymentType === 'credit' && paymentVariant === 'credit') {
