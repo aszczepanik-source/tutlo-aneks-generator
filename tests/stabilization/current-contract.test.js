@@ -52,7 +52,7 @@ const expectedA = {
   customerType: 'person', customerName: 'Anna Kowalska', personalId: '90010112345',
   address: 'Długa 1, 00-001 Warszawa', coursePriceCents: 1392000,
   monthlyInstallmentCents: 58000, lessonCount: 480, monthlyLessonLimit: 60,
-  teacherVariant: 'polish_english_native', internalPaymentAccount: '47114010104903526761000000',
+  teacherVariant: 'polish_english_native', familyGroupVariant: null, internalPaymentAccount: '47114010104903526761000000',
   installmentPlan: { paymentCount: 24, firstPaymentAmountCents: 58000,
     recurringPaymentAmountCents: 58000, followingPaymentsCount: 23, paymentVariant: 'internal_24' }
 };
@@ -63,7 +63,7 @@ const expectedB = {
   customerType: 'person', customerName: 'Piotr Nowak', personalId: '85050512345',
   address: 'Polna 2, 30-001 Kraków', coursePriceCents: 957600,
   monthlyInstallmentCents: 39900, lessonCount: 288, monthlyLessonLimit: 12,
-  teacherVariant: 'polish_english_native', internalPaymentAccount: null, installmentPlan: undefined
+  teacherVariant: 'polish_english_native', familyGroupVariant: null, internalPaymentAccount: null, installmentPlan: undefined
 };
 
 test('fixture A: pełny currentContract umowy elastycznej z 24 ratami wewnętrznymi', () => {
@@ -101,6 +101,19 @@ test('frazy z dalszych paragrafów i załączników nie zmieniają klasyfikacji'
   const result = parseCurrentContract(fixtureB);
   assert.equal(result.contractType, 'limit');
   assert.equal(result.paymentType, 'credit');
+});
+
+test('familyGroupVariant rozpoznaje oba warianty wyłącznie w §1 Specyfikacja kursu', () => {
+  const included = fixtureA.replace('Okres trwania kursu: 24 miesiące',
+    'Okres trwania kursu: 24 miesiące\nGrupa rodzinna: w cenie kursu');
+  const paid = fixtureA.replace('Okres trwania kursu: 24 miesiące',
+    'Okres trwania kursu: 24 miesiące\nGrupa rodzinna: za dodatkową opłatą');
+  const outsideSpecification = fixtureA.replace('§ 3 WARUNKI UMOWY',
+    '§ 3 WARUNKI UMOWY\nGrupa rodzinna: za dodatkową opłatą');
+
+  assert.equal(parseCurrentContract(included).familyGroupVariant, 'included');
+  assert.equal(parseCurrentContract(paid).familyGroupVariant, 'paid');
+  assert.equal(parseCurrentContract(outsideSpecification).familyGroupVariant, null);
 });
 
 test('lista kredytów wyłącznie w załączniku nie ustawia płatności kredytowej', () => {

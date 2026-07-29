@@ -21,6 +21,7 @@ const TUTLO_PREMIUM = card('tutlo-premium', 'Aneks Tutlo Premium', 'external', {
 const POLISH_LECTURERS = card('lektorzy-pl', 'Rozszerzenie pakietu lektorów', 'external', {
   marker: 'PL', desc: 'Aneks dostępny w Team Tutlo.'
 });
+const PAID_FAMILY_GROUP = card('43', 'Aneks 43 — Grupa rodzinna za dodatkową opłatą', 'planned');
 
 const FLEXIBLE_INTERNAL_EXTERNAL = Object.freeze([
   EXTEND_ACCESS, EXTRA_LESSONS, SPLIT_PAYMENT, TUTLO_PREMIUM
@@ -66,7 +67,8 @@ const INTERNAL_VARIANTS = new Set(['internal_24', 'internal_2', 'internal_13', '
  * classification fields produced by the contract parser.
  */
 export function getAvailableAnnexCards(currentContract) {
-  const { contractType, paymentType, paymentVariant } = currentContract ?? {};
+  const { contractType, paymentType, paymentVariant, familyGroupVariant } = currentContract ?? {};
+  const familyGroupCards = familyGroupVariant === 'paid' ? [PAID_FAMILY_GROUP] : [];
 
   if (contractType === 'flexible' && paymentType === 'internal'
       && INTERNAL_VARIANTS.has(paymentVariant)) {
@@ -74,18 +76,18 @@ export function getAvailableAnnexCards(currentContract) {
       ? [card('25', 'Aneks 25 — Zmniejszenie rat wewnętrznych', 'tutlo'),
           ...FLEXIBLE_INTERNAL_EXTERNAL,
           ...FLEXIBLE_INTERNAL_PLANNED.map(item => ['11', '29', '29a'].includes(item.no)
-            ? card(item.no, item.name, 'tutlo') : item)]
-      : [...FLEXIBLE_INTERNAL_EXTERNAL, ...FLEXIBLE_INTERNAL_PLANNED];
+            ? card(item.no, item.name, 'tutlo') : item), ...familyGroupCards]
+      : [...FLEXIBLE_INTERNAL_EXTERNAL, ...FLEXIBLE_INTERNAL_PLANNED, ...familyGroupCards];
   }
   if (contractType === 'flexible' && paymentType === 'credit' && paymentVariant === 'credit') {
-    return [...FLEXIBLE_CREDIT];
+    return [...FLEXIBLE_CREDIT, ...familyGroupCards];
   }
   if (contractType === 'limit' && paymentType === 'internal'
       && INTERNAL_VARIANTS.has(paymentVariant)) {
-    return [...LIMIT_INTERNAL];
+    return [...LIMIT_INTERNAL, ...familyGroupCards];
   }
   if (contractType === 'limit' && paymentType === 'credit' && paymentVariant === 'credit') {
-    return [...LIMIT_CREDIT];
+    return [...LIMIT_CREDIT, ...familyGroupCards];
   }
   return [];
 }

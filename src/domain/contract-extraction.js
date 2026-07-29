@@ -6,7 +6,7 @@ export const CURRENT_CONTRACT_FIELDS = Object.freeze([
   'rawText', 'contractType', 'paymentType', 'paymentVariant', 'agreementNumber',
   'agreementDate', 'customerType', 'customerName', 'personalId', 'address',
   'coursePriceCents', 'monthlyInstallmentCents', 'lessonCount',
-  'monthlyLessonLimit', 'teacherVariant', 'internalPaymentAccount', 'installmentPlan'
+  'monthlyLessonLimit', 'teacherVariant', 'familyGroupVariant', 'internalPaymentAccount', 'installmentPlan'
 ]);
 export const CONTRACT_TYPES = Object.freeze(['flexible', 'limit']);
 export const PAYMENT_TYPES = Object.freeze(['credit', 'internal']);
@@ -113,6 +113,13 @@ function extractTeacherVariant(contents) {
   return undefined;
 }
 
+function extractFamilyGroupVariant(specification) {
+  const section = normalizeCourseContentText(specification);
+  if (/grupa\s+rodzinna[^.;]*(?:za\s+(?:dodatkow[aą]\s+)?opłat[aą]|dodatkowo\s+płatna|odpłatna|dopłata)/iu.test(section)) return 'paid';
+  if (/grupa\s+rodzinna[^.;]*(?:w\s+cenie|wliczona|uwzględniona)/iu.test(section)) return 'included';
+  return null;
+}
+
 export function extractInternalInstallmentAccount(paymentSection) {
   const candidate = normalized(paymentSection).match(/na\s+następujący\s+rachunek\s+bankowy\s+Tutlo\b.{0,100}?((?:\d[\s-]*){26})(?![\s-]*\d)/iu)?.[1]?.replace(/[\s-]/g, '');
   return /^\d{26}$/.test(candidate || '') ? candidate : undefined;
@@ -198,6 +205,7 @@ export function parseCurrentContract(rawText) {
     coursePriceCents: moneyAfter(sections.payment, String.raw`Całkowita\s+cena\s+(?:pakietu\s+)?kursu\s+wynosi`),
     monthlyInstallmentCents: moneyAfter(sections.payment, String.raw`(?:Opłata\s+miesięczna|wynagrodzenie\s+przysługujące\s+Tutlo)\s+(?:za\s+każdy\s+miesiąc\s+trwania\s+Umowy\s+)?wynosi`),
     lessonCount, monthlyLessonLimit, teacherVariant: extractedTeacherVariant,
+    familyGroupVariant: extractFamilyGroupVariant(specification),
     internalPaymentAccount: payment.internalPaymentAccount, installmentPlan: payment.installmentPlan
   };
   console.debug('CURRENT_CONTRACT_TEACHER_VARIANT', currentContract.teacherVariant);
