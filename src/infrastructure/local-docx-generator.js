@@ -19,7 +19,9 @@ export function sanitizeFilenamePart(value) {
 }
 
 export function annex26Filename(values) {
-  return `Aneks_26_${sanitizeFilenamePart(values.NUMER_UMOWY)}_${sanitizeFilenamePart(values.IMIE_NAZWISKO)}.docx`;
+  const safeCustomerName = String(values.IMIE_NAZWISKO ?? '')
+    .replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
+  return safeCustomerName ? `Aneks ${safeCustomerName}.docx` : 'Aneks.docx';
 }
 
 export function annex25Filename(values) {

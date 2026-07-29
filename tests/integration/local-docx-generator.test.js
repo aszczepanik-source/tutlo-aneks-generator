@@ -42,7 +42,10 @@ test('blokuje NaN i pozostały placeholder', () => {
 });
 
 test('tworzy bezpieczną nazwę pobieranego pliku', () => {
-  assert.equal(annex26Filename(values), 'Aneks_26_EL_12_34_Jan_Kowalski.docx');
+  assert.equal(annex26Filename(values), 'Aneks Jan Kowalski.docx');
+  assert.equal(annex26Filename({ IMIE_NAZWISKO: 'ABC Sp. z o.o.' }), 'Aneks ABC Sp. z o.o..docx');
+  assert.equal(annex26Filename({ IMIE_NAZWISKO: 'Firma: Test / Warszawa' }), 'Aneks Firma Test Warszawa.docx');
+  assert.equal(annex26Filename({ IMIE_NAZWISKO: '   ' }), 'Aneks.docx');
 });
 
 test('to samo wejście daje tę samą treść dokumentu', () => {

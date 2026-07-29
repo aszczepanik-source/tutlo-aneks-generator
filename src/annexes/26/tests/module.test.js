@@ -40,14 +40,16 @@ test('aneks 26 odczytuje stały wzór, datę z numeru i buduje komplet placehold
     creditDate: prepared.values.DATA_UMOWY_KREDYTU,
     name: prepared.values.IMIE_NAZWISKO,
     address: prepared.values.ADRES,
-    pesel: prepared.values.PESEL,
+    identifierLabel: prepared.values.IDENTYFIKATOR_LABEL,
+    identifier: prepared.values.IDENTYFIKATOR,
     lessons: prepared.calculation.newLessonCount,
     limit: prepared.values.LIMIT_MIESIECZNY,
     teachers: prepared.values.TYPY_LEKTOROW,
     credit: prepared.values.KWOTA_KREDYTU
   }, {
     number: 'EL/JF/811/192956/3/9/2025', date: '03.09.2025', creditDate: '03.09.2025',
-    name: 'Monika Wójcik', address: 'Galileusza 10/13, 67-200 Głogów', pesel: '82111304868',
+    name: 'Monika Wójcik', address: 'Galileusza 10/13, 67-200 Głogów',
+    identifierLabel: 'PESEL', identifier: '82111304868',
     lessons: 414, limit: '57', teachers: 'Lektorem Polskim, English Expert, Native Speakerem', credit: '11250,00 zł'
   });
 });
