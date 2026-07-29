@@ -16,6 +16,7 @@ export function getAnnexRoute(annexId, contract) {
     requiredPlaceholders: Object.freeze([...annex.manifest.requiredFields]),
     status: annex.manifest.status,
     blockingReason: annex.manifest.blockingReason,
+    createGenerationPlan: annex.createGenerationPlan,
     prepareAnnex26: annex.prepareAnnex26
   });
 }

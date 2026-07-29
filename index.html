@@ -463,6 +463,34 @@
   </div>
 </dialog>
 
+<dialog id="annex29Dialog">
+  <div class="modal-head">
+    <h3>Aneks 29 – Spłata jednej raty wewnętrznej</h3>
+    <button class="close" data-close="annex29Dialog" type="button">×</button>
+  </div>
+  <div class="modal-body">
+    <p>Generator obniży cenę pakietu o jedną ratę wewnętrzną na podstawie danych aktualnej umowy.</p>
+    <form id="annex29Form" class="annex-form">
+      <div class="actions"><button class="btn" type="submit">Pobierz aneks</button></div>
+      <div id="annex29Status" class="status"></div>
+    </form>
+  </div>
+</dialog>
+
+<dialog id="annex29aDialog">
+  <div class="modal-head">
+    <h3>Aneks 29a – Spłata dwóch rat wewnętrznych</h3>
+    <button class="close" data-close="annex29aDialog" type="button">×</button>
+  </div>
+  <div class="modal-body">
+    <p>Generator obniży cenę pakietu o dwie raty wewnętrzne na podstawie danych aktualnej umowy.</p>
+    <form id="annex29aForm" class="annex-form">
+      <div class="actions"><button class="btn" type="submit">Pobierz aneks</button></div>
+      <div id="annex29aStatus" class="status"></div>
+    </form>
+  </div>
+</dialog>
+
 <dialog id="verifyDialog">
   <div class="modal-head">
     <h3>Sprawdź swój aneks</h3>
@@ -479,10 +507,12 @@
 <script type="module">
   import { getAnnexRoute } from './router.js';
   import { ANNEX_STATUSES, getAvailableAnnexCards } from './src/annexes/availability.js';
-  import { downloadAnnex11, downloadAnnex25, downloadAnnex26 } from './src/infrastructure/local-docx-generator.js';
+  import { downloadAnnex11, downloadAnnex25, downloadAnnex26, downloadAnnex29, downloadAnnex29a } from './src/infrastructure/local-docx-generator.js';
   import { prepareAnnex11 } from './src/annexes/11/index.js';
   import { prepareAnnex25 } from './src/annexes/25/index.js';
   import { prepareAnnex26 } from './src/annexes/26/index.js';
+  import { prepareAnnex29 } from './src/annexes/29/index.js';
+  import { prepareAnnex29a } from './src/annexes/29a/index.js';
   import { recognizeCurrentContract } from './src/application/recognize-contract.js?v=1.1.1';
   import { extractPdfText } from './src/infrastructure/pdf-text-extractor.js';
   import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
@@ -556,6 +586,11 @@
     if(no==='25'){
       if(!currentContract){ alert('Najpierw wczytaj i rozpoznaj umowę.'); return; }
       document.getElementById('annex25Dialog').showModal();
+      return;
+    }
+    if(no==='29'||no==='29a'){
+      if(!currentContract){ alert('Najpierw wczytaj i rozpoznaj umowę.'); return; }
+      document.getElementById(`annex${no}Dialog`).showModal();
       return;
     }
     if(no==='43'){
@@ -729,6 +764,23 @@
       status.className='status show error';
     }
   });
+
+  function automaticAnnexSubmit(id, prepare, download){
+    document.getElementById(`annex${id}Form`).addEventListener('submit',async event=>{
+      event.preventDefault();
+      const status=document.getElementById(`annex${id}Status`);
+      status.textContent='Tworzę dokument…';status.className='status show warn';
+      try{
+        const prepared=prepare(currentContract);
+        await download(prepared,{requiredFields:prepared.requiredFields});
+        status.textContent='Aneks został pobrany';status.className='status show ok';
+      }catch(error){
+        status.textContent=error.message;status.className='status show error';
+      }
+    });
+  }
+  automaticAnnexSubmit('29',prepareAnnex29,downloadAnnex29);
+  automaticAnnexSubmit('29a',prepareAnnex29a,downloadAnnex29a);
 
   const manualGrid=document.getElementById('manualAnnexGrid');
   function renderManualAnnexes(){

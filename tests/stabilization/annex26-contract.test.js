@@ -36,8 +36,8 @@ for (const identity of [
   });
 }
 
-test('katalog generatorów zawiera stabilny aneks 26 oraz aktywowany aneks 11', () => {
-  assert.deepEqual([...annexModules.keys()], ['11', '26']);
+test('katalog generatorów zawiera aktywne aneksy lokalne', () => {
+  assert.deepEqual([...annexModules.keys()], ['11', '26', '29', '29a']);
   assert.deepEqual(getAvailableAnnexCards({ contractType: 'flexible', paymentType: 'credit', paymentVariant: 'credit' })
     .map(card => card.no), [
       '26', 'wydluzenie-dostepu', '20-lekcji-gratis', 'tutlo-premium',
