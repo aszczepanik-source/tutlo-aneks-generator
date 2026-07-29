@@ -24,6 +24,12 @@ export function annex26Filename(values) {
   return safeCustomerName ? `Aneks ${safeCustomerName}.docx` : 'Aneks.docx';
 }
 
+export function annex27Filename(values) {
+  const safeCustomerName = String(values.IMIE_NAZWISKO ?? '')
+    .replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
+  return safeCustomerName ? `Aneks 27 ${safeCustomerName}.docx` : 'Aneks 27.docx';
+}
+
 export function annex25Filename(values) {
   return `Aneks_25_${sanitizeFilenamePart(values.NUMER_UMOWY)}_${sanitizeFilenamePart(values.IMIE_NAZWISKO)}.docx`;
 }
@@ -56,7 +62,10 @@ export function renderDocx(templateBytes, prepared, dependencies = globalThis) {
   if (!Docxtemplater) throw new Error('Nie udało się załadować biblioteki docxtemplater. Odśwież stronę i spróbuj ponownie.');
   validateTemplateValues(prepared.values, prepared.requiredFields);
   const zip = new PizZip(templateBytes);
-  const unknown = remainingPlaceholders(zip).filter(field => !(field in prepared.values));
+  const loopFields = new Set(Object.values(prepared.values).filter(Array.isArray)
+    .flatMap(rows => rows.flatMap(row => Object.keys(row))));
+  const unknown = remainingPlaceholders(zip).filter(field => !field.startsWith('#') && !field.startsWith('/')
+    && !(field in prepared.values) && !loopFields.has(field));
   if (unknown.length) throw new Error(`Nieuzupełnione placeholdery: ${unknown.join(', ')}`);
   const document = new Docxtemplater(zip, { delimiters: { start: '{{', end: '}}' }, paragraphLoop: true, linebreaks: true });
   document.render(prepared.values);
@@ -67,6 +76,10 @@ export function renderDocx(templateBytes, prepared, dependencies = globalThis) {
 
 export function annex26TemplateUrl(moduleUrl = import.meta.url) {
   return new URL('../annexes/26/template.docx', moduleUrl).href;
+}
+
+export function annex27TemplateUrl(moduleUrl = import.meta.url) {
+  return new URL('../annexes/27/template.docx', moduleUrl).href;
 }
 
 export function annex25TemplateUrl(moduleUrl = import.meta.url) {
@@ -113,6 +126,10 @@ export async function downloadAnnex26(prepared, options = {}) {
   anchor.href = url; anchor.download = filename; anchor.style.display = 'none';
   document.body.appendChild(anchor); anchor.click(); anchor.remove(); URL.revokeObjectURL(url);
   return { filename, bytes };
+}
+
+export function downloadAnnex27(prepared, options = {}) {
+  return downloadAutomaticAnnex(prepared, options, annex27TemplateUrl(), annex27Filename);
 }
 
 export async function downloadAnnex25(prepared, options = {}) {

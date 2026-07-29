@@ -38,10 +38,10 @@ for (const identity of [
 }
 
 test('katalog generatorów zawiera aktywne aneksy lokalne', () => {
-  assert.deepEqual([...annexModules.keys()], ['11', '26', '29', '29a']);
+  assert.deepEqual([...annexModules.keys()], ['11', '26', '27', '29', '29a']);
   assert.deepEqual(getAvailableAnnexCards({ contractType: 'flexible', paymentType: 'credit', paymentVariant: 'credit' })
     .map(card => card.no), [
-      '26', 'wydluzenie-dostepu', '20-lekcji-gratis', 'tutlo-premium',
+      '26', '27', 'wydluzenie-dostepu', '20-lekcji-gratis', 'tutlo-premium',
       '30', '30a', '10', '35'
     ]);
   assert.deepEqual(getAvailableAnnexCards({
