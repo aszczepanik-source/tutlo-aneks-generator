@@ -47,7 +47,8 @@ test('aneks 26 integracyjnie rozpoznaje osobę i firmę z komórek PDF oraz gene
       newInstallment: '400,00', bank: 'Inbank', bankAccount: '12345678901234567890123456'
     });
     assert.equal(prepared.values.IMIE_NAZWISKO, expected.name);
-    assert.equal(prepared.values.PESEL, expected.id);
+    assert.equal(prepared.values.IDENTYFIKATOR_LABEL, expected.type === 'company' ? 'NIP' : 'PESEL');
+    assert.equal(prepared.values.IDENTYFIKATOR, expected.id);
     const docx = renderDocx(new Uint8Array(), prepared,
       { PizZip: TestZip, docxtemplater: TestDocxtemplater });
     assert.ok(docx.byteLength > 0);

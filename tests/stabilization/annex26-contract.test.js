@@ -15,7 +15,8 @@ const form = { newInstallment: '250,00', bank: 'Inbank', bankAccount: '123456789
 
 const expectedValues = identity => ({
   NUMER_UMOWY: 'EL/JF/811/192956/3/9/2025', DATA_ANEKSU: '24.07.2026',
-  IMIE_NAZWISKO: identity.name, ADRES: 'Testowa 1', PESEL: identity.id,
+  IMIE_NAZWISKO: identity.name, ADRES: 'Testowa 1',
+  IDENTYFIKATOR_LABEL: identity.identifierLabel, IDENTYFIKATOR: identity.id,
   DATA_ZAWARCIA_UMOWY: '03.09.2025', NOWA_LICZBA_LEKCJI: '175',
   TYPY_LEKTOROW: 'Lektorem Polskim, English Expert, Native Speakerem', LIMIT_MIESIECZNY: '12',
   NOWA_CENA: '6539,00 zł', NOWA_SREDNIA_RATA: '272,46 zł', KWOTA_KREDYTU: '7176,00 zł',
@@ -25,8 +26,8 @@ const expectedValues = identity => ({
 });
 
 for (const identity of [
-  { label: 'osoby', buyer: 'IMIĘ I NAZWISKO: Jan Kowalski PESEL: 12345678901', name: 'Jan Kowalski', id: '12345678901' },
-  { label: 'firmy', buyer: 'FIRMA: Acme sp. z o.o. NIP: 1234567890', name: 'Acme sp. z o.o.', id: '1234567890' }
+  { label: 'osoby', buyer: 'IMIĘ I NAZWISKO: Jan Kowalski PESEL: 84040810706', name: 'Jan Kowalski', id: '84040810706', identifierLabel: 'PESEL' },
+  { label: 'firmy', buyer: 'FIRMA: ABC Sp. z o.o. NIP: 1234567890', name: 'ABC Sp. z o.o.', id: '1234567890', identifierLabel: 'NIP' }
 ]) {
   test(`prepared.values aneksu 26 — snapshot dla ${identity.label}`, () => {
     const prepared = prepareAnnex26(parseCurrentContract(raw(identity.buyer)), form,
