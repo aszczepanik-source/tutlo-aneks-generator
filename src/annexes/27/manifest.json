@@ -1,0 +1,17 @@
+{
+  "id": "27",
+  "label": "Zmiana formy płatności ze zmniejszeniem rat",
+  "available": true,
+  "policy": "credit-to-tutlo-installment-reduction",
+  "template": "template.docx",
+  "templateVersion": "1.0.0",
+  "allowedContractVariants": ["flexible/credit/credit"],
+  "requiredFields": [
+    "NUMER_UMOWY", "DATA_ZAWARCIA_UMOWY", "DATA_ANEKSU", "DATA_WEJSCIA_W_ZYCIE",
+    "IMIE_NAZWISKO", "ADRES", "IDENTYFIKATOR_LABEL", "IDENTYFIKATOR",
+    "NOWA_LICZBA_LEKCJI", "LIMIT_MIESIECZNY", "NOWA_CENA", "NOWA_SREDNIA_RATA",
+    "KWOTA_POZOSTALA_BANK", "BANK", "KWOTA_POZOSTALA_TUTLO", "LICZBA_POZOSTALYCH_RAT",
+    "NUMER_RACHUNKU_TUTLO", "KWOTA_DO_ZWROTU_BANKOWI", "NUMER_RACHUNKU_BANKU", "RATY"
+  ],
+  "status": "ready"
+}

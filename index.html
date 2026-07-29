@@ -401,6 +401,23 @@
   </div>
 </dialog>
 
+<dialog id="annex27Dialog">
+  <div class="modal-head">
+    <h3>Aneks 27 – Zmiana formy płatności ze zmniejszeniem rat</h3>
+    <button class="close" data-close="annex27Dialog" type="button">×</button>
+  </div>
+  <div class="modal-body">
+    <form id="annex27Form" class="annex-form">
+      <label>Bank<select id="annex27Bank" required><option value="" selected disabled>Wybierz bank...</option><option>Inbank</option><option>Oney</option><option>BGŻ BNP Paribas</option><option>mBank</option><option>Ikano Bank</option><option>Alior Bank</option></select></label>
+      <label>Nowa wysokość raty (zł)<input id="annex27NewInstallment" inputmode="decimal" pattern="[0-9]+([,.][0-9]{1,2})?" required></label>
+      <label>Numer rachunku do spłaty banku<input id="annex27BankAccount" inputmode="numeric" required></label>
+      <label>Numer rachunku Tutlo<input id="annex27TutloAccount" inputmode="numeric" required></label>
+      <div class="actions"><button class="btn" type="submit">Pobierz aneks</button></div>
+      <div id="annex27Status" class="status"></div>
+    </form>
+  </div>
+</dialog>
+
 <dialog id="annex25Dialog">
   <div class="modal-head">
     <h3>Aneks 25 – Zmniejszenie rat wewnętrznych</h3>
@@ -507,10 +524,11 @@
 <script type="module">
   import { getAnnexRoute } from './router.js';
   import { ANNEX_STATUSES, getAvailableAnnexCards } from './src/annexes/availability.js';
-  import { downloadAnnex11, downloadAnnex25, downloadAnnex26, downloadAnnex29, downloadAnnex29a } from './src/infrastructure/local-docx-generator.js';
+  import { downloadAnnex11, downloadAnnex25, downloadAnnex26, downloadAnnex27, downloadAnnex29, downloadAnnex29a } from './src/infrastructure/local-docx-generator.js';
   import { prepareAnnex11 } from './src/annexes/11/index.js';
   import { prepareAnnex25 } from './src/annexes/25/index.js';
   import { prepareAnnex26 } from './src/annexes/26/index.js';
+  import { prepareAnnex27 } from './src/annexes/27/index.js';
   import { prepareAnnex29 } from './src/annexes/29/index.js';
   import { prepareAnnex29a } from './src/annexes/29a/index.js';
   import { recognizeCurrentContract } from './src/application/recognize-contract.js?v=1.1.1';
@@ -576,6 +594,11 @@
     if(no==='26'){
       if(!currentContract){ alert('Najpierw wczytaj i rozpoznaj umowę kredytową.'); return; }
       document.getElementById('annex26Dialog').showModal();
+      return;
+    }
+    if(no==='27'){
+      if(!currentContract){ alert('Najpierw wczytaj i rozpoznaj umowę kredytową.'); return; }
+      document.getElementById('annex27Dialog').showModal();
       return;
     }
     if(no==='11'){
@@ -715,6 +738,14 @@
     annex26BankAccount.setCustomValidity(annex26BankAccount.value.length===26?'':'Numer rachunku musi zawierać dokładnie 26 cyfr.');
   });
 
+  for(const id of ['annex27BankAccount','annex27TutloAccount']){
+    const input=document.getElementById(id);
+    input.addEventListener('input',()=>{
+      input.value=input.value.replace(/\D/g,'').slice(0,26);
+      input.setCustomValidity(input.value.length===26?'':'Numer rachunku musi zawierać dokładnie 26 cyfr.');
+    });
+  }
+
   document.getElementById('annex11Form').addEventListener('submit',async event=>{
     event.preventDefault();
     const status=document.getElementById('annex11Status');
@@ -763,6 +794,22 @@
       status.textContent=error.message;
       status.className='status show error';
     }
+  });
+
+  document.getElementById('annex27Form').addEventListener('submit',async event=>{
+    event.preventDefault();
+    const status=document.getElementById('annex27Status');
+    status.textContent='Tworzę dokument…';status.className='status show warn';
+    try{
+      const prepared=prepareAnnex27(currentContract,{
+        bank:document.getElementById('annex27Bank').value,
+        newInstallment:document.getElementById('annex27NewInstallment').value,
+        bankAccount:document.getElementById('annex27BankAccount').value,
+        tutloAccount:document.getElementById('annex27TutloAccount').value
+      });
+      await downloadAnnex27(prepared,{requiredFields:prepared.requiredFields});
+      status.textContent='Aneks został pobrany';status.className='status show ok';
+    }catch(error){status.textContent=error.message;status.className='status show error';}
   });
 
   function automaticAnnexSubmit(id, prepare, download){

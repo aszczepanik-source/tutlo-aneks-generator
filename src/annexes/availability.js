@@ -33,6 +33,7 @@ const FLEXIBLE_INTERNAL_PLANNED = Object.freeze([
 ]);
 const FLEXIBLE_CREDIT = Object.freeze([
   card('26', 'Aneks 26 — Zmniejszenie rat kredytowych', 'tutlo'),
+  card('27', 'Aneks 27 — Zmiana formy płatności ze zmniejszeniem rat', 'tutlo'),
   EXTEND_ACCESS,
   EXTRA_LESSONS,
   TUTLO_PREMIUM,
