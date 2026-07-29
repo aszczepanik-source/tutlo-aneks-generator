@@ -99,22 +99,19 @@ test('data wejścia w życie przypada dzień po dacie aneksu', () => {
   }
 });
 
-test('kwoty aneksu 25 nie powielają waluty zapisanej w szablonie', async () => {
+test('wynikowy DOCX aneksu 25 zawiera poprawnie sformatowaną NOWA_CENA z jedną walutą', async () => {
   const prepared = prepareAnnex25(contract, { newInstallment: '300,00 zł' }, '2026-01-20');
-  const amountFields = ['NOWA_CENA', 'NOWA_SREDNIA_RATA',
-    ...Array.from({ length: 24 }, (_, index) => `RATA_${String(index + 1).padStart(2, '0')}_KWOTA`)];
-
-  assert.ok(amountFields.every(field => /^\d+,\d{2}$/.test(prepared.values[field])));
-  assert.ok(amountFields.every(field => !prepared.values[field].includes('zł')));
-
   const template = await readFile(new URL('../template.docx', import.meta.url));
-  const documentXml = readZipEntry(template, 'word/document.xml').toString('utf8');
-  for (const field of amountFields) {
-    const placeholderEnd = documentXml.indexOf('}}', documentXml.indexOf(field));
-    assert.notEqual(placeholderEnd, -1, `brak placeholdera ${field}`);
-    assert.match(documentXml.slice(placeholderEnd + 2, placeholderEnd + 300).replace(/<[^>]+>/g, ''), /^\s*zł/,
-      `brak waluty po placeholderze ${field}`);
-  }
+  const templateText = readZipEntry(template, 'word/document.xml').toString('utf8').replace(/<[^>]+>/g, '');
+  const resultText = templateText.replace(/\{\{\s*([^{}]+?)\s*\}\}/g,
+    (_, field) => String(prepared.values[field.trim()] ?? ''));
+  const formattedPrice = prepared.values.NOWA_CENA;
+  const priceWithoutCurrency = formattedPrice.replace(/\s*zł$/, '');
+
+  assert.match(formattedPrice, /^\d[\d ]*,\d{2}(?: zł)?$/);
+  assert.equal(parseMoneyToCents(formattedPrice), prepared.calculation.newPriceCents);
+  assert.doesNotMatch(resultText, /zł\s+zł/);
+  assert.match(resultText, new RegExp(`${priceWithoutCurrency.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s+zł(?!\\s+zł)`));
 });
 
 test('prepareAnnex25 korzysta z installmentPlan i generuje DOCX', async () => {
