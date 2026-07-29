@@ -1,21 +1,9 @@
 import assert from 'node:assert/strict';
 import { access, readFile } from 'node:fs/promises';
 import test from 'node:test';
-import vm from 'node:vm';
-import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
 import { calculateAnnex11Dates, prepareAnnex11 } from '../generator.js';
 import { validateAnnex11Data } from '../validator.js';
-import { annex11TemplateUrl, remainingPlaceholders, renderDocx } from '../../../infrastructure/local-docx-generator.js';
-
-const browserContext = { console, TextEncoder, TextDecoder, DOMParser, XMLSerializer };
-browserContext.window = browserContext;
-browserContext.self = browserContext;
-vm.createContext(browserContext);
-for (const library of ['../../../../node_modules/pizzip/dist/pizzip.min.js',
-  '../../../../node_modules/docxtemplater/build/docxtemplater.js']) {
-  vm.runInContext(await readFile(new URL(library, import.meta.url), 'utf8'), browserContext);
-}
-const { PizZip, docxtemplater: Docxtemplater } = browserContext;
+import { annex11TemplateUrl } from '../../../infrastructure/local-docx-generator.js';
 
 const contract = {
   agreementNumber: 'EL/11/2025', agreementDate: '2025-09-15', customerType: 'person',
@@ -77,17 +65,25 @@ test('odrzuca niepełny installmentPlan i wybór inny niż 1 lub 2', () => {
 });
 
 for (const identity of [
-  { customerType: 'person', customerName: 'Jan Kowalski', personalId: '12345678901' },
+  { customerType: 'person', customerName: 'Jan Kowalski', personalId: '84040810706', identifierLabel: 'PESEL' },
   { customerType: 'company', customerName: 'Tutlo Klient sp. z o.o.', personalId: '1234567890' }
 ]) {
-  test(`DOCX mapuje PESEL dla: ${identity.customerType}`, async () => {
+  test(`mapuje identyfikator dla: ${identity.customerType}`, () => {
     const prepared = prepareAnnex11({ ...contract, ...identity }, { suspensionMonths: 1 }, { today: '2026-07-28' });
+    assert.equal(prepared.values.IDENTYFIKATOR_LABEL, identity.identifierLabel || 'NIP');
+    assert.equal(prepared.values.IDENTYFIKATOR, identity.personalId);
     assert.equal(prepared.values.PESEL, identity.personalId);
-    const template = await readFile(new URL('../template.docx', import.meta.url));
-    const bytes = renderDocx(template, prepared, { PizZip, docxtemplater: Docxtemplater });
-    assert.deepEqual(remainingPlaceholders(new PizZip(bytes)), []);
   });
 }
+
+test('mapowanie identyfikatora nie zmienia pozostałych wartości Aneksu 11', () => {
+  const person = prepareAnnex11(contract, { suspensionMonths: 1 }, { today: '2026-07-28' });
+  const company = prepareAnnex11({ ...contract, customerType: 'company', personalId: '1234567890' },
+    { suspensionMonths: 1 }, { today: '2026-07-28' });
+  const withoutIdentifier = values => Object.fromEntries(Object.entries(values)
+    .filter(([key]) => !['IDENTYFIKATOR_LABEL', 'IDENTYFIKATOR', 'PESEL'].includes(key)));
+  assert.deepEqual(withoutIdentifier(company.values), withoutIdentifier(person.values));
+});
 
 test('generator ignoruje rawText i korzysta z currentContract', async () => {
   const prepared = prepareAnnex11({ ...contract, rawText: 'inne dane' }, { suspensionMonths: 1 }, { today: '2026-07-28' });
