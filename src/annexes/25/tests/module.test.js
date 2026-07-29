@@ -70,6 +70,35 @@ test('prepareAnnex25 wypełnia dokładnie wszystkie rzeczywiste placeholdery', (
   assert.equal(Object.values(prepared.values).some(value => /NaN|Infinity|undefined|null|\{\{/.test(String(value))), false);
 });
 
+test('prepareAnnex25 mapuje identyfikator osoby i firmy z currentContract', () => {
+  const person = prepareAnnex25(
+    { ...contract, customerType: 'person', personalId: '84040810706' },
+    { newInstallment: '300' }, '2026-07-28'
+  );
+  assert.equal(person.values.IDENTYFIKATOR_LABEL, 'PESEL');
+  assert.equal(person.values.IDENTYFIKATOR, '84040810706');
+
+  const company = prepareAnnex25(
+    { ...contract, customerType: 'company', personalId: '1234567890' },
+    { newInstallment: '300' }, '2026-07-28'
+  );
+  assert.equal(company.values.IDENTYFIKATOR_LABEL, 'NIP');
+  assert.equal(company.values.IDENTYFIKATOR, '1234567890');
+});
+
+test('data wejścia w życie przypada dzień po dacie aneksu', () => {
+  for (const [annexDate, expectedAnnexDate, expectedEffectiveDate] of [
+    ['2026-07-28', '28.07.2026', '29.07.2026'],
+    ['2026-07-31', '31.07.2026', '01.08.2026'],
+    ['2026-12-31', '31.12.2026', '01.01.2027'],
+    ['2028-02-28', '28.02.2028', '29.02.2028']
+  ]) {
+    const prepared = prepareAnnex25(contract, { newInstallment: '300' }, annexDate);
+    assert.equal(prepared.values.DATA_ANEKSU, expectedAnnexDate);
+    assert.equal(prepared.values.DATA_WEJSCIA_W_ZYCIE, expectedEffectiveDate);
+  }
+});
+
 test('kwoty aneksu 25 nie powielają waluty zapisanej w szablonie', async () => {
   const prepared = prepareAnnex25(contract, { newInstallment: '300,00 zł' }, '2026-01-20');
   const amountFields = ['NOWA_CENA', 'NOWA_SREDNIA_RATA',

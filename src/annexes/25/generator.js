@@ -1,5 +1,5 @@
 import manifest from './manifest.json' with { type: 'json' };
-import { calculateAnnex25, formatDate, parseMoneyToCents } from '../../domain/annex-calculations.js';
+import { addDays, calculateAnnex25, formatDate, parseMoneyToCents } from '../../domain/annex-calculations.js';
 import { validateAnnex25Data } from './validator.js';
 
 const required = (value, label) => {
@@ -29,7 +29,10 @@ export function prepareAnnex25(currentContract, inputs = {}, annexDate = new Dat
   const lessonCount = Number(required(currentContract.lessonCount, 'liczba lekcji'));
   const values = {
     ADRES: required(currentContract.address, 'adres'), DATA_ANEKSU: formatDate(annexDate),
+    DATA_WEJSCIA_W_ZYCIE: formatDate(addDays(annexDate, 1)),
     DATA_ZAWARCIA_UMOWY: formatDate(required(currentContract.agreementDate, 'data zawarcia umowy')),
+    IDENTYFIKATOR_LABEL: currentContract.customerType === 'company' ? 'NIP' : 'PESEL',
+    IDENTYFIKATOR: currentContract.personalId,
     IMIE_NAZWISKO: required(currentContract.customerName, 'imię i nazwisko'),
     LIMIT_MIESIECZNY: String(required(currentContract.monthlyLessonLimit, 'limit miesięczny')),
     NOWA_CENA: formatAmountWithoutCurrency(calculation.newPriceCents),
