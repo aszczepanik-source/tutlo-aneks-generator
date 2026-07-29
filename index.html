@@ -524,13 +524,14 @@
 <script type="module">
   import { getAnnexRoute } from './router.js';
   import { ANNEX_STATUSES, getAvailableAnnexCards } from './src/annexes/availability.js';
-  import { downloadAnnex11, downloadAnnex25, downloadAnnex26, downloadAnnex27, downloadAnnex29, downloadAnnex29a } from './src/infrastructure/local-docx-generator.js';
+  import { downloadAnnex11, downloadAnnex25, downloadAnnex26, downloadAnnex27, downloadAnnex29, downloadAnnex29a, downloadAnnex43 } from './src/infrastructure/local-docx-generator.js';
   import { prepareAnnex11 } from './src/annexes/11/index.js';
   import { prepareAnnex25 } from './src/annexes/25/index.js';
   import { prepareAnnex26 } from './src/annexes/26/index.js';
   import { prepareAnnex27 } from './src/annexes/27/index.js';
   import { prepareAnnex29 } from './src/annexes/29/index.js';
   import { prepareAnnex29a } from './src/annexes/29a/index.js';
+  import { prepareAnnex43 } from './src/annexes/43/index.js';
   import { recognizeCurrentContract } from './src/application/recognize-contract.js?v=1.1.1';
   import { extractPdfText } from './src/infrastructure/pdf-text-extractor.js';
   import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
@@ -618,7 +619,7 @@
     }
     if(no==='43'){
       if(!currentContract){ alert('Najpierw wczytaj i rozpoznaj umowę.'); return; }
-      alert('Lokalne pobieranie aneksu 43 zostanie udostępnione w kolejnym etapie.');
+      downloadAnnex43(prepareAnnex43(currentContract)).catch(error=>alert(error.message));
       return;
     }
     alert(`Lokalne pobieranie aneksu ${no} zostanie udostępnione w kolejnym etapie.`);

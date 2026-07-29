@@ -21,7 +21,9 @@ const TUTLO_PREMIUM = card('tutlo-premium', 'Aneks Tutlo Premium', 'external', {
 const POLISH_LECTURERS = card('lektorzy-pl', 'Rozszerzenie pakietu lektorów', 'external', {
   marker: 'PL', desc: 'Aneks dostępny w Team Tutlo.'
 });
-const PAID_FAMILY_GROUP = card('43', 'Aneks 43 — Grupa rodzinna za dodatkową opłatą', 'planned');
+const PAID_FAMILY_GROUP = card('43', '43 – Grupa Rodzinna bez dodatkowej opłaty', 'tutlo', {
+  desc: 'Dodanie możliwości korzystania z kursu przez maksymalnie 2 dodatkowych użytkowników bez dodatkowej opłaty.'
+});
 
 const FLEXIBLE_INTERNAL_EXTERNAL = Object.freeze([
   EXTEND_ACCESS, EXTRA_LESSONS, SPLIT_PAYMENT, TUTLO_PREMIUM
@@ -76,18 +78,18 @@ export function getAvailableAnnexCards(currentContract) {
       ? [card('25', 'Aneks 25 — Zmniejszenie rat wewnętrznych', 'tutlo'),
           ...FLEXIBLE_INTERNAL_EXTERNAL,
           ...FLEXIBLE_INTERNAL_PLANNED.map(item => ['11', '29', '29a'].includes(item.no)
-            ? card(item.no, item.name, 'tutlo') : item), ...familyGroupCards]
-      : [...FLEXIBLE_INTERNAL_EXTERNAL, ...FLEXIBLE_INTERNAL_PLANNED, ...familyGroupCards];
+            ? card(item.no, item.name, 'tutlo') : item)]
+      : [...FLEXIBLE_INTERNAL_EXTERNAL, ...FLEXIBLE_INTERNAL_PLANNED];
   }
   if (contractType === 'flexible' && paymentType === 'credit' && paymentVariant === 'credit') {
     return [...FLEXIBLE_CREDIT, ...familyGroupCards];
   }
   if (contractType === 'limit' && paymentType === 'internal'
       && INTERNAL_VARIANTS.has(paymentVariant)) {
-    return [...LIMIT_INTERNAL, ...familyGroupCards];
+    return [...LIMIT_INTERNAL];
   }
   if (contractType === 'limit' && paymentType === 'credit' && paymentVariant === 'credit') {
-    return [...LIMIT_CREDIT, ...familyGroupCards];
+    return [...LIMIT_CREDIT];
   }
   return [];
 }

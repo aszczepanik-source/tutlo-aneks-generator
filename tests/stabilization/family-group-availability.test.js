@@ -16,5 +16,5 @@ test('Aneks 43 jest widoczny wyłącznie dla płatnego wariantu grupy rodzinnej'
 
   const cards = getAvailableAnnexCards({ ...contract, familyGroupVariant: 'paid' });
   assert.equal(cards.filter(card => card.no === '43').length, 1);
-  assert.equal(cards.find(card => card.no === '43').status, 'planned');
+  assert.equal(cards.find(card => card.no === '43').status, 'tutlo');
 });
