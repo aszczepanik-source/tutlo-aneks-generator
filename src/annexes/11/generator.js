@@ -70,6 +70,8 @@ export function prepareAnnex11(currentContract, formData = {}, options = {}) {
     DATA_ZAWARCIA_UMOWY: formatDate(required(currentContract.agreementDate, 'data zawarcia umowy')),
     'DŁUGOŚĆ_ZAWIESZENIA': String(months),
     IMIE_NAZWISKO: required(currentContract.customerName, 'klient'),
+    IDENTYFIKATOR_LABEL: currentContract.customerType === 'company' ? 'NIP' : 'PESEL',
+    IDENTYFIKATOR: currentContract.personalId,
     KONIEC_ZAWIESZENIA: formatDate(dates.suspensionEnd),
     NOWY_KONIEC_UMOWY: formatDate(dates.newAgreementEnd),
     NUMER_UMOWY: required(currentContract.agreementNumber, 'numer umowy'),
