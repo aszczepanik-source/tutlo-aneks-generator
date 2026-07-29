@@ -11,7 +11,10 @@
   "requiredFields": [
     "ADRES",
     "DATA_ANEKSU",
+    "DATA_WEJSCIA_W_ZYCIE",
     "DATA_ZAWARCIA_UMOWY",
+    "IDENTYFIKATOR_LABEL",
+    "IDENTYFIKATOR",
     "IMIE_NAZWISKO",
     "LIMIT_MIESIECZNY",
     "NOWA_CENA",
