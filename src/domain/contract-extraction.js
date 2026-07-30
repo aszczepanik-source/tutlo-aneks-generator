@@ -4,7 +4,7 @@ const normalized = value => String(value || '').normalize('NFC')
 
 export const CURRENT_CONTRACT_FIELDS = Object.freeze([
   'rawText', 'contractType', 'paymentType', 'paymentVariant', 'agreementNumber',
-  'agreementDate', 'customerType', 'customerName', 'personalId', 'address',
+  'agreementDate', 'courseStartDate', 'customerType', 'customerName', 'personalId', 'address',
   'coursePriceCents', 'monthlyInstallmentCents', 'lessonCount',
   'monthlyLessonLimit', 'teacherVariant', 'familyGroupVariant', 'internalPaymentAccount', 'installmentPlan'
 ]);
@@ -71,6 +71,18 @@ export function parseAgreementDateFromNumber(number) {
   return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 }
 export const extractAgreementDate = parseAgreementDateFromNumber;
+
+export function extractCourseStartDate(specification) {
+  const match = normalized(specification).match(
+    /\bData\s+rozpoczęcia\s+kursu\s*:?\s*(\d{1,2})\s*[-./]\s*(\d{1,2})\s*[-./]\s*(\d{4})\b/iu
+  );
+  if (!match) return null;
+  const [, day, month, year] = match;
+  const date = new Date(Date.UTC(+year, +month - 1, +day));
+  if (date.getUTCFullYear() !== +year || date.getUTCMonth() !== +month - 1
+      || date.getUTCDate() !== +day) return null;
+  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+}
 
 const field = (section, label, nextLabels) => section.match(
   new RegExp(`${label}\\s*:?\\s*(.+?)(?=\\s+(?:${nextLabels})\\s*:?|$)`, 'iu'))?.[1]?.trim();
@@ -214,7 +226,8 @@ export function parseCurrentContract(rawText) {
   const currentContract = {
     rawText: String(rawText || ''), contractType, paymentType: payment.paymentType,
     paymentVariant: payment.paymentVariant, agreementNumber,
-    agreementDate, ...extractBuyer(sections.buyer),
+    agreementDate, courseStartDate: extractCourseStartDate(specification),
+    ...extractBuyer(sections.buyer),
     coursePriceCents: moneyAfter(sections.payment, String.raw`Całkowita\s+cena\s+(?:pakietu\s+)?kursu\s+wynosi`),
     monthlyInstallmentCents: moneyAfter(sections.payment, String.raw`(?:Opłata\s+miesięczna|wynagrodzenie\s+przysługujące\s+Tutlo)\s+(?:za\s+każdy\s+miesiąc\s+trwania\s+Umowy\s+)?wynosi`),
     lessonCount, monthlyLessonLimit, teacherVariant: extractedTeacherVariant,

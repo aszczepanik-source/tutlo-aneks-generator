@@ -44,10 +44,10 @@ function assertFiniteCalculation(calculation) {
 }
 
 function calculate(contract, annexDate, newInstallmentCents) {
-  const agreement = new Date(`${contract.agreementDate}T12:00:00Z`);
+  const courseStart = new Date(`${contract.courseStartDate}T12:00:00Z`);
   const annex = new Date(`${annexDate}T12:00:00Z`);
-  const oldInstallments = (annex.getUTCFullYear() - agreement.getUTCFullYear()) * 12
-    + annex.getUTCMonth() - agreement.getUTCMonth() + 1;
+  const oldInstallments = (annex.getUTCFullYear() - courseStart.getUTCFullYear()) * 12
+    + annex.getUTCMonth() - courseStart.getUTCMonth() + 1;
   if (oldInstallments < 0 || oldInstallments > INSTALLMENT_COUNT) {
     throw new Error('Liczba rat objętych dotychczasową ratą musi mieścić się w zakresie od 0 do 24.');
   }
@@ -67,10 +67,11 @@ function calculate(contract, annexDate, newInstallmentCents) {
 }
 
 export function prepareAnnex26(contract, formData, today = new Date()) {
-  validateCurrentContract(contract);
-  if (contract.contractType !== 'flexible' || contract.paymentVariant !== 'credit') {
+  if (contract?.contractType !== 'flexible' || contract?.paymentType !== 'credit'
+      || contract?.paymentVariant !== 'credit') {
     throw new Error('Aneks 26 obsługuje wyłącznie elastyczną umowę kredytową.');
   }
+  validateCurrentContract(contract);
   const lessonCount = normalizeNumber(contract?.lessonCount);
   const coursePriceCents = contract?.coursePriceCents;
   const newInstallmentCents = moneyToCents(formData?.newInstallment);
