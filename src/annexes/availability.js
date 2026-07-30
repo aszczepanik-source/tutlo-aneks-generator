@@ -51,6 +51,9 @@ const LIMIT_INTERNAL = Object.freeze([
   card('29', 'Aneks 29 — Spłata jednej raty wewnętrznej', 'planned'),
   card('29a', 'Aneks 29a — Spłata dwóch rat wewnętrznych', 'planned')
 ]);
+const ANNEX_45C = card('45c', '45C – Zmiana raty i limitu tygodniowego', 'tutlo', {
+  desc: 'Zmiana wysokości rat wewnętrznych oraz tygodniowego limitu lekcji.'
+});
 const LIMIT_CREDIT = Object.freeze([
   EXTEND_ACCESS, EXTRA_LESSONS, TUTLO_PREMIUM, POLISH_LECTURERS,
   card('45', 'Aneks 45 — Kurs z limitem tygodniowym, kredyt', 'planned'),
@@ -84,7 +87,7 @@ export function getAvailableAnnexCards(currentContract) {
   }
   if (contractType === 'limit' && paymentType === 'internal'
       && INTERNAL_VARIANTS.has(paymentVariant)) {
-    return [...LIMIT_INTERNAL, ...familyGroupCards];
+    return [...(paymentVariant === 'internal_24' ? [ANNEX_45C] : []), ...LIMIT_INTERNAL, ...familyGroupCards];
   }
   if (contractType === 'limit' && paymentType === 'credit' && paymentVariant === 'credit') {
     return [...LIMIT_CREDIT, ...familyGroupCards];
