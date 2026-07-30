@@ -105,11 +105,11 @@ test('frazy z dalszych paragrafów i załączników nie zmieniają klasyfikacji'
 
 test('familyGroupVariant rozpoznaje oba warianty wyłącznie w §1 Specyfikacja kursu', () => {
   const included = fixtureA.replace('Okres trwania kursu: 24 miesiące',
-    'Okres trwania kursu: 24 miesiące\nGrupa rodzinna: w cenie kursu');
+    'Okres trwania kursu: 24 miesiące\nmożliwość korzystania z kursu max. przez 2 dodatkowych Użytkowników');
   const paid = fixtureA.replace('Okres trwania kursu: 24 miesiące',
-    'Okres trwania kursu: 24 miesiące\nGrupa rodzinna: za dodatkową opłatą');
+    'Okres trwania kursu: 24 miesiące\nmożliwość korzystania z kursu max. przez 2 dodatkowych Użytkowników za dodatkową opłatą');
   const outsideSpecification = fixtureA.replace('§ 3 WARUNKI UMOWY',
-    '§ 3 WARUNKI UMOWY\nGrupa rodzinna: za dodatkową opłatą');
+    '§ 3 WARUNKI UMOWY\nmożliwość korzystania z kursu max. przez 2 dodatkowych Użytkowników za dodatkową opłatą');
 
   assert.equal(parseCurrentContract(included).familyGroupVariant, 'included');
   assert.equal(parseCurrentContract(paid).familyGroupVariant, 'paid');

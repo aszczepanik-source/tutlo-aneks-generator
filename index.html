@@ -361,6 +361,7 @@
         <div class="result-row"><div class="label">Cena kursu</div><div class="value" id="coursePrice">—</div></div>
         <div class="result-row"><div class="label">Liczba lekcji</div><div class="value" id="lessonCount">—</div></div>
         <div class="result-row"><div class="label">Wariant lektorów</div><div class="value" id="teacherVariant">—</div></div>
+        <div class="result-row"><div class="label">familyGroupVariant (techniczne)</div><div class="value" id="familyGroupVariant">null</div></div>
         <div class="result-row" id="internalAccountRow"><div class="label">Rachunek Tutlo</div><div class="value" id="internalAccount">—</div></div>
         <div class="result-row">
           <div class="label">Pewność klasyfikacji</div>
@@ -556,7 +557,8 @@
     variant:document.getElementById('paymentVariant'),
     agreementNumber:document.getElementById('agreementNumber'), agreementDate:document.getElementById('agreementDate'),
     coursePrice:document.getElementById('coursePrice'), lessonCount:document.getElementById('lessonCount'),
-    teacherVariant:document.getElementById('teacherVariant'), internalAccount:document.getElementById('internalAccount'),
+    teacherVariant:document.getElementById('teacherVariant'), familyGroupVariant:document.getElementById('familyGroupVariant'),
+    internalAccount:document.getElementById('internalAccount'),
     internalAccountRow:document.getElementById('internalAccountRow'),
     confidence:document.getElementById('confidence'),
     reasons:document.getElementById('reasonsList'),
@@ -663,12 +665,15 @@
     els.coursePrice.textContent=new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(contract.coursePriceCents/100);
     els.lessonCount.textContent=String(contract.lessonCount);
     els.teacherVariant.textContent=contract.teacherVariant;
+    els.familyGroupVariant.textContent=contract.familyGroupVariant??'null';
+    console.debug('UI_CURRENT_CONTRACT_FAMILY_GROUP_VARIANT', currentContract?.familyGroupVariant);
     els.internalAccountRow.style.display=contract.paymentType==='internal'?'grid':'none';
     els.internalAccount.textContent=contract.internalPaymentAccount||'—';
     els.confidence.textContent=c.score>=90?'Wysoka':c.score>=60?'Średnia':'Niska';
     els.reasons.innerHTML=c.reasons.map(x=>`<li>${x}</li>`).join('');
 
     const items=getAvailableAnnexCards(contract);
+    console.debug('UI_ANNEX_43_CARD_VISIBLE', items.some(item=>item.no==='43'));
     if(items.length){
       renderAnnexCards(items,els.annexGrid);
       els.annexSection.style.display='block';

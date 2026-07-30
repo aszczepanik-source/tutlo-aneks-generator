@@ -23,3 +23,14 @@ test('Aneks 43 jest widoczny wyłącznie dla płatnego wariantu grupy rodzinnej'
     assert.equal(cards.find(card => card.no === '43').status, 'tutlo');
   }
 });
+
+test('Aneks 43 nie ma dodatkowego warunku typu umowy, limitu ani płatności', () => {
+  const cards = getAvailableAnnexCards({
+    contractType: undefined,
+    paymentType: undefined,
+    paymentVariant: undefined,
+    familyGroupVariant: 'paid'
+  });
+
+  assert.deepEqual(cards.map(card => card.no), ['43']);
+});
