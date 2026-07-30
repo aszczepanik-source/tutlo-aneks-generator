@@ -38,7 +38,7 @@ for (const identity of [
 }
 
 test('katalog generatorów zawiera aktywne aneksy lokalne', () => {
-  assert.deepEqual([...annexModules.keys()], ['11', '26', '27', '29', '29a', '43', '45c']);
+  assert.deepEqual([...annexModules.keys()], ['11', '26', '27', '29', '29a', '43', '45', '45c']);
   assert.deepEqual(getAvailableAnnexCards({ contractType: 'flexible', paymentType: 'credit', paymentVariant: 'credit' })
     .map(card => card.no), [
       '26', '27', 'wydluzenie-dostepu', '20-lekcji-gratis', 'tutlo-premium',
@@ -48,7 +48,7 @@ test('katalog generatorów zawiera aktywne aneksy lokalne', () => {
     contractType: 'limit', paymentType: 'internal', paymentVariant: 'internal_4'
   }).map(({ no }) => no), [
     'wydluzenie-dostepu', '20-lekcji-gratis', 'rozlozenie-platnosci', 'tutlo-premium',
-    'lektorzy-pl', '45', '48', '29', '29a'
+    'lektorzy-pl', '48', '29', '29a'
   ]);
 });
 
