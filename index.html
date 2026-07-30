@@ -520,6 +520,21 @@
   </div>
 </dialog>
 
+<dialog id="annex45Dialog">
+  <div class="modal-head">
+    <h3>45 – Zmiana raty i wprowadzenie limitu tygodniowego</h3>
+    <button class="close" data-close="annex45Dialog" type="button">×</button>
+  </div>
+  <div class="modal-body">
+    <form id="annex45Form" class="annex-form">
+      <label>Nowa rata miesięczna (zł)<input id="annex45NewInstallment" inputmode="decimal" pattern="[0-9]+([,.][0-9]{1,2})?" required></label>
+      <label>Nowy limit lekcji tygodniowo<input id="annex45WeeklyLimit" inputmode="numeric" pattern="[1-9][0-9]*" required></label>
+      <div class="actions"><button class="btn" type="submit">Sprawdź podsumowanie i pobierz</button></div>
+      <div id="annex45Status" class="status"></div>
+    </form>
+  </div>
+</dialog>
+
 <dialog id="annex45cDialog">
   <div class="modal-head">
     <h3>45C – Zmiana raty i limitu tygodniowego</h3>
@@ -540,7 +555,7 @@
 <script type="module">
   import { getAnnexRoute } from './router.js';
   import { ANNEX_STATUSES, getAvailableAnnexCards } from './src/annexes/availability.js';
-  import { downloadAnnex11, downloadAnnex25, downloadAnnex26, downloadAnnex27, downloadAnnex29, downloadAnnex29a, downloadAnnex43, downloadAnnex45C } from './src/infrastructure/local-docx-generator.js';
+  import { downloadAnnex11, downloadAnnex25, downloadAnnex26, downloadAnnex27, downloadAnnex29, downloadAnnex29a, downloadAnnex43, downloadAnnex45, downloadAnnex45C } from './src/infrastructure/local-docx-generator.js';
   import { prepareAnnex11 } from './src/annexes/11/index.js';
   import { prepareAnnex25 } from './src/annexes/25/index.js';
   import { prepareAnnex26 } from './src/annexes/26/index.js';
@@ -548,6 +563,7 @@
   import { prepareAnnex29 } from './src/annexes/29/index.js';
   import { prepareAnnex29a } from './src/annexes/29a/index.js';
   import { prepareAnnex43 } from './src/annexes/43/index.js';
+  import { prepareAnnex45 } from './src/annexes/45/index.js';
   import { prepareAnnex45C } from './src/annexes/45c/index.js';
   import { recognizeCurrentContract } from './src/application/recognize-contract.js?v=1.1.1';
   import { extractPdfText } from './src/infrastructure/pdf-text-extractor.js';
@@ -628,6 +644,11 @@
     if(no==='25'){
       if(!currentContract){ alert('Najpierw wczytaj i rozpoznaj umowę.'); return; }
       document.getElementById('annex25Dialog').showModal();
+      return;
+    }
+    if(no==='45'){
+      if(!currentContract){ alert('Najpierw wczytaj i rozpoznaj umowę.'); return; }
+      document.getElementById('annex45Dialog').showModal();
       return;
     }
     if(no==='45c'){
@@ -801,6 +822,30 @@
     }catch(error){
       status.textContent=error.message;status.className='status show error';
     }
+  });
+
+  document.getElementById('annex45Form').addEventListener('submit',async event=>{
+    event.preventDefault();
+    const status=document.getElementById('annex45Status');
+    status.textContent='Przygotowuję podsumowanie…';status.className='status show warn';
+    try{
+      const prepared=prepareAnnex45(currentContract,{
+        newInstallment:document.getElementById('annex45NewInstallment').value,
+        weeklyLimit:document.getElementById('annex45WeeklyLimit').value
+      });
+      const s=prepared.summary;
+      const summary=[`Aneks: ${s.annex}`,`Klient: ${s.customer}`,`Numer umowy: ${s.agreementNumber}`,
+        `Data umowy: ${s.agreementDate}`,`Data rozpoczęcia kursu: ${s.courseStartDate}`,
+        `Pierwotna rata: ${s.oldInstallment} zł`,`Nowa rata: ${s.newInstallment} zł`,
+        `Liczba rat po starej stawce: ${s.oldInstallments}`,`Liczba rat po nowej stawce: ${s.newInstallments}`,
+        `Suma obniżki: ${s.discount} zł`,`Obecna cena kursu: ${s.oldPrice} zł`,`Nowa cena kursu: ${s.newPrice} zł`,
+        `Nowa średnia rata: ${s.newAverageInstallment} zł`,`Liczba lekcji: ${s.lessonCount}`,
+        `Nowy limit tygodniowy: ${s.weeklyLimit}`,`Data aneksu: ${s.annexDate}`,
+        `Data wejścia w życie: ${s.effectiveDate}`,`Pierwszy miesiąc nowej raty: ${s.firstChangedMonth}`].join('\n');
+      if(!confirm(`${summary}\n\nCzy wygenerować dokument?`)){status.textContent='Generowanie anulowano.';status.className='status show warn';return;}
+      await downloadAnnex45(prepared,{requiredFields:prepared.requiredFields});
+      status.textContent='Aneks został pobrany';status.className='status show ok';
+    }catch(error){status.textContent=error.message;status.className='status show error';}
   });
 
   document.getElementById('annex45cForm').addEventListener('submit',async event=>{
