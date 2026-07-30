@@ -1,12 +1,9 @@
-const unavailable = 'Aneks 43 jest dostępny tylko dla umowy elastycznej z płatnością kredytową i Grupą Rodzinną za dodatkową opłatą.';
+const unavailable = 'Aneks 43 jest dostępny tylko dla umowy z Grupą Rodzinną za dodatkową opłatą.';
 
 const missing = (value) => value === undefined || value === null || String(value).trim() === '';
 
 export function validateAnnex43Data(currentContract) {
-  if (currentContract?.contractType !== 'flexible'
-    || currentContract?.paymentType !== 'credit'
-    || currentContract?.paymentVariant !== 'credit'
-    || currentContract?.familyGroupVariant !== 'paid') throw new Error(unavailable);
+  if (currentContract?.familyGroupVariant !== 'paid') throw new Error(unavailable);
 
   if (missing(currentContract.agreementNumber)) throw new Error('Nie udało się odczytać numeru umowy.');
   const agreementDate = currentContract.agreementDate

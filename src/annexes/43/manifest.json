@@ -1,14 +1,12 @@
 {
   "id": "43",
-  "label": "43 – Grupa Rodzinna bez dodatkowej opłaty",
+  "label": "43 – Grupa Rodzinna",
   "available": true,
-  "availabilityText": "Umowa elastyczna, kredyt i Grupa Rodzinna za dodatkową opłatą",
+  "availabilityText": "Grupa Rodzinna za dodatkową opłatą",
   "template": "template.docx",
   "templatePending": true,
   "templateVersion": "1.0.0",
-  "allowedContractVariants": [
-    "flexible/credit/credit/paid"
-  ],
+  "allowedContractVariants": ["*/paid"],
   "requiredFields": [
     "NUMER_UMOWY",
     "DATA_ZAWARCIA_UMOWY",

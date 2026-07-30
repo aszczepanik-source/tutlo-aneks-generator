@@ -42,13 +42,13 @@ test('katalog generatorów zawiera aktywne aneksy lokalne', () => {
   assert.deepEqual(getAvailableAnnexCards({ contractType: 'flexible', paymentType: 'credit', paymentVariant: 'credit' })
     .map(card => card.no), [
       '26', '27', 'wydluzenie-dostepu', '20-lekcji-gratis', 'tutlo-premium',
-      '30', '30a', '10', '35'
+      '30', '30a', '10'
     ]);
   assert.deepEqual(getAvailableAnnexCards({
     contractType: 'limit', paymentType: 'internal', paymentVariant: 'internal_4'
   }).map(({ no }) => no), [
     'wydluzenie-dostepu', '20-lekcji-gratis', 'rozlozenie-platnosci', 'tutlo-premium',
-    'lektorzy-pl', '45', '35', '48', '29', '29a'
+    'lektorzy-pl', '45', '48', '29', '29a'
   ]);
 });
 

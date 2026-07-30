@@ -2,19 +2,24 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { getAvailableAnnexCards } from '../../src/annexes/availability.js';
 
-const contract = {
-  contractType: 'flexible',
-  paymentType: 'credit',
-  paymentVariant: 'credit'
-};
+const contracts = [
+  { contractType: 'flexible', paymentType: 'credit', paymentVariant: 'credit' },
+  { contractType: 'flexible', paymentType: 'internal', paymentVariant: 'internal_24' },
+  { contractType: 'limit', paymentType: 'credit', paymentVariant: 'credit' },
+  { contractType: 'limit', paymentType: 'internal', paymentVariant: 'internal_4' }
+];
 
 test('Aneks 43 jest widoczny wyłącznie dla płatnego wariantu grupy rodzinnej', () => {
-  for (const familyGroupVariant of ['included', null, undefined]) {
-    assert.equal(getAvailableAnnexCards({ ...contract, familyGroupVariant })
-      .some(card => card.no === '43'), false);
-  }
+  for (const contract of contracts) {
+    for (const familyGroupVariant of ['included', null, undefined]) {
+      const cards = getAvailableAnnexCards({ ...contract, familyGroupVariant });
+      assert.equal(cards.some(card => ['35', '43'].includes(card.no)), false);
+    }
 
-  const cards = getAvailableAnnexCards({ ...contract, familyGroupVariant: 'paid' });
-  assert.equal(cards.filter(card => card.no === '43').length, 1);
-  assert.equal(cards.find(card => card.no === '43').status, 'tutlo');
+    const cards = getAvailableAnnexCards({ ...contract, familyGroupVariant: 'paid' });
+    assert.equal(cards.some(card => card.no === '35'), false);
+    assert.equal(cards.filter(card => card.no === '43').length, 1);
+    assert.equal(cards.find(card => card.no === '43').name, '43 – Grupa Rodzinna');
+    assert.equal(cards.find(card => card.no === '43').status, 'tutlo');
+  }
 });
