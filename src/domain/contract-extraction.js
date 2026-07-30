@@ -113,10 +113,19 @@ function extractTeacherVariant(contents) {
   return undefined;
 }
 
-function extractFamilyGroupVariant(specification) {
+const FAMILY_GROUP_CLAUSE = /możliwość\s+korzystania\s+z\s+kursu\s+max\.?\s+przez\s+2\s+dodatkowych\s+Użytkowników(?:\s+za\s+dodatkową\s+opłatą)?/iu;
+
+/** Returns the exact normalized §1 fragment used to classify Grupa Rodzinna. */
+export function extractFamilyGroupFieldText(specification) {
   const section = normalizeCourseContentText(specification);
-  if (/grupa\s+rodzinna[^.;]*(?:za\s+(?:dodatkow[aą]\s+)?opłat[aą]|dodatkowo\s+płatna|odpłatna|dopłata)/iu.test(section)) return 'paid';
-  if (/grupa\s+rodzinna[^.;]*(?:w\s+cenie|wliczona|uwzględniona)/iu.test(section)) return 'included';
+  return section.match(FAMILY_GROUP_CLAUSE)?.[0] ?? null;
+}
+
+function extractFamilyGroupVariant(specification) {
+  const fieldText = extractFamilyGroupFieldText(specification);
+  if (!fieldText) return null;
+  if (/\sza\s+dodatkową\s+opłatą$/iu.test(fieldText)) return 'paid';
+  if (FAMILY_GROUP_CLAUSE.test(fieldText)) return 'included';
   return null;
 }
 
@@ -197,7 +206,11 @@ export function parseCurrentContract(rawText) {
   const agreementDate = parseAgreementDateFromNumber(agreementNumber);
   const payment = extractPayment(sections.payment, agreementDate);
   const extractedTeacherVariant = extractTeacherVariant(sections.contents);
+  const familyGroupFieldText = extractFamilyGroupFieldText(specification);
+  const familyGroupVariant = extractFamilyGroupVariant(specification);
   console.debug('TEACHER_EXTRACTOR_RESULT', extractedTeacherVariant);
+  console.debug('FAMILY_GROUP_SECTION_TEXT', familyGroupFieldText);
+  console.debug('FAMILY_GROUP_PARSER_RESULT', familyGroupVariant);
   const currentContract = {
     rawText: String(rawText || ''), contractType, paymentType: payment.paymentType,
     paymentVariant: payment.paymentVariant, agreementNumber,
@@ -205,7 +218,7 @@ export function parseCurrentContract(rawText) {
     coursePriceCents: moneyAfter(sections.payment, String.raw`Całkowita\s+cena\s+(?:pakietu\s+)?kursu\s+wynosi`),
     monthlyInstallmentCents: moneyAfter(sections.payment, String.raw`(?:Opłata\s+miesięczna|wynagrodzenie\s+przysługujące\s+Tutlo)\s+(?:za\s+każdy\s+miesiąc\s+trwania\s+Umowy\s+)?wynosi`),
     lessonCount, monthlyLessonLimit, teacherVariant: extractedTeacherVariant,
-    familyGroupVariant: extractFamilyGroupVariant(specification),
+    familyGroupVariant,
     internalPaymentAccount: payment.internalPaymentAccount, installmentPlan: payment.installmentPlan
   };
   console.debug('CURRENT_CONTRACT_TEACHER_VARIANT', currentContract.teacherVariant);

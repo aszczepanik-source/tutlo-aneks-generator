@@ -68,6 +68,7 @@ const INTERNAL_VARIANTS = new Set(['internal_24', 'internal_2', 'internal_13', '
 export function getAvailableAnnexCards(currentContract) {
   const { contractType, paymentType, paymentVariant, familyGroupVariant } = currentContract ?? {};
   const familyGroupCards = familyGroupVariant === 'paid' ? [PAID_FAMILY_GROUP] : [];
+  console.debug('ANNEX_43_AVAILABILITY', familyGroupVariant === 'paid');
 
   if (contractType === 'flexible' && paymentType === 'internal'
       && INTERNAL_VARIANTS.has(paymentVariant)) {
@@ -88,5 +89,5 @@ export function getAvailableAnnexCards(currentContract) {
   if (contractType === 'limit' && paymentType === 'credit' && paymentVariant === 'credit') {
     return [...LIMIT_CREDIT, ...familyGroupCards];
   }
-  return [];
+  return familyGroupCards;
 }
