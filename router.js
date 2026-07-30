@@ -8,6 +8,8 @@ export function getAnnexRoute(annexId, contract) {
   const annex = annexModules.get(String(annexId));
   if (!annex || annex.manifest.available !== true) return undefined;
   if (String(annexId) === '43' && contract?.familyGroupVariant !== 'paid') return undefined;
+  if (String(annexId) === '45c' && (contract?.contractType !== 'limit'
+    || contract?.paymentType !== 'internal' || contract?.paymentVariant !== 'internal_24')) return undefined;
 
   return Object.freeze({
     number: annex.manifest.id,

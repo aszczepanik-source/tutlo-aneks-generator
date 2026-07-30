@@ -6,6 +6,7 @@ import * as annex11 from './11/index.js';
 import * as annex29 from './29/index.js';
 import * as annex29a from './29a/index.js';
 import * as annex43 from './43/index.js';
+import * as annex45c from './45c/index.js';
 
 export const annexModules = new Map([
   [annex11.manifest.id, annex11],
@@ -13,7 +14,8 @@ export const annexModules = new Map([
   [annex27.manifest.id, annex27],
   [annex29.manifest.id, annex29],
   [annex29a.manifest.id, annex29a],
-  [annex43.manifest.id, annex43]
+  [annex43.manifest.id, annex43],
+  [annex45c.manifest.id, annex45c]
 ]);
 
 export function getAnnexModule(annexId) {
