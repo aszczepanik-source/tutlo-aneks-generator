@@ -1,6 +1,7 @@
 const REQUIRED = [
   ['agreementNumber', 'Nie odczytano numeru umowy.'],
   ['agreementDate', 'Nie odczytano prawidłowej daty zawarcia umowy z numeru umowy.'],
+  ['courseStartDate', 'Nie udało się odczytać daty rozpoczęcia kursu.'],
   ['customerName', data => data.customerType === 'company'
     ? 'Nie odczytano nazwy firmy.' : 'Nie odczytano imienia i nazwiska.'],
   ['address', 'Nie odczytano adresu.'],

@@ -48,7 +48,7 @@ DOSTĘPNOŚĆ LEKTORÓW NA PLATFORMIE: Lektor Polski, English Expert, Native Spe
 
 const expectedA = {
   rawText: fixtureA, contractType: 'flexible', paymentType: 'internal', paymentVariant: 'internal_24',
-  agreementNumber: 'EL/JT/787/161827/31/10/2025', agreementDate: '2025-10-31',
+  agreementNumber: 'EL/JT/787/161827/31/10/2025', agreementDate: '2025-10-31', courseStartDate: null,
   customerType: 'person', customerName: 'Anna Kowalska', personalId: '90010112345',
   address: 'Długa 1, 00-001 Warszawa', coursePriceCents: 1392000,
   monthlyInstallmentCents: 58000, lessonCount: 480, monthlyLessonLimit: 60,
@@ -59,7 +59,7 @@ const expectedA = {
 
 const expectedB = {
   rawText: fixtureB, contractType: 'limit', paymentType: 'credit', paymentVariant: 'credit',
-  agreementNumber: 'EL/PD/147/115351/23/6/2026', agreementDate: '2026-06-23',
+  agreementNumber: 'EL/PD/147/115351/23/6/2026', agreementDate: '2026-06-23', courseStartDate: null,
   customerType: 'person', customerName: 'Piotr Nowak', personalId: '85050512345',
   address: 'Polna 2, 30-001 Kraków', coursePriceCents: 957600,
   monthlyInstallmentCents: 39900, lessonCount: 288, monthlyLessonLimit: 12,
