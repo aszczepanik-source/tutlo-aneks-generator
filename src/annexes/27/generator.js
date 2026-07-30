@@ -15,11 +15,12 @@ function parseMoney(value) {
 }
 
 // The month calculation intentionally mirrors the established Annex 26 behavior.
-export function calculatePaidMonths(agreementDate, annexDate) {
-  const agreement = new Date(`${agreementDate}T12:00:00Z`);
+export function calculatePaidMonths(courseStartDate, annexDate) {
+  if (!courseStartDate) throw new Error('Nie udało się odczytać daty rozpoczęcia kursu.');
+  const courseStart = new Date(`${courseStartDate}T12:00:00Z`);
   const annex = new Date(`${annexDate}T12:00:00Z`);
-  return (annex.getUTCFullYear() - agreement.getUTCFullYear()) * 12
-    + annex.getUTCMonth() - agreement.getUTCMonth() + 1;
+  return (annex.getUTCFullYear() - courseStart.getUTCFullYear()) * 12
+    + annex.getUTCMonth() - courseStart.getUTCMonth() + 1;
 }
 
 const roman = value => {
@@ -38,7 +39,7 @@ export function buildTutloSchedule(annexDate, remainingMonths, newRateCents) {
 }
 
 export function calculateAnnex27(contract, annexDate, newRateCents) {
-  const paidMonths = calculatePaidMonths(contract.agreementDate, annexDate);
+  const paidMonths = calculatePaidMonths(contract.courseStartDate, annexDate);
   const remainingMonths = INSTALLMENT_COUNT - paidMonths;
   const data = { ...contract, oldCoursePriceCents: contract.coursePriceCents,
     oldRateCents: contract.monthlyInstallmentCents, newRateCents, paidMonths, remainingMonths };
@@ -62,7 +63,7 @@ export function prepareAnnex27(currentContract, formData, today = new Date()) {
   validateCurrentContract(currentContract);
   const annexDate = today instanceof Date ? iso(today) : String(today);
   const newRateCents = parseMoney(formData?.newInstallment);
-  const paidMonths = calculatePaidMonths(currentContract.agreementDate, annexDate);
+  const paidMonths = calculatePaidMonths(currentContract.courseStartDate, annexDate);
   const data = { ...currentContract, bank: String(formData?.bank ?? '').trim(),
     bankAccount: account(formData?.bankAccount), tutloAccount: account(formData?.tutloAccount),
     oldCoursePriceCents: currentContract.coursePriceCents, oldRateCents: currentContract.monthlyInstallmentCents,

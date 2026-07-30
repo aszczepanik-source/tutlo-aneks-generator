@@ -6,6 +6,7 @@ import { annex27Filename } from '../../../infrastructure/local-docx-generator.js
 const account = '12345678901234567890123456';
 const contract = {
   agreementNumber: 'EL/1/1/1/1/1/2025', agreementDate: '2025-07-15', customerType: 'person',
+  courseStartDate: '2025-07-15',
   customerName: 'Jan Kowalski', personalId: '90010112345', address: 'Testowa 1',
   coursePriceCents: 240000, monthlyInstallmentCents: 10000, lessonCount: 240,
   monthlyLessonLimit: 20, teacherVariant: 'polish_english_native', contractType: 'flexible',
@@ -13,8 +14,8 @@ const contract = {
 };
 const form = { bank: 'Inbank', newInstallment: '50,00', bankAccount: account, tutloAccount: `12 3456 7890 1234 5678 9012 3456` };
 
-function prepare(agreementDate = '2025-07-15', today = '2026-06-28') {
-  return prepareAnnex27({ ...contract, agreementDate }, form, today);
+function prepare(courseStartDate = '2025-07-15', today = '2026-06-28') {
+  return prepareAnnex27({ ...contract, courseStartDate }, form, today);
 }
 
 test('bazowe obliczenia 2400/100/12/50 i dokładnie 12 rat', () => {
@@ -25,9 +26,9 @@ test('bazowe obliczenia 2400/100/12/50 i dokładnie 12 rat', () => {
   { paid: 120000, bank: 120000, tutlo: 60000, discount: 60000, price: 180000, refund: 120000, rows: 12 });
 });
 
-for (const [remaining, agreementDate] of [[6, '2025-01-15'], [20, '2026-03-15']]) {
+for (const [remaining, courseStartDate] of [[6, '2025-01-15'], [20, '2026-03-15']]) {
   test(`${remaining} pozostałych rat ma numerację od I i termin w kolejnym miesiącu`, () => {
-    const prepared = prepare(agreementDate);
+    const prepared = prepare(courseStartDate);
     assert.equal(prepared.values.RATY.length, remaining);
     assert.equal(prepared.values.RATY[0].NUMER_RATY, 'I rata');
     assert.equal(prepared.values.RATY[0].TERMIN, '05.07.2026');
@@ -46,6 +47,32 @@ test('daty, etykiety identyfikatora, rachunki i kwoty bez podwójnego zł', () =
 });
 
 test('data wejścia w życie obsługuje koniec roku', () => assert.equal(prepareAnnex27({ ...contract, agreementDate: '2026-01-15' }, form, '2026-12-31').values.DATA_WEJSCIA_W_ZYCIE, '01.01.2027'));
+
+test('obliczenia zależą od początku kursu, a nie od formalnej daty umowy', () => {
+  const first = prepareAnnex27({ ...contract, agreementDate: '2025-05-10', courseStartDate: '2025-07-01' }, form, '2026-07-30');
+  const second = prepareAnnex27({ ...contract, agreementDate: '2025-06-15', courseStartDate: '2025-07-01' }, form, '2026-07-30');
+  assert.deepEqual(first.calculation, second.calculation);
+  assert.equal(first.calculation.paidMonths, 13);
+});
+
+test('zmiana początku kursu zmienia wyniki miesięczne zgodnie z dotychczasowym wzorem', () => {
+  const february = prepareAnnex27({ ...contract, courseStartDate: '2026-02-01' }, form, '2026-07-30');
+  const march = prepareAnnex27({ ...contract, courseStartDate: '2026-03-01' }, form, '2026-07-30');
+  assert.equal(february.calculation.paidMonths, 6);
+  assert.equal(march.calculation.paidMonths, 5);
+  assert.notEqual(february.calculation.discountCents, march.calculation.discountCents);
+  assert.notEqual(february.calculation.newCoursePriceCents, march.calculation.newCoursePriceCents);
+});
+
+test('brak początku kursu blokuje generator bez fallbacku do daty umowy', () => {
+  assert.throws(() => prepareAnnex27({ ...contract, courseStartDate: null }, form, '2026-07-30'),
+    { message: 'Nie udało się odczytać daty rozpoczęcia kursu.' });
+});
+
+test('formalna data zawarcia umowy nadal trafia do DATA_ZAWARCIA_UMOWY', () => {
+  const prepared = prepareAnnex27({ ...contract, agreementDate: '2025-05-10', courseStartDate: '2025-07-01' }, form, '2026-07-30');
+  assert.equal(prepared.values.DATA_ZAWARCIA_UMOWY, '10.05.2025');
+});
 
 test('waliduje bank, ratę, rabat i oba rachunki', () => {
   assert.throws(() => prepareAnnex27(contract, { ...form, bank: 'Inny' }, '2026-06-28'), /bank z listy/);
