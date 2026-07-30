@@ -21,7 +21,7 @@ const TUTLO_PREMIUM = card('tutlo-premium', 'Aneks Tutlo Premium', 'external', {
 const POLISH_LECTURERS = card('lektorzy-pl', 'Rozszerzenie pakietu lektorów', 'external', {
   marker: 'PL', desc: 'Aneks dostępny w Team Tutlo.'
 });
-const PAID_FAMILY_GROUP = card('43', '43 – Grupa Rodzinna bez dodatkowej opłaty', 'tutlo', {
+const PAID_FAMILY_GROUP = card('43', '43 – Grupa Rodzinna', 'tutlo', {
   desc: 'Dodanie możliwości korzystania z kursu przez maksymalnie 2 dodatkowych użytkowników bez dodatkowej opłaty.'
 });
 
@@ -42,13 +42,11 @@ const FLEXIBLE_CREDIT = Object.freeze([
   TUTLO_PREMIUM,
   card('30', 'Aneks 30 — Spłata jednej raty kredytowej', 'planned'),
   card('30a', 'Aneks 30a — Spłata dwóch rat kredytowych', 'planned'),
-  card('10', 'Aneks 10 — Zmiana formy płatności', 'planned'),
-  card('35', 'Aneks 35 — Grupa rodzinna', 'planned')
+  card('10', 'Aneks 10 — Zmiana formy płatności', 'planned')
 ]);
 const LIMIT_INTERNAL = Object.freeze([
   EXTEND_ACCESS, EXTRA_LESSONS, SPLIT_PAYMENT, TUTLO_PREMIUM, POLISH_LECTURERS,
   card('45', 'Aneks 45 — Kurs z limitem tygodniowym, raty wewnętrzne', 'planned'),
-  card('35', 'Aneks 35 — Grupa rodzinna', 'planned'),
   card('48', 'Aneks 48 — Zdjęcie limitu', 'planned'),
   card('29', 'Aneks 29 — Spłata jednej raty wewnętrznej', 'planned'),
   card('29a', 'Aneks 29a — Spłata dwóch rat wewnętrznych', 'planned')
@@ -56,7 +54,6 @@ const LIMIT_INTERNAL = Object.freeze([
 const LIMIT_CREDIT = Object.freeze([
   EXTEND_ACCESS, EXTRA_LESSONS, TUTLO_PREMIUM, POLISH_LECTURERS,
   card('45', 'Aneks 45 — Kurs z limitem tygodniowym, kredyt', 'planned'),
-  card('35', 'Aneks 35 — Grupa rodzinna', 'planned'),
   card('48', 'Aneks 48 — Zdjęcie limitu', 'planned'),
   card('30', 'Aneks 30 — Spłata jednej raty kredytowej', 'planned'),
   card('30a', 'Aneks 30a — Spłata dwóch rat kredytowych', 'planned')
@@ -76,20 +73,20 @@ export function getAvailableAnnexCards(currentContract) {
       && INTERNAL_VARIANTS.has(paymentVariant)) {
     return paymentVariant === 'internal_24'
       ? [card('25', 'Aneks 25 — Zmniejszenie rat wewnętrznych', 'tutlo'),
-          ...FLEXIBLE_INTERNAL_EXTERNAL,
+          ...FLEXIBLE_INTERNAL_EXTERNAL, ...familyGroupCards,
           ...FLEXIBLE_INTERNAL_PLANNED.map(item => ['11', '29', '29a'].includes(item.no)
             ? card(item.no, item.name, 'tutlo') : item)]
-      : [...FLEXIBLE_INTERNAL_EXTERNAL, ...FLEXIBLE_INTERNAL_PLANNED];
+      : [...FLEXIBLE_INTERNAL_EXTERNAL, ...FLEXIBLE_INTERNAL_PLANNED, ...familyGroupCards];
   }
   if (contractType === 'flexible' && paymentType === 'credit' && paymentVariant === 'credit') {
     return [...FLEXIBLE_CREDIT, ...familyGroupCards];
   }
   if (contractType === 'limit' && paymentType === 'internal'
       && INTERNAL_VARIANTS.has(paymentVariant)) {
-    return [...LIMIT_INTERNAL];
+    return [...LIMIT_INTERNAL, ...familyGroupCards];
   }
   if (contractType === 'limit' && paymentType === 'credit' && paymentVariant === 'credit') {
-    return [...LIMIT_CREDIT];
+    return [...LIMIT_CREDIT, ...familyGroupCards];
   }
   return [];
 }

@@ -7,9 +7,7 @@ import { annexModules } from './src/annexes/catalog.js';
 export function getAnnexRoute(annexId, contract) {
   const annex = annexModules.get(String(annexId));
   if (!annex || annex.manifest.available !== true) return undefined;
-  if (String(annexId) === '43' && (contract?.contractType !== 'flexible'
-    || contract?.paymentType !== 'credit' || contract?.paymentVariant !== 'credit'
-    || contract?.familyGroupVariant !== 'paid')) return undefined;
+  if (String(annexId) === '43' && contract?.familyGroupVariant !== 'paid') return undefined;
 
   return Object.freeze({
     number: annex.manifest.id,
