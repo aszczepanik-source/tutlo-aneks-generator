@@ -17,7 +17,7 @@ export function validateAnnex29Data(currentContract, options = {}) {
   const allowedStandard = !postPaymentChange && currentContract?.contractType === 'flexible'
     && currentContract?.paymentType === 'internal' && currentContract?.paymentVariant === 'internal_24';
   if (!allowedCredit && !allowedStandard) {
-    throw new Error('Aneks 29 wymaga umowy flexible z ratami wewnętrznymi internal_24.');
+    throw new Error('Aneks 29 wymaga umowy flexible z ratami wewnętrznymi internal_24 albo trybu po zmianie płatności dla umowy kredytowej flexible lub limit.');
   }
   if (postPaymentChange) normalizeTutloBankAccount(options.tutloBankAccount);
   for (const [field, label] of required) {
