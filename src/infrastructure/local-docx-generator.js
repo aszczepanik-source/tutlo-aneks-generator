@@ -64,6 +64,12 @@ export function annex45Filename(values) {
   return safeCustomerName ? `Aneks 45 – ${safeCustomerName}.docx` : 'Aneks 45.docx';
 }
 
+export function annex48Filename(values) {
+  const safeCustomerName = String(values.IMIE_NAZWISKO ?? '')
+    .replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
+  return safeCustomerName ? `Aneks 48 – ${safeCustomerName}.docx` : 'Aneks 48.docx';
+}
+
 export function remainingPlaceholders(zip) {
   const names = Object.keys(zip.files).filter(name => /^word\/.+\.xml$/.test(name));
   const found = new Set();
@@ -126,6 +132,10 @@ export function annex45CTemplateUrl(moduleUrl = import.meta.url) {
 
 export function annex45TemplateUrl(moduleUrl = import.meta.url) {
   return new URL('../annexes/45/template.docx', moduleUrl).href;
+}
+
+export function annex48TemplateUrl(moduleUrl = import.meta.url) {
+  return new URL('../annexes/48/template.docx', moduleUrl).href;
 }
 
 function templateFetchError(url, response) {
@@ -234,4 +244,8 @@ export function downloadAnnex45C(prepared, options = {}) {
 
 export function downloadAnnex45(prepared, options = {}) {
   return downloadAutomaticAnnex(prepared, options, annex45TemplateUrl(), annex45Filename);
+}
+
+export function downloadAnnex48(prepared, options = {}) {
+  return downloadAutomaticAnnex(prepared, options, annex48TemplateUrl(), annex48Filename);
 }

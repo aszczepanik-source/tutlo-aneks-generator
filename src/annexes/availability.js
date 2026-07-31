@@ -27,6 +27,9 @@ const PAID_FAMILY_GROUP = card('43', '43 – Grupa Rodzinna', 'tutlo', {
 const ANNEX_45 = card('45', '45 – Zmiana raty i wprowadzenie limitu tygodniowego', 'tutlo', {
   desc: 'Zmiana wysokości raty oraz wprowadzenie tygodniowego limitu lekcji.'
 });
+const ANNEX_48 = card('48', '48 – Zdjęcie limitu', 'tutlo', {
+  desc: 'Zniesienie miesięcznego limitu wykorzystania lekcji i udostępnienie pozostałej puli bez limitu miesięcznego.'
+});
 
 const FLEXIBLE_INTERNAL_EXTERNAL = Object.freeze([
   EXTEND_ACCESS, EXTRA_LESSONS, SPLIT_PAYMENT, TUTLO_PREMIUM
@@ -48,7 +51,7 @@ const FLEXIBLE_CREDIT = Object.freeze([
 ]);
 const LIMIT_INTERNAL = Object.freeze([
   EXTEND_ACCESS, EXTRA_LESSONS, SPLIT_PAYMENT, TUTLO_PREMIUM, POLISH_LECTURERS,
-  card('48', 'Aneks 48 — Zdjęcie limitu', 'planned'),
+  ANNEX_48,
   card('29', 'Aneks 29 — Spłata jednej raty wewnętrznej', 'planned'),
   card('29a', 'Aneks 29a — Spłata dwóch rat wewnętrznych', 'planned')
 ]);
@@ -57,7 +60,7 @@ const ANNEX_45C = card('45c', '45C – Zmiana raty i limitu tygodniowego', 'tutl
 });
 const LIMIT_CREDIT = Object.freeze([
   EXTEND_ACCESS, EXTRA_LESSONS, TUTLO_PREMIUM, POLISH_LECTURERS,
-  card('48', 'Aneks 48 — Zdjęcie limitu', 'planned'),
+  ANNEX_48,
   card('30', 'Aneks 30 — Spłata jednej raty kredytowej', 'planned'),
   card('30a', 'Aneks 30a — Spłata dwóch rat kredytowych', 'planned')
 ]);
@@ -71,6 +74,7 @@ const INTERNAL_VARIANTS = new Set(['internal_24', 'internal_2', 'internal_13', '
 export function getAvailableAnnexCards(currentContract) {
   const { contractType, paymentType, paymentVariant, familyGroupVariant } = currentContract ?? {};
   const familyGroupCards = familyGroupVariant === 'paid' ? [PAID_FAMILY_GROUP] : [];
+  const annex48Cards = contractType === 'limit' ? [ANNEX_48] : [];
   console.debug('ANNEX_43_AVAILABILITY', familyGroupVariant === 'paid');
 
   if (contractType === 'flexible' && paymentType === 'internal'
@@ -92,5 +96,5 @@ export function getAvailableAnnexCards(currentContract) {
   if (contractType === 'limit' && paymentType === 'credit' && paymentVariant === 'credit') {
     return [...LIMIT_CREDIT, ...familyGroupCards];
   }
-  return familyGroupCards;
+  return [...annex48Cards, ...familyGroupCards];
 }
