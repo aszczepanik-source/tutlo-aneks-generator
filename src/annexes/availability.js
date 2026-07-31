@@ -71,11 +71,11 @@ export const POST_PAYMENT_CHANGE_ANNEXES = Object.freeze([
   card('45b', '45b – Kurs z limitem tygodniowym', 'planned', {
     desc: 'Wymaga zmiany formy płatności.', enabled: false
   }),
-  card('29', '29 – Spłata jednej raty wewnętrznej', 'planned', {
-    desc: 'Wymaga zmiany formy płatności.', enabled: false
+  card('29', '29 – Spłata jednej raty wewnętrznej', 'tutlo', {
+    desc: 'Wymaga zmiany formy płatności.', enabled: true, mode: 'post_payment_change'
   }),
-  card('29a', '29a – Spłata dwóch rat wewnętrznych', 'planned', {
-    desc: 'Wymaga zmiany formy płatności.', enabled: false
+  card('29a', '29a – Spłata dwóch rat wewnętrznych', 'tutlo', {
+    desc: 'Wymaga zmiany formy płatności.', enabled: true, mode: 'post_payment_change'
   }),
   card('11a', '11a – Zawieszenie po zmianie formy płatności', 'planned', {
     desc: 'Wymaga zmiany formy płatności.', enabled: false
@@ -83,7 +83,8 @@ export const POST_PAYMENT_CHANGE_ANNEXES = Object.freeze([
 ]);
 
 export function getPostPaymentChangeAnnexCards(currentContract) {
-  return currentContract?.contractType === 'limit' && currentContract?.paymentType === 'credit'
+  return ['flexible', 'limit'].includes(currentContract?.contractType)
+      && currentContract?.paymentType === 'credit' && currentContract?.paymentVariant === 'credit'
     ? POST_PAYMENT_CHANGE_ANNEXES
     : [];
 }

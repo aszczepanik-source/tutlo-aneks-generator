@@ -1,15 +1,22 @@
+import { normalizeTutloBankAccount } from '../shared/validation.js';
+
 const required = [
   ['agreementNumber', 'numer umowy'], ['agreementDate', 'data zawarcia umowy'],
   ['customerType', 'typ klienta'], ['customerName', 'dane klienta'],
   ['personalId', 'PESEL/NIP'], ['address', 'adres']
 ];
 
-export function validateAnnex29aData(currentContract) {
-  if (currentContract?.contractType !== 'flexible'
-    || currentContract?.paymentType !== 'internal'
-    || currentContract?.paymentVariant !== 'internal_24') {
+export function validateAnnex29aData(currentContract, options = {}) {
+  const postPaymentChange = options.mode === 'post_payment_change';
+  const allowedCredit = postPaymentChange
+    && ['flexible', 'limit'].includes(currentContract?.contractType)
+    && currentContract?.paymentType === 'credit' && currentContract?.paymentVariant === 'credit';
+  const allowedStandard = !postPaymentChange && currentContract?.contractType === 'flexible'
+    && currentContract?.paymentType === 'internal' && currentContract?.paymentVariant === 'internal_24';
+  if (!allowedCredit && !allowedStandard) {
     throw new Error('Aneks 29a wymaga umowy flexible z ratami wewnętrznymi internal_24.');
   }
+  if (postPaymentChange) normalizeTutloBankAccount(options.tutloBankAccount);
   for (const [field, label] of required) {
     if (currentContract[field] === undefined || currentContract[field] === null
       || String(currentContract[field]).trim() === '') throw new Error(`Brak danych umowy: ${label}.`);
@@ -22,6 +29,6 @@ export function validateAnnex29aData(currentContract) {
 }
 
 export function validate(input) {
-  try { validateAnnex29aData(input?.currentContract ?? input); return []; }
+  try { validateAnnex29aData(input?.currentContract ?? input, input?.options); return []; }
   catch (error) { return [{ message: error.message }]; }
 }
