@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { access } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { getAvailableAnnexCards } from '../../src/annexes/availability.js';
 import { prepareAnnex43 } from '../../src/annexes/43/index.js';
@@ -22,6 +22,13 @@ test('pełny przepływ udostępnia Aneks 43, wartości i właściwy URL szablonu
 test('wariant included i brak wariantu ukrywają Aneks 43', () => {
   assert.equal(visible('included'), false);
   assert.equal(visible(null), false);
+});
+
+test('kliknięcie karty 43 wywołuje generator i pobieranie Aneksu 43', async () => {
+  const html = await readFile(new URL('../../index.html', import.meta.url), 'utf8');
+  assert.match(html, /if\(no==='43'\)\{/);
+  assert.match(html, /downloadAnnex43\(prepareAnnex43\(currentContract\)\)/);
+  assert.doesNotMatch(html, /no==='35'/);
 });
 
 let sourceTemplatePresent = true;
