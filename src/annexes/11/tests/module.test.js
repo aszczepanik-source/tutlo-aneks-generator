@@ -7,6 +7,7 @@ import { annex11TemplateUrl } from '../../../infrastructure/local-docx-generator
 
 const contract = {
   agreementNumber: 'EL/11/2025', agreementDate: '2025-09-15', customerType: 'person',
+  courseStartDate: '2025-03-21',
   customerName: 'Jan Kowalski', personalId: '12345678901', address: 'Testowa 1, Warszawa',
   monthlyInstallmentCents: 50000, contractType: 'flexible', paymentType: 'internal',
   paymentVariant: 'internal_24',
@@ -17,9 +18,9 @@ const contract = {
 const dueDates = values => Array.from({ length: 24 }, (_, index) => values[`RATA_${String(index + 1).padStart(2, '0')}_TERMIN`]);
 
 for (const expected of [
-  { months: 1, end: '31.08.2026', resume: '01.09.2026', newEnd: '05.09.2027',
+  { months: 1, end: '31.08.2026', resume: '01.09.2026', newEnd: '21.04.2027',
     absent: ['05.08.2026'], tail: ['05.09.2027'] },
-  { months: 2, end: '30.09.2026', resume: '01.10.2026', newEnd: '05.10.2027',
+  { months: 2, end: '30.09.2026', resume: '01.10.2026', newEnd: '21.05.2027',
     absent: ['05.08.2026', '05.09.2026'], tail: ['05.09.2027', '05.10.2027'] }
 ]) {
   test(`28.07.2026: automatyczne daty i harmonogram dla ${expected.months} mies.`, () => {
@@ -38,21 +39,44 @@ for (const expected of [
 }
 
 test('31.12 wyznacza początek zawieszenia w kolejnym roku', () => {
-  assert.deepEqual(calculateAnnex11Dates('2026-12-31', 1, '2027-12-31'), {
+  assert.deepEqual(calculateAnnex11Dates('2026-12-31', 1, '2027-12-31', '2025-03-21'), {
     annexDate: '2026-12-31', effectiveDate: '2027-01-01', suspensionStart: '2027-01-01',
     suspensionEnd: '2027-01-31', paymentResumeDate: '2027-02-01', oldAgreementEnd: '2027-12-31',
-    newAgreementEnd: '2028-01-31'
+    newAgreementEnd: '2027-04-21'
   });
 });
 
 test('luty roku przestępnego kończy się 29 lutego', () => {
-  assert.equal(calculateAnnex11Dates('2028-01-15', 1, '2028-06-30').suspensionEnd, '2028-02-29');
+  assert.equal(calculateAnnex11Dates('2028-01-15', 1, '2028-06-30', '2025-03-21').suspensionEnd, '2028-02-29');
 });
 
 test('dwa miesiące zawieszenia przechodzą przez koniec roku', () => {
-  const dates = calculateAnnex11Dates('2026-11-30', 2, '2027-11-30');
+  const dates = calculateAnnex11Dates('2026-11-30', 2, '2027-11-30', '2025-03-21');
   assert.deepEqual([dates.suspensionStart, dates.suspensionEnd, dates.paymentResumeDate],
     ['2026-12-01', '2027-01-31', '2027-02-01']);
+});
+
+test('wylicza NOWY_KONIEC_UMOWY jako 25 pełnych miesięcy od courseStartDate', () => {
+  const prepared = prepareAnnex11(contract, { suspensionMonths: 1 }, { today: '2026-07-28' });
+  assert.equal(prepared.values.NOWY_KONIEC_UMOWY, '21.04.2027');
+});
+
+test('wylicza NOWY_KONIEC_UMOWY jako 26 pełnych miesięcy od courseStartDate', () => {
+  const prepared = prepareAnnex11(contract, { suspensionMonths: 2 }, { today: '2026-07-28' });
+  assert.equal(prepared.values.NOWY_KONIEC_UMOWY, '21.05.2027');
+});
+
+test('zachowuje dzień miesiąca przy dodaniu 25 miesięcy od courseStartDate', () => {
+  const prepared = prepareAnnex11({ ...contract, courseStartDate: '2026-01-01' },
+    { suspensionMonths: 1 }, { today: '2026-07-28' });
+  assert.equal(prepared.values.NOWY_KONIEC_UMOWY, '01.02.2028');
+});
+
+test('brak courseStartDate zatrzymuje przygotowanie dokumentu z właściwym błędem', () => {
+  assert.throws(() => prepareAnnex11({ ...contract, courseStartDate: null },
+    { suspensionMonths: 1 }, { today: '2026-07-28' }), {
+    message: 'Nie udało się odczytać daty rozpoczęcia kursu.'
+  });
 });
 
 test('konkretnie zgłasza brak raty w okresie zawieszenia', () => {
