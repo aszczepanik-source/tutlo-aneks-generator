@@ -14,7 +14,8 @@ const base = {
 const credits = ['flexible', 'limit'].map(contractType => ({ ...base, contractType }));
 
 test('sekcja po zmianie płatności jest widoczna dla flexible + credit i limit + credit', () => {
-  for (const contract of credits) assert.equal(getPostPaymentChangeAnnexCards(contract).length, 4);
+  assert.equal(getPostPaymentChangeAnnexCards(credits[0]).length, 4);
+  assert.equal(getPostPaymentChangeAnnexCards(credits[1]).length, 5);
   for (const contract of [
     { contractType: 'limit', paymentType: 'internal', paymentVariant: 'internal_24' },
     { contractType: 'flexible', paymentType: 'internal', paymentVariant: 'internal_24' },
@@ -25,7 +26,8 @@ test('sekcja po zmianie płatności jest widoczna dla flexible + credit i limit 
 test('29 i 29a są aktywne tylko w dodatkowej sekcji, a 45b i 11a pozostają planowane', () => {
   for (const contract of credits) {
     const cards = getPostPaymentChangeAnnexCards(contract);
-    assert.deepEqual(cards.map(card => card.no), ['45b', '29', '29a', '11a']);
+    assert.deepEqual(cards.map(card => card.no), contract.contractType === 'limit'
+      ? ['45b', '29', '29a', '11a', '45e'] : ['45b', '29', '29a', '11a']);
     for (const id of ['29', '29a']) {
       const card = cards.find(item => item.no === id);
       assert.equal(card.status, 'tutlo');

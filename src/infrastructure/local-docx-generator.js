@@ -58,6 +58,12 @@ export function annex45CFilename(values) {
   return safeCustomerName ? `Aneks 45C – ${safeCustomerName}.docx` : 'Aneks 45C.docx';
 }
 
+export function annex45EFilename(values) {
+  const safeCustomerName = String(values.IMIE_NAZWISKO ?? '')
+    .replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
+  return safeCustomerName ? `Aneks 45e – ${safeCustomerName}.docx` : 'Aneks 45e.docx';
+}
+
 export function annex45Filename(values) {
   const safeCustomerName = String(values.IMIE_NAZWISKO ?? '')
     .replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
@@ -130,6 +136,10 @@ export function annex45CTemplateUrl(moduleUrl = import.meta.url) {
   return new URL('../annexes/45c/template.docx', moduleUrl).href;
 }
 
+export function annex45ETemplateUrl(moduleUrl = import.meta.url) {
+  return new URL('../annexes/45e/template.docx', moduleUrl).href;
+}
+
 export function annex45TemplateUrl(moduleUrl = import.meta.url) {
   return new URL('../annexes/45/template.docx', moduleUrl).href;
 }
@@ -170,6 +180,10 @@ export async function downloadAnnex26(prepared, options = {}) {
 
 export function downloadAnnex27(prepared, options = {}) {
   return downloadAutomaticAnnex(prepared, options, annex27TemplateUrl(), annex27Filename);
+}
+
+export function downloadAnnex45E(prepared, options = {}) {
+  return downloadAutomaticAnnex(prepared, options, annex45ETemplateUrl(), annex45EFilename);
 }
 
 export async function downloadAnnex25(prepared, options = {}) {

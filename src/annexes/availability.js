@@ -82,11 +82,16 @@ export const POST_PAYMENT_CHANGE_ANNEXES = Object.freeze([
   })
 ]);
 
+const ANNEX_45E = card('45e', '45e – Zmiana limitu tygodniowego po zmianie formy płatności', 'tutlo', {
+  desc: 'Zmiana raty i limitu tygodniowego po przejściu z kredytu na raty Tutlo.',
+  enabled: true,
+  mode: 'post_payment_change'
+});
+
 export function getPostPaymentChangeAnnexCards(currentContract) {
-  return ['flexible', 'limit'].includes(currentContract?.contractType)
-      && currentContract?.paymentType === 'credit' && currentContract?.paymentVariant === 'credit'
-    ? POST_PAYMENT_CHANGE_ANNEXES
-    : [];
+  if (currentContract?.paymentType !== 'credit' || currentContract?.paymentVariant !== 'credit') return [];
+  if (currentContract.contractType === 'limit') return [...POST_PAYMENT_CHANGE_ANNEXES, ANNEX_45E];
+  return currentContract.contractType === 'flexible' ? POST_PAYMENT_CHANGE_ANNEXES : [];
 }
 
 /**

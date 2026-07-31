@@ -569,6 +569,24 @@
   </div>
 </dialog>
 
+<dialog id="annex45eDialog">
+  <div class="modal-head">
+    <h3>45e – Zmiana limitu tygodniowego po zmianie formy płatności</h3>
+    <button class="close" data-close="annex45eDialog" type="button">×</button>
+  </div>
+  <div class="modal-body">
+    <form id="annex45eForm" class="annex-form">
+      <label>Nowa rata miesięczna (zł)<input id="annex45eNewInstallment" inputmode="decimal" pattern="[0-9]+([,.][0-9]{1,2})?" required></label>
+      <label>Nowy limit tygodniowy<select id="annex45eWeeklyLimit" required><option value="" selected disabled>Wybierz limit...</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label>
+      <label>Bank<select id="annex45eBank" required><option value="" selected disabled>Wybierz bank...</option><option>Inbank</option><option>Oney</option><option>BGŻ BNP Paribas</option><option>mBank</option><option>Ikano Bank</option><option>Alior Bank</option></select></label>
+      <label>Numer rachunku bankowego Banku<input id="annex45eBankAccount" inputmode="numeric" pattern="[0-9]{26}" required></label>
+      <label>Numer rachunku bankowego Tutlo<input id="annex45eTutloAccount" inputmode="numeric" pattern="[0-9]{26}" required></label>
+      <div class="actions"><button class="btn" type="submit">Pobierz aneks</button></div>
+      <div id="annex45eStatus" class="status"></div>
+    </form>
+  </div>
+</dialog>
+
 <dialog id="annex48Dialog">
   <div class="modal-head">
     <h3>48 – Zdjęcie limitu</h3>
@@ -592,7 +610,7 @@
     getAvailableAnnexCards,
     getPostPaymentChangeAnnexCards
   } from './src/annexes/availability.js';
-  import { downloadAnnex11, downloadAnnex25, downloadAnnex26, downloadAnnex27, downloadAnnex29, downloadAnnex29a, downloadAnnex43, downloadAnnex45, downloadAnnex45C, downloadAnnex48 } from './src/infrastructure/local-docx-generator.js';
+  import { downloadAnnex11, downloadAnnex25, downloadAnnex26, downloadAnnex27, downloadAnnex29, downloadAnnex29a, downloadAnnex43, downloadAnnex45, downloadAnnex45C, downloadAnnex45E, downloadAnnex48 } from './src/infrastructure/local-docx-generator.js';
   import { prepareAnnex11 } from './src/annexes/11/index.js';
   import { prepareAnnex25 } from './src/annexes/25/index.js';
   import { prepareAnnex26 } from './src/annexes/26/index.js';
@@ -602,6 +620,7 @@
   import { prepareAnnex43 } from './src/annexes/43/index.js';
   import { prepareAnnex45 } from './src/annexes/45/index.js';
   import { prepareAnnex45C } from './src/annexes/45c/index.js';
+  import { prepareAnnex45E } from './src/annexes/45e/index.js';
   import { prepareAnnex48 } from './src/annexes/48/index.js';
   import { recognizeCurrentContract } from './src/application/recognize-contract.js?v=1.1.1';
   import { extractPdfText } from './src/infrastructure/pdf-text-extractor.js';
@@ -696,6 +715,11 @@
     if(no==='45c'){
       if(!currentContract){ alert('Najpierw wczytaj i rozpoznaj umowę.'); return; }
       document.getElementById('annex45cDialog').showModal();
+      return;
+    }
+    if(no==='45e'){
+      if(!currentContract){ alert('Najpierw wczytaj i rozpoznaj umowę kredytową z limitem.'); return; }
+      document.getElementById('annex45eDialog').showModal();
       return;
     }
     if(no==='48'){
@@ -928,6 +952,25 @@
       await downloadAnnex45C(prepared,{requiredFields:prepared.requiredFields});
       status.textContent='Aneks został pobrany';status.className='status show ok';
     }catch(error){status.textContent=error.message;status.className='status show error';}
+  });
+
+  for(const id of ['annex45eBankAccount','annex45eTutloAccount']){
+    bindBankAccountInput(document.getElementById(id),'Numer rachunku bankowego musi zawierać dokładnie 26 cyfr.');
+  }
+  document.getElementById('annex45eForm').addEventListener('submit',async event=>{
+    event.preventDefault();
+    const status=document.getElementById('annex45eStatus');
+    try{
+      const prepared=prepareAnnex45E(currentContract,{
+        newInstallment:document.getElementById('annex45eNewInstallment').value,
+        weeklyLimit:document.getElementById('annex45eWeeklyLimit').value,
+        bank:document.getElementById('annex45eBank').value,
+        bankAccount:document.getElementById('annex45eBankAccount').value,
+        tutloAccount:document.getElementById('annex45eTutloAccount').value
+      });
+      await downloadAnnex45E(prepared);
+      status.textContent='Aneks został wygenerowany.'; status.className='status show ok';
+    }catch(error){ status.textContent=error.message; status.className='status show error'; }
   });
 
   document.getElementById('annex48Form').addEventListener('submit',async event=>{
