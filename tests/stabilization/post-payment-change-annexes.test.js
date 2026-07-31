@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { getAvailableAnnexCards, getPostPaymentChangeAnnexCards } from '../../src/annexes/availability.js';
 import { prepareAnnex29 } from '../../src/annexes/29/generator.js';
 import { prepareAnnex29a } from '../../src/annexes/29a/generator.js';
+import { normalizeBankAccountInput } from '../../src/ui/bank-account-input.js';
 
 const base = {
   agreementNumber: 'EL/2026/123', agreementDate: '2026-02-14', customerType: 'person',
@@ -55,9 +56,25 @@ test('formularz pokazuje wymagane konto wyłącznie dla jawnego trybu post_payme
   for (const id of ['29', '29a']) {
     assert.match(html, new RegExp(`id="annex${id}TutloBankAccountField" hidden`));
     assert.match(html, new RegExp(`accountInput\\.required=postPaymentChange`));
+    assert.match(html, new RegExp(`['"]annex${id}TutloBankAccount['"]`));
   }
   assert.match(html, /openGenerator\(item\.no,item\.mode\|\|'standard'\)/);
   assert.doesNotMatch(html, /prepareAnnex(?:29|29a)(?:Credit|PostPaymentChange)/);
+});
+
+test('wspólny ogranicznik pola rachunku zachowuje najwyżej pierwsze 26 cyfr', () => {
+  const account = '12345678901234567890123456';
+  assert.equal(normalizeBankAccountInput(account), account);
+  assert.equal(normalizeBankAccountInput(`${account}7`), account);
+  assert.equal(normalizeBankAccountInput(`${account}7890`), account);
+  assert.equal(normalizeBankAccountInput('12 3456 7890 1234 5678 9012 3456 9999'), account);
+  assert.equal(normalizeBankAccountInput('12ab! 3456-7890/1234.5678_9012+3456'), account);
+});
+
+test('oba pola rachunku aneksów 29 używają wspólnego ogranicznika zdarzenia input', async () => {
+  const html = await readFile(new URL('../../index.html', import.meta.url), 'utf8');
+  assert.match(html, /for\(const id of \['annex29TutloBankAccount','annex29aTutloBankAccount'\]\)/);
+  assert.match(html, /bindBankAccountInput\(document\.getElementById\(id\),'Numer rachunku bankowego Tutlo musi zawierać dokładnie 26 cyfr\.'\)/);
 });
 
 for (const [id, prepare] of [['29', prepareAnnex29], ['29a', prepareAnnex29a]]) {
@@ -75,6 +92,14 @@ for (const [id, prepare] of [['29', prepareAnnex29], ['29a', prepareAnnex29a]]) 
       assert.equal(prepared.context.tutloBankAccount, '12345678901234567890123456');
       assert.deepEqual(contract, snapshot);
     }
+  });
+
+  test(`aneks ${id}: dokładnie 26 cyfr pozwala generować, a krótszy numer nadal blokuje`, () => {
+    const account = '12345678901234567890123456';
+    assert.throws(() => prepare(credits[0], { mode: 'post_payment_change', tutloBankAccount: account.slice(0, 25) }),
+      /Numer rachunku bankowego Tutlo musi zawierać dokładnie 26 cyfr/);
+    const prepared = prepare(credits[0], { mode: 'post_payment_change', tutloBankAccount: account });
+    assert.equal(prepared.context.tutloBankAccount, account);
   });
 
   test(`aneks ${id}: kredyt bez post_payment_change pozostaje zablokowany`, () => {
