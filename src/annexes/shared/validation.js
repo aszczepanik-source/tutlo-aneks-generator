@@ -15,3 +15,11 @@ export function createRequiredFieldsValidator(requiredFields) {
     });
   };
 }
+
+export const TUTLO_BANK_ACCOUNT_ERROR = 'Numer rachunku bankowego Tutlo musi zawierać dokładnie 26 cyfr.';
+
+export function normalizeTutloBankAccount(value) {
+  const normalized = String(value ?? '').replaceAll(' ', '');
+  if (!/^\d{26}$/.test(normalized)) throw new Error(TUTLO_BANK_ACCOUNT_ERROR);
+  return normalized;
+}

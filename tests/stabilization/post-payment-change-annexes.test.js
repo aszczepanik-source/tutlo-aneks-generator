@@ -1,52 +1,83 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFile } from 'node:fs/promises';
-import {
-  getAvailableAnnexCards,
-  getPostPaymentChangeAnnexCards
-} from '../../src/annexes/availability.js';
+import { getAvailableAnnexCards, getPostPaymentChangeAnnexCards } from '../../src/annexes/availability.js';
+import { prepareAnnex29 } from '../../src/annexes/29/generator.js';
+import { prepareAnnex29a } from '../../src/annexes/29a/generator.js';
 
-const limitedCredit = { contractType: 'limit', paymentType: 'credit', paymentVariant: 'credit' };
+const base = {
+  agreementNumber: 'EL/2026/123', agreementDate: '2026-02-14', customerType: 'person',
+  customerName: 'Jan Kowalski', personalId: '90010112345', address: 'Testowa 1, Warszawa',
+  coursePriceCents: 1392000, monthlyInstallmentCents: 58000, paymentVariant: 'credit', paymentType: 'credit'
+};
+const credits = ['flexible', 'limit'].map(contractType => ({ ...base, contractType }));
 
-test('sekcja po zmianie płatności jest dostępna wyłącznie dla limit + credit', () => {
-  assert.equal(getPostPaymentChangeAnnexCards(limitedCredit).length, 4);
+test('sekcja po zmianie płatności jest widoczna dla flexible + credit i limit + credit', () => {
+  for (const contract of credits) assert.equal(getPostPaymentChangeAnnexCards(contract).length, 4);
   for (const contract of [
-    { contractType: 'limit', paymentType: 'internal' },
-    { contractType: 'flexible', paymentType: 'credit' },
-    { contractType: 'flexible', paymentType: 'internal' },
-    { contractType: 'unknown', paymentType: 'credit' },
-    { contractType: 'limit', paymentType: 'unknown' }
+    { contractType: 'limit', paymentType: 'internal', paymentVariant: 'internal_24' },
+    { contractType: 'flexible', paymentType: 'internal', paymentVariant: 'internal_24' },
+    { contractType: 'unknown', paymentType: 'credit', paymentVariant: 'credit' }
   ]) assert.deepEqual(getPostPaymentChangeAnnexCards(contract), []);
 });
 
-test('sekcja ma cztery unikalne, tekstowe identyfikatory w wymaganej kolejności', () => {
-  const ids = getPostPaymentChangeAnnexCards(limitedCredit).map(card => card.no);
-  assert.deepEqual(ids, ['45b', '29', '29a', '11a']);
-  assert.equal(new Set(ids).size, 4);
-  assert.ok(ids.every(id => typeof id === 'string'));
-  assert.notEqual(ids[0], '45');
-  assert.notEqual(ids[2], '29');
-  assert.notEqual(ids[3], '11');
-});
-
-test('każda karta wymaga zmiany płatności i pozostaje nieaktywna', () => {
-  for (const card of getPostPaymentChangeAnnexCards(limitedCredit)) {
-    assert.equal(card.enabled, false);
-    assert.equal(card.status, 'planned');
-    assert.match(card.desc, /Wymaga zmiany formy płatności/);
+test('29 i 29a są aktywne tylko w dodatkowej sekcji, a 45b i 11a pozostają planowane', () => {
+  for (const contract of credits) {
+    const cards = getPostPaymentChangeAnnexCards(contract);
+    assert.deepEqual(cards.map(card => card.no), ['45b', '29', '29a', '11a']);
+    for (const id of ['29', '29a']) {
+      const card = cards.find(item => item.no === id);
+      assert.equal(card.status, 'tutlo');
+      assert.equal(card.enabled, true);
+      assert.equal(card.mode, 'post_payment_change');
+      assert.equal(getAvailableAnnexCards(contract).filter(item => item.no === id).length, 0);
+    }
+    for (const id of ['45b', '11a']) {
+      const card = cards.find(item => item.no === id);
+      assert.equal(card.status, 'planned');
+      assert.equal(card.enabled, false);
+    }
   }
 });
 
-test('standardowa lista limit + credit pozostaje bez zmian', () => {
-  assert.deepEqual(getAvailableAnnexCards(limitedCredit).map(card => card.no), [
-    'wydluzenie-dostepu', '20-lekcji-gratis', 'tutlo-premium', 'lektorzy-pl',
-    '48', '30', '30a'
-  ]);
+test('umowy internal zachowują 29 i 29a wyłącznie w standardowej sekcji', () => {
+  for (const contractType of ['flexible', 'limit']) {
+    const contract = { contractType, paymentType: 'internal', paymentVariant: 'internal_24' };
+    const standardIds = getAvailableAnnexCards(contract).map(card => card.no);
+    assert.ok(standardIds.includes('29'));
+    assert.ok(standardIds.includes('29a'));
+    assert.deepEqual(getPostPaymentChangeAnnexCards(contract), []);
+  }
 });
 
-test('nieaktywne karty nie mają obsługi kliknięcia ani połączenia z generatorami 29 i 29a', async () => {
+test('formularz pokazuje wymagane konto wyłącznie dla jawnego trybu post_payment_change', async () => {
   const html = await readFile(new URL('../../index.html', import.meta.url), 'utf8');
-  assert.match(html, /item\.enabled===false\?'disabled'/);
-  assert.match(html, /if\(item\.enabled!==false\).*addEventListener/);
-  assert.doesNotMatch(html, /prepareAnnex(?:29|29a)PostPaymentChange/);
+  for (const id of ['29', '29a']) {
+    assert.match(html, new RegExp(`id="annex${id}TutloBankAccountField" hidden`));
+    assert.match(html, new RegExp(`accountInput\\.required=postPaymentChange`));
+  }
+  assert.match(html, /openGenerator\(item\.no,item\.mode\|\|'standard'\)/);
+  assert.doesNotMatch(html, /prepareAnnex(?:29|29a)(?:Credit|PostPaymentChange)/);
 });
+
+for (const [id, prepare] of [['29', prepareAnnex29], ['29a', prepareAnnex29a]]) {
+  test(`aneks ${id}: konto jest wymagane, walidowane i normalizowane w post_payment_change`, () => {
+    for (const tutloBankAccount of ['', '1'.repeat(25), '1'.repeat(27), 'A'.repeat(26), '1'.repeat(25) + '-']) {
+      assert.throws(() => prepare(credits[0], { mode: 'post_payment_change', tutloBankAccount }),
+        /Numer rachunku bankowego Tutlo musi zawierać dokładnie 26 cyfr/);
+    }
+    for (const contract of credits) {
+      const snapshot = structuredClone(contract);
+      const prepared = prepare(contract, {
+        mode: 'post_payment_change', tutloBankAccount: '12 3456 7890 1234 5678 9012 3456', today: '2026-07-28'
+      });
+      assert.equal(prepared.context.mode, 'post_payment_change');
+      assert.equal(prepared.context.tutloBankAccount, '12345678901234567890123456');
+      assert.deepEqual(contract, snapshot);
+    }
+  });
+
+  test(`aneks ${id}: kredyt bez post_payment_change pozostaje zablokowany`, () => {
+    assert.throws(() => prepare(credits[0]), /wymaga umowy flexible z ratami wewnętrznymi internal_24/);
+  });
+}
