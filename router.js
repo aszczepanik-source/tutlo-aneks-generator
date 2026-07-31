@@ -12,6 +12,7 @@ export function getAnnexRoute(annexId, contract) {
     || contract?.paymentType !== 'internal' || contract?.paymentVariant !== 'internal_24')) return undefined;
   if (String(annexId) === '45c' && (contract?.contractType !== 'limit'
     || contract?.paymentType !== 'internal' || contract?.paymentVariant !== 'internal_24')) return undefined;
+  if (String(annexId) === '48' && contract?.contractType !== 'limit') return undefined;
 
   return Object.freeze({
     number: annex.manifest.id,
@@ -23,7 +24,8 @@ export function getAnnexRoute(annexId, contract) {
     blockingReason: annex.manifest.blockingReason,
     createGenerationPlan: annex.createGenerationPlan,
     prepareAnnex26: annex.prepareAnnex26,
-    prepareAnnex27: annex.prepareAnnex27
+    prepareAnnex27: annex.prepareAnnex27,
+    prepareAnnex48: annex.prepareAnnex48
   });
 }
 

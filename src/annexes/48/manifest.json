@@ -1,0 +1,15 @@
+{
+  "id": "48",
+  "label": "48 – Zdjęcie limitu",
+  "available": true,
+  "policy": "limited-contract-remove-monthly-lesson-limit",
+  "template": "template.docx",
+  "templateVersion": "1.0.0",
+  "allowedContractVariants": ["limit/*/*"],
+  "requiredFields": [
+    "NUMER_UMOWY", "DATA_ZAWARCIA_UMOWY", "DATA_ANEKSU", "IMIE_NAZWISKO", "ADRES",
+    "IDENTYFIKATOR_LABEL", "IDENTYFIKATOR", "WYKORZYSTANE_LEKCJE",
+    "SPLACONO_DO_DNIA_ANEKSU", "POZOSTAŁE_LEKCJE", "DATA_WEJSCIA_W_ZYCIE"
+  ],
+  "status": "ready"
+}
