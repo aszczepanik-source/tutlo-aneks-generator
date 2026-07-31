@@ -22,10 +22,12 @@ const parseDate = (value, label) => {
 export function calculateUsedMonths(courseStartDate, annexDate) {
   const start = parseDate(courseStartDate, 'data rozpoczęcia kursu');
   const annex = parseDate(annexDate, 'data aneksu');
-  if (annex < start) throw new Error('Data aneksu nie może przypadać przed datą rozpoczęcia kursu.');
-  const usedMonths = (annex.getFullYear() - start.getFullYear()) * 12 + annex.getMonth() - start.getMonth() + 1;
+  const monthDifference = (annex.getFullYear() - start.getFullYear()) * 12 + annex.getMonth() - start.getMonth();
+  if (monthDifference < 0) throw new Error('Miesiąc aneksu nie może przypadać przed miesiącem rozpoczęcia kursu.');
+  const usedMonths = monthDifference + (start.getDate() <= 15 ? 1 : 0);
+  if (usedMonths <= 0) throw new Error('Liczba wykorzystanych miesięcy musi być większa od 0.');
   if (usedMonths > TOTAL_MONTHS) throw new Error('Kurs przekroczył 24-miesięczny okres.');
-  return Math.max(0, usedMonths);
+  return usedMonths;
 }
 
 function usedLessons(value) {

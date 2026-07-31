@@ -31,9 +31,29 @@ test('48 jest niewidoczny dla umów elastycznych i nierozpoznanego typu', () => 
   }
 });
 
-test('liczy miesiące włącznie niezależnie od dnia lipca', () => {
-  assert.equal(calculateUsedMonths('2026-01-13', '2026-07-02'), 7);
-  assert.equal(calculateUsedMonths('2026-01-13', '2026-07-30'), 7);
+test('wlicza miesiąc rozpoczęcia kursu wyłącznie dla startu do 15. dnia włącznie', () => {
+  for (const [courseStartDate, expected] of [
+    ['2026-01-01', 7],
+    ['2026-01-13', 7],
+    ['2026-01-15', 7],
+    ['2026-01-16', 6],
+    ['2026-01-20', 6],
+    ['2026-01-31', 6]
+  ]) {
+    assert.equal(calculateUsedMonths(courseStartDate, '2026-07-15'), expected);
+  }
+});
+
+test('dzień podpisania aneksu nie wpływa na liczbę wykorzystanych miesięcy', () => {
+  for (const annexDate of ['2026-07-01', '2026-07-15', '2026-07-31']) {
+    assert.equal(calculateUsedMonths('2026-01-13', annexDate), 7);
+    assert.equal(calculateUsedMonths('2026-01-20', annexDate), 6);
+  }
+});
+
+test('liczy miesiące przez granicę roku według zasady do 15. dnia', () => {
+  assert.equal(calculateUsedMonths('2025-12-20', '2026-07-15'), 7);
+  assert.equal(calculateUsedMonths('2025-12-15', '2026-07-15'), 8);
 });
 
 test('wylicza wartości finansowe, lekcje i pierwszy dzień następnego miesiąca', () => {
@@ -45,6 +65,23 @@ test('wylicza wartości finansowe, lekcje i pierwszy dzień następnego miesiąc
   assert.equal(prepared.values.DATA_WEJSCIA_W_ZYCIE, '01.08.2026');
   assert.equal(prepared.values.DATA_ZAWARCIA_UMOWY, '02.01.2026');
   assert.equal(Object.values(prepared.values).some(value => value == null), false);
+});
+
+test('start po 15. dniu zmienia wyłącznie zależne wartości miesięczne', () => {
+  const prepared = prepareAnnex48({ ...contract, courseStartDate: '2026-01-20' }, { usedLessons: '5' }, '2026-07-31');
+  assert.deepEqual(prepared.calculation, { usedMonths: 6, remainingMonths: 18 });
+  assert.equal(prepared.values.SPLACONO_DO_DNIA_ANEKSU, '1800,00');
+  assert.equal(prepared.values.POZOSTAŁE_LEKCJE, '216');
+  assert.equal(prepared.values.WYKORZYSTANE_LEKCJE, '5');
+  assert.equal(prepared.values.DATA_WEJSCIA_W_ZYCIE, '01.08.2026');
+});
+
+test('obliczenia miesięcy nie korzystają z daty zawarcia umowy', () => {
+  const januaryAgreement = prepareAnnex48({ ...contract, courseStartDate: '2026-01-20' }, { usedLessons: 0 }, '2026-07-15');
+  const olderAgreement = prepareAnnex48({ ...contract, agreementDate: '2020-03-04', courseStartDate: '2026-01-20' }, { usedLessons: 0 }, '2026-07-15');
+  assert.deepEqual(olderAgreement.calculation, januaryAgreement.calculation);
+  assert.equal(olderAgreement.values.SPLACONO_DO_DNIA_ANEKSU, januaryAgreement.values.SPLACONO_DO_DNIA_ANEKSU);
+  assert.equal(olderAgreement.values.POZOSTAŁE_LEKCJE, januaryAgreement.values.POZOSTAŁE_LEKCJE);
 });
 
 test('grudniowy aneks wchodzi w życie 1 stycznia kolejnego roku', () => {
@@ -69,7 +106,8 @@ test('braki danych automatycznych i niedozwolone daty blokują generator', () =>
   assert.throws(() => prepareAnnex48({ ...contract, courseStartDate: null }, { usedLessons: 1 }, '2026-07-15'), /daty rozpoczęcia kursu/);
   assert.throws(() => prepareAnnex48({ ...contract, monthlyInstallmentCents: null }, { usedLessons: 1 }, '2026-07-15'), /miesięcznej raty/);
   assert.throws(() => prepareAnnex48({ ...contract, monthlyLessonLimit: null }, { usedLessons: 1 }, '2026-07-15'), /miesięcznego limitu lekcji/);
-  assert.throws(() => prepareAnnex48(contract, { usedLessons: 1 }, '2025-12-31'), /przed datą rozpoczęcia/);
+  assert.throws(() => prepareAnnex48(contract, { usedLessons: 1 }, '2025-12-31'), /przed miesiącem rozpoczęcia/);
+  assert.throws(() => prepareAnnex48({ ...contract, courseStartDate: '2026-07-16' }, { usedLessons: 1 }, '2026-07-31'), /musi być większa od 0/);
   assert.throws(() => prepareAnnex48(contract, { usedLessons: 1 }, '2028-01-01'), /przekroczył 24-miesięczny okres/);
 });
 
