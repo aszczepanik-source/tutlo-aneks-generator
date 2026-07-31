@@ -177,6 +177,12 @@
     summary{cursor:pointer;font-weight:900;font-size:13px}
     details ul{padding-left:18px;color:var(--muted);font-size:13px;line-height:1.55}
     .annex-section{margin-top:22px}
+    .post-payment-change-section{
+      display:none;margin-top:28px;padding:20px;border:1px solid var(--line);
+      border-radius:16px;background:#fafaf8;
+    }
+    .post-payment-change-section h3{margin:0 0 7px;font-size:18px}
+    .post-payment-change-section>p{margin:0;color:var(--muted);font-size:13px;line-height:1.5}
     .annex-grid{
       display:grid;
       grid-template-columns:repeat(3,minmax(0,1fr));
@@ -379,6 +385,11 @@
   <section id="annexSection" class="card annex-section" style="display:none">
     <h2>3. Dostępne aneksy</h2>
     <div id="annexGrid" class="annex-grid"></div>
+    <div id="postPaymentChangeSection" class="post-payment-change-section">
+      <h3>Po zmianie formy płatności</h3>
+      <p>Poniższe aneksy mogą zostać przygotowane po zmianie płatności z kredytu na raty wewnętrzne.</p>
+      <div id="postPaymentChangeAnnexGrid" class="annex-grid"></div>
+    </div>
   </section>
 
   <div class="lower-tools">
@@ -568,7 +579,11 @@
 <script src="./vendor/docxtemplater.js"></script>
 <script type="module">
   import { getAnnexRoute } from './router.js';
-  import { ANNEX_STATUSES, getAvailableAnnexCards } from './src/annexes/availability.js';
+  import {
+    ANNEX_STATUSES,
+    getAvailableAnnexCards,
+    getPostPaymentChangeAnnexCards
+  } from './src/annexes/availability.js';
   import { downloadAnnex11, downloadAnnex25, downloadAnnex26, downloadAnnex27, downloadAnnex29, downloadAnnex29a, downloadAnnex43, downloadAnnex45, downloadAnnex45C, downloadAnnex48 } from './src/infrastructure/local-docx-generator.js';
   import { prepareAnnex11 } from './src/annexes/11/index.js';
   import { prepareAnnex25 } from './src/annexes/25/index.js';
@@ -610,7 +625,9 @@
     confidence:document.getElementById('confidence'),
     reasons:document.getElementById('reasonsList'),
     annexSection:document.getElementById('annexSection'),
-    annexGrid:document.getElementById('annexGrid')
+    annexGrid:document.getElementById('annexGrid'),
+    postPaymentChangeSection:document.getElementById('postPaymentChangeSection'),
+    postPaymentChangeAnnexGrid:document.getElementById('postPaymentChangeAnnexGrid')
   };
 
   let currentFile=null,currentContract=null,currentClassification=null;
@@ -704,8 +721,8 @@
             <p>${item.desc||'Otwórz formularz aneksu w Generatorze Tutlo.'}</p>
           </div>
         </div>
-        <button class="btn" type="button">Wybierz</button>`;
-      div.querySelector('button').addEventListener('click',()=>selectAnnex(item));
+        <button class="btn" type="button" ${item.enabled===false?'disabled':''}>${item.enabled===false?'Wkrótce':'Wybierz'}</button>`;
+      if(item.enabled!==false) div.querySelector('button').addEventListener('click',()=>selectAnnex(item));
       target.appendChild(div);
     });
   }
@@ -735,12 +752,20 @@
     els.reasons.innerHTML=c.reasons.map(x=>`<li>${x}</li>`).join('');
 
     const items=getAvailableAnnexCards(contract);
+    const postPaymentChangeItems=getPostPaymentChangeAnnexCards(contract);
     console.debug('UI_ANNEX_43_CARD_VISIBLE', items.some(item=>item.no==='43'));
     if(items.length){
       renderAnnexCards(items,els.annexGrid);
       els.annexSection.style.display='block';
     }else{
       els.annexSection.style.display='none';
+    }
+    if(postPaymentChangeItems.length){
+      renderAnnexCards(postPaymentChangeItems,els.postPaymentChangeAnnexGrid);
+      els.postPaymentChangeSection.style.display='block';
+    }else{
+      els.postPaymentChangeAnnexGrid.innerHTML='';
+      els.postPaymentChangeSection.style.display='none';
     }
   }
 

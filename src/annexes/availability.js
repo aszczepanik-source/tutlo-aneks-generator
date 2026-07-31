@@ -67,6 +67,27 @@ const LIMIT_CREDIT = Object.freeze([
 
 const INTERNAL_VARIANTS = new Set(['internal_24', 'internal_2', 'internal_13', 'internal_4']);
 
+export const POST_PAYMENT_CHANGE_ANNEXES = Object.freeze([
+  card('45b', '45b – Kurs z limitem tygodniowym', 'planned', {
+    desc: 'Wymaga zmiany formy płatności.', enabled: false
+  }),
+  card('29', '29 – Spłata jednej raty wewnętrznej', 'planned', {
+    desc: 'Wymaga zmiany formy płatności.', enabled: false
+  }),
+  card('29a', '29a – Spłata dwóch rat wewnętrznych', 'planned', {
+    desc: 'Wymaga zmiany formy płatności.', enabled: false
+  }),
+  card('11a', '11a – Zawieszenie po zmianie formy płatności', 'planned', {
+    desc: 'Wymaga zmiany formy płatności.', enabled: false
+  })
+]);
+
+export function getPostPaymentChangeAnnexCards(currentContract) {
+  return currentContract?.contractType === 'limit' && currentContract?.paymentType === 'credit'
+    ? POST_PAYMENT_CHANGE_ANNEXES
+    : [];
+}
+
 /**
  * Central card availability matrix. It intentionally reads only the three
  * classification fields produced by the contract parser.
