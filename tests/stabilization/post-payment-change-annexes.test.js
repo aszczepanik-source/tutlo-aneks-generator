@@ -33,6 +33,7 @@ test('29 i 29a są aktywne tylko w dodatkowej sekcji, a 45b i 11a pozostają pla
       assert.equal(card.status, 'tutlo');
       assert.equal(card.enabled, true);
       assert.equal(card.mode, 'post_payment_change');
+      assert.match(card.desc, /Konsultant wpisuje numer rachunku Tutlo/);
       assert.equal(getAvailableAnnexCards(contract).filter(item => item.no === id).length, 0);
     }
     for (const id of ['45b', '11a']) {
@@ -102,6 +103,16 @@ for (const [id, prepare] of [['29', prepareAnnex29], ['29a', prepareAnnex29a]]) 
       /Numer rachunku bankowego Tutlo musi zawierać dokładnie 26 cyfr/);
     const prepared = prepare(credits[0], { mode: 'post_payment_change', tutloBankAccount: account });
     assert.equal(prepared.context.tutloBankAccount, account);
+  });
+
+  test(`aneks ${id}: limit + kredyt wymaga konta Tutlo w trybie po zmianie płatności`, () => {
+    const limitCredit = credits.find(contract => contract.contractType === 'limit');
+    assert.throws(() => prepare(limitCredit, { mode: 'post_payment_change', tutloBankAccount: '' }),
+      /Numer rachunku bankowego Tutlo musi zawierać dokładnie 26 cyfr/);
+    const prepared = prepare(limitCredit, {
+      mode: 'post_payment_change', tutloBankAccount: '12 3456 7890 1234 5678 9012 3456'
+    });
+    assert.equal(prepared.context.tutloBankAccount, '12345678901234567890123456');
   });
 
   test(`aneks ${id}: kredyt bez post_payment_change pozostaje zablokowany`, () => {
