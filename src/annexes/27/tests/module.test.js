@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { calculateAnnex27, prepareAnnex27 } from '../generator.js';
 import { annex27Filename } from '../../../infrastructure/local-docx-generator.js';
+import { normalizeBankAccountInput } from '../../../ui/bank-account-input.js';
 
 const account = '12345678901234567890123456';
 const contract = {
@@ -13,6 +15,12 @@ const contract = {
   paymentType: 'credit', paymentVariant: 'credit', installmentPlan: undefined
 };
 const form = { bank: 'Inbank', newInstallment: '50,00', bankAccount: account, tutloAccount: `12 3456 7890 1234 5678 9012 3456` };
+
+test('oba pola rachunku używają wspólnego ogranicznika do 26 cyfr', async () => {
+  const html = await readFile(new URL('../../../../index.html', import.meta.url), 'utf8');
+  assert.match(html, /for\(const id of \['annex27BankAccount','annex27TutloAccount'\]\)\{\s*bindBankAccountInput\(document\.getElementById\(id\)/);
+  assert.equal(normalizeBankAccountInput('12 3456 7890 1234 5678 9012 3456 7890'), account);
+});
 
 function prepare(courseStartDate = '2025-07-15', today = '2026-06-28') {
   return prepareAnnex27({ ...contract, courseStartDate }, form, today);
