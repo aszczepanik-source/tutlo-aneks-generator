@@ -1,6 +1,7 @@
 import manifest from './manifest.json' with { type: 'json' };
 import { validateCurrentContract } from '../../domain/contract-extraction.js';
 import { validateAnnex27Data } from './validator.js';
+import { calculateUsedMonths } from '../48/generator.js';
 
 const INSTALLMENT_COUNT = 24;
 const iso = date => date.toISOString().slice(0, 10);
@@ -14,13 +15,12 @@ function parseMoney(value) {
   return Math.round(Number(normalized) * 100);
 }
 
-// The month calculation intentionally mirrors the established Annex 26 behavior.
 export function calculatePaidMonths(courseStartDate, annexDate) {
   if (!courseStartDate) throw new Error('Nie udało się odczytać daty rozpoczęcia kursu.');
-  const courseStart = new Date(`${courseStartDate}T12:00:00Z`);
-  const annex = new Date(`${annexDate}T12:00:00Z`);
-  return (annex.getUTCFullYear() - courseStart.getUTCFullYear()) * 12
-    + annex.getUTCMonth() - courseStart.getUTCMonth() + 1;
+  if (annexDate < courseStartDate) {
+    throw new Error('Data aneksu nie może przypadać przed datą rozpoczęcia kursu.');
+  }
+  return calculateUsedMonths(courseStartDate, annexDate);
 }
 
 const roman = value => {
