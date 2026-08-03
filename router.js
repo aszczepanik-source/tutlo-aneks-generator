@@ -1,5 +1,5 @@
 import { annexModules } from './src/annexes/catalog.js';
-import { isAnnex43Available } from './src/annexes/43/availability.js';
+import { isAnnexAvailable } from './src/annexes/availability.js';
 
 /**
  * Compatibility boundary between the existing UI router and annex modules.
@@ -8,12 +8,7 @@ import { isAnnex43Available } from './src/annexes/43/availability.js';
 export function getAnnexRoute(annexId, contract) {
   const annex = annexModules.get(String(annexId));
   if (!annex || annex.manifest.available !== true) return undefined;
-  if (String(annexId) === '43' && !isAnnex43Available(contract)) return undefined;
-  if (String(annexId) === '45' && (contract?.contractType !== 'flexible'
-    || contract?.paymentType !== 'internal' || contract?.paymentVariant !== 'internal_24')) return undefined;
-  if (String(annexId) === '45c' && (contract?.contractType !== 'limit'
-    || contract?.paymentType !== 'internal' || contract?.paymentVariant !== 'internal_24')) return undefined;
-  if (String(annexId) === '48' && contract?.contractType !== 'limit') return undefined;
+  if (contract !== undefined && !isAnnexAvailable(annexId, contract)) return undefined;
 
   return Object.freeze({
     number: annex.manifest.id,

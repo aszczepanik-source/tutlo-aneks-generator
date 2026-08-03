@@ -4,6 +4,7 @@ import test from 'node:test';
 import { calculateAnnex27, prepareAnnex27 } from '../generator.js';
 import { annex27Filename } from '../../../infrastructure/local-docx-generator.js';
 import { normalizeBankAccountInput } from '../../../ui/bank-account-input.js';
+import { assertRenderedValues, renderActualTemplate } from '../../shared/tests/docx-rendering.js';
 
 const account = '12345678901234567890123456';
 const contract = {
@@ -138,4 +139,16 @@ test('dane dynamicznej tabeli nie mają pustych wierszy', () => {
 test('nazwa pliku usuwa wyłącznie znaki niedozwolone i ma fallback', () => {
   assert.equal(annex27Filename({ IMIE_NAZWISKO: 'Żaneta / Kowalska?' }), 'Aneks 27 Żaneta Kowalska.docx');
   assert.equal(annex27Filename({ IMIE_NAZWISKO: '//*' }), 'Aneks 27.docx');
+});
+
+test('rzeczywisty DOCX aneksu 27 renderuje komplet danych osoby, firmy, kwot, dat i harmonogramu', async () => {
+  const person = prepare();
+  const personText = await renderActualTemplate(new URL('../template.docx', import.meta.url), person);
+  assertRenderedValues(personText, ['Jan Kowalski', 'PESEL', '00210100004', '1800,00', '75,00',
+    '15.07.2025', '28.06.2026', 'I rata', '50,00', '05.07.2026', 'XII rata', '05.06.2027']);
+
+  const company = prepareAnnex27({ ...contract, customerType: 'company', customerName: 'Tutlo Test Sp. z o.o.',
+    personalId: '1234567890' }, form, '2026-06-28');
+  const companyText = await renderActualTemplate(new URL('../template.docx', import.meta.url), company);
+  assertRenderedValues(companyText, ['Tutlo Test Sp. z o.o.', 'NIP', '1234567890']);
 });

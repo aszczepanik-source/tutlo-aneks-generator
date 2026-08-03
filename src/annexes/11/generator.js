@@ -78,7 +78,6 @@ export function prepareAnnex11(currentContract, formData = {}, options = {}) {
     KONIEC_ZAWIESZENIA: formatDate(dates.suspensionEnd),
     NOWY_KONIEC_UMOWY: formatDate(dates.newAgreementEnd),
     NUMER_UMOWY: required(currentContract.agreementNumber, 'numer umowy'),
-    PESEL: required(currentContract.personalId, currentContract.customerType === 'company' ? 'NIP' : 'PESEL'),
     START_ZAWIESZENIA: formatDate(dates.suspensionStart),
     ...installmentValues(schedule)
   };

@@ -118,7 +118,7 @@ for (const identity of [
     const prepared = prepareAnnex11({ ...contract, ...identity }, { suspensionMonths: 1 }, { today: '2026-07-28' });
     assert.equal(prepared.values.IDENTYFIKATOR_LABEL, identity.identifierLabel || 'NIP');
     assert.equal(prepared.values.IDENTYFIKATOR, identity.personalId);
-    assert.equal(prepared.values.PESEL, identity.personalId);
+    assert.equal('PESEL' in prepared.values, false);
   });
 }
 
@@ -127,7 +127,7 @@ test('mapowanie identyfikatora nie zmienia pozostałych wartości Aneksu 11', ()
   const company = prepareAnnex11({ ...contract, customerType: 'company', personalId: '1234567890' },
     { suspensionMonths: 1 }, { today: '2026-07-28' });
   const withoutIdentifier = values => Object.fromEntries(Object.entries(values)
-    .filter(([key]) => !['IDENTYFIKATOR_LABEL', 'IDENTYFIKATOR', 'PESEL'].includes(key)));
+    .filter(([key]) => !['IDENTYFIKATOR_LABEL', 'IDENTYFIKATOR'].includes(key)));
   assert.deepEqual(withoutIdentifier(company.values), withoutIdentifier(person.values));
 });
 

@@ -129,3 +129,10 @@ export function getAvailableAnnexCards(currentContract) {
   }
   return [...annex48Cards, ...familyGroupCards];
 }
+
+/** The single availability predicate shared by routing and card-based UI flows. */
+export function isAnnexAvailable(annexId, currentContract) {
+  const id = String(annexId);
+  return [...getAvailableAnnexCards(currentContract), ...getPostPaymentChangeAnnexCards(currentContract)]
+    .some(item => item.no === id && item.status === 'tutlo' && item.enabled !== false);
+}
