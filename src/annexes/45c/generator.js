@@ -1,6 +1,7 @@
 import manifest from './manifest.json' with { type: 'json' };
 import { addDays, calculateAnnex25, formatDate, parseMoneyToCents } from '../../domain/annex-calculations.js';
 import { validateAnnex45CData } from './validator.js';
+import { getLocalIsoDate } from '../shared/local-date.js';
 
 const formatAmount = cents => (cents / 100).toFixed(2).replace('.', ',');
 const required = (value, label) => {
@@ -17,10 +18,6 @@ const teacherTypes = variant => {
   if (variant === 'english_native') return 'English Expert, Native Speaker';
   return variant;
 };
-const localIsoDate = date => {
-  const pad = value => String(value).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-};
 const scheduleValues = installments => Object.fromEntries(installments.flatMap(item => {
   const key = String(item.nr).padStart(2, '0');
   return [[`RATA_${key}_KWOTA`, formatAmount(item.amountCents)], [`RATA_${key}_TERMIN`, formatDate(item.dueDate)]];
@@ -34,7 +31,7 @@ function weeklyLimit(value) {
   return String(Number(text));
 }
 
-export function prepareAnnex45C(currentContract, inputs = {}, annexDate = localIsoDate(new Date())) {
+export function prepareAnnex45C(currentContract, inputs = {}, annexDate = getLocalIsoDate()) {
   validateAnnex45CData(currentContract);
   const newInstallmentCents = parseMoneyToCents(inputs.newInstallment, 'nowa rata');
   if (newInstallmentCents >= currentContract.monthlyInstallmentCents) {

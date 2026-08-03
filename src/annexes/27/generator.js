@@ -2,6 +2,7 @@ import manifest from './manifest.json' with { type: 'json' };
 import { validateCurrentContract } from '../../domain/contract-extraction.js';
 import { validateAnnex27Data } from './validator.js';
 import { calculateCourseMonths } from '../../domain/annex-calculations.js';
+import { getLocalIsoDate } from '../shared/local-date.js';
 
 const INSTALLMENT_COUNT = 24;
 const iso = date => date.toISOString().slice(0, 10);
@@ -55,7 +56,7 @@ export function calculateAnnex27(contract, annexDate, newRateCents) {
 
 export function prepareAnnex27(currentContract, formData, today = new Date()) {
   validateCurrentContract(currentContract);
-  const annexDate = today instanceof Date ? iso(today) : String(today);
+  const annexDate = today instanceof Date ? getLocalIsoDate(today) : String(today);
   const newRateCents = parseMoney(formData?.newInstallment);
   if (!currentContract.courseStartDate) throw new Error('Nie udało się odczytać daty rozpoczęcia kursu.');
   const { usedMonths: paidMonths, remainingMonths } = calculateCourseMonths({

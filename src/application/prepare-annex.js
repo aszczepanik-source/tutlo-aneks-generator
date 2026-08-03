@@ -3,6 +3,7 @@ import manifest26 from '../annexes/26/manifest.json' with { type: 'json' };
 import manifest29 from '../annexes/29/manifest.json' with { type: 'json' };
 import manifest29a from '../annexes/29a/manifest.json' with { type: 'json' };
 import { prepareAnnex26 } from '../annexes/26/index.js';
+import { getLocalIsoDate } from '../annexes/shared/local-date.js';
 import { addDays, BLOCKED_RULES, calculateAnnex11, calculateAnnex29, calculateAnnex29a, formatDate, money } from '../domain/annex-calculations.js';
 
 const manifests = { '11': manifest11, '26': manifest26, '29': manifest29, '29a': manifest29a };
@@ -19,7 +20,7 @@ const scheduleValues = installments => Object.fromEntries(installments.flatMap((
   return [[`RATA_${key}_KWOTA`, money(item.amountCents)], [`RATA_${key}_TERMIN`, formatDate(item.dueDate)]];
 }));
 
-export function prepareAnnex(annexId, contract, inputs = {}, today = new Date().toISOString().slice(0, 10)) {
+export function prepareAnnex(annexId, contract, inputs = {}, today = getLocalIsoDate()) {
   if (annexId === '26') return prepareAnnex26(contract, inputs);
   if (BLOCKED_RULES[annexId]) return { blocked: true, reason: BLOCKED_RULES[annexId] };
   let calculation;

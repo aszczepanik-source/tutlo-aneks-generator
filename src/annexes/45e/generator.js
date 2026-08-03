@@ -1,6 +1,7 @@
 import manifest from './manifest.json' with { type: 'json' };
 import { addDays, addMonths, calculateCourseMonths, formatDate, parseMoneyToCents } from '../../domain/annex-calculations.js';
 import { validateAnnex45EData } from './validator.js';
+import { getLocalIsoDate } from '../shared/local-date.js';
 
 const TOTAL_MONTHS = 24;
 
@@ -30,7 +31,7 @@ const weeklyLimit = value => {
   return text;
 };
 
-export function prepareAnnex45E(currentContract, inputs = {}, annexDate = new Date().toISOString().slice(0, 10)) {
+export function prepareAnnex45E(currentContract, inputs = {}, annexDate = getLocalIsoDate()) {
   const data = {
     ...currentContract,
     bank: String(inputs.bank ?? '').trim(),

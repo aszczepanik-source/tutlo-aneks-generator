@@ -1,22 +1,16 @@
 import manifest from './manifest.json' with { type: 'json' };
 import { addDays, formatDate, parseDate } from '../../domain/annex-calculations.js';
 import { validateAnnex43Data } from './validator.js';
-
-function localIsoDate(date = new Date()) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
+import { getLocalIsoDate } from '../shared/local-date.js';
 
 function annexDate(options) {
   const value = options?.today;
-  if (value instanceof Date) return localIsoDate(value);
+  if (value instanceof Date) return getLocalIsoDate(value);
   if (value !== undefined) {
     parseDate(value, 'data aneksu');
     return value;
   }
-  return localIsoDate();
+  return getLocalIsoDate();
 }
 
 export function prepareAnnex43(currentContract, options = {}) {

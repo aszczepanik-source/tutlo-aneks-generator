@@ -1,13 +1,10 @@
 import manifest from './manifest.json' with { type: 'json' };
 import { calculateCourseMonths, formatDate } from '../../domain/annex-calculations.js';
 import { validateAnnex48Data } from './validator.js';
+import { getLocalIsoDate } from '../shared/local-date.js';
 
 export const TOTAL_MONTHS = 24;
 const formatAmount = cents => (cents / 100).toFixed(2).replace('.', ',');
-const localIsoDate = date => {
-  const pad = value => String(value).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-};
 const parseDate = (value, label) => {
   const match = String(value ?? '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!match) throw new Error(`Nieprawidłowa ${label}.`);
@@ -27,14 +24,14 @@ function usedLessons(value) {
   return Number(text);
 }
 
-export function prepareAnnex48(currentContract, inputs = {}, annexDate = localIsoDate(new Date())) {
+export function prepareAnnex48(currentContract, inputs = {}, annexDate = getLocalIsoDate()) {
   validateAnnex48Data(currentContract);
   const lessonsUsed = usedLessons(inputs.usedLessons);
   const { usedMonths, remainingMonths } = calculateCourseMonths({
     courseStartDate: currentContract.courseStartDate, annexDate, totalMonths: TOTAL_MONTHS
   });
   const annex = parseDate(annexDate, 'data aneksu');
-  const effectiveDate = localIsoDate(new Date(annex.getFullYear(), annex.getMonth() + 1, 1));
+  const effectiveDate = getLocalIsoDate(new Date(annex.getFullYear(), annex.getMonth() + 1, 1));
   const values = {
     NUMER_UMOWY: String(currentContract.agreementNumber),
     DATA_ZAWARCIA_UMOWY: formatDate(currentContract.agreementDate, 'data zawarcia umowy'),
