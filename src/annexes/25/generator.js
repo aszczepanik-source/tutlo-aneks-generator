@@ -41,7 +41,6 @@ export function prepareAnnex25(currentContract, inputs = {}, annexDate = getLoca
     NOWA_SREDNIA_RATA: formatAmountWithoutCurrency(calculation.newAverageInstallmentCents),
     NUMER_KONTA: contractBankAccount(currentContract.internalPaymentAccount),
     NUMER_UMOWY: required(currentContract.agreementNumber, 'numer umowy'),
-    PESEL: required(currentContract.personalId, 'PESEL'),
     TYPY_LEKTOROW: required(teacherTypes(currentContract.teacherVariant), 'typy lektorów'),
     ...scheduleValues(calculation.installments)
   };
