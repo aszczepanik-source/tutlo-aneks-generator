@@ -500,10 +500,6 @@
   <div class="modal-body">
     <p>Generator obniży cenę pakietu o jedną ratę wewnętrzną na podstawie danych aktualnej umowy.</p>
     <form id="annex29Form" class="annex-form">
-      <label id="annex29TutloBankAccountField" hidden>Numer rachunku bankowego Tutlo
-        <input id="annex29TutloBankAccount" inputmode="numeric">
-        <small>Wpisz rachunek Tutlo, na który mają być kierowane raty po zmianie formy płatności.</small>
-      </label>
       <div class="actions"><button class="btn" type="submit">Pobierz aneks</button></div>
       <div id="annex29Status" class="status"></div>
     </form>
@@ -518,10 +514,6 @@
   <div class="modal-body">
     <p>Generator obniży cenę pakietu o dwie raty wewnętrzne na podstawie danych aktualnej umowy.</p>
     <form id="annex29aForm" class="annex-form">
-      <label id="annex29aTutloBankAccountField" hidden>Numer rachunku bankowego Tutlo
-        <input id="annex29aTutloBankAccount" inputmode="numeric">
-        <small>Wpisz rachunek Tutlo, na który mają być kierowane raty po zmianie formy płatności.</small>
-      </label>
       <div class="actions"><button class="btn" type="submit">Pobierz aneks</button></div>
       <div id="annex29aStatus" class="status"></div>
     </form>
@@ -730,12 +722,6 @@
     if(no==='29'||no==='29a'){
       if(!currentContract){ alert('Najpierw wczytaj i rozpoznaj umowę.'); return; }
       annexModes[no]=mode;
-      const accountField=document.getElementById(`annex${no}TutloBankAccountField`);
-      const accountInput=document.getElementById(`annex${no}TutloBankAccount`);
-      const postPaymentChange=mode==='post_payment_change';
-      accountField.hidden=!postPaymentChange;
-      accountInput.required=postPaymentChange;
-      if(!postPaymentChange) accountInput.value='';
       document.getElementById(`annex${no}Dialog`).showModal();
       return;
     }
@@ -871,10 +857,6 @@
 
   for(const id of ['annex27BankAccount','annex27TutloAccount']){
     bindBankAccountInput(document.getElementById(id),'Numer rachunku musi zawierać dokładnie 26 cyfr.');
-  }
-
-  for(const id of ['annex29TutloBankAccount','annex29aTutloBankAccount']){
-    bindBankAccountInput(document.getElementById(id),'Numer rachunku bankowego Tutlo musi zawierać dokładnie 26 cyfr.');
   }
 
   document.getElementById('annex11Form').addEventListener('submit',async event=>{
@@ -1037,10 +1019,7 @@
       status.textContent='Tworzę dokument…';status.className='status show warn';
       try{
         const mode=annexModes[id];
-        const prepared=prepare(currentContract,mode==='post_payment_change'?{
-          mode,
-          tutloBankAccount:document.getElementById(`annex${id}TutloBankAccount`).value
-        }:{mode:'standard'});
+        const prepared=prepare(currentContract,{mode});
         await download(prepared,{requiredFields:prepared.requiredFields});
         status.textContent='Aneks został pobrany';status.className='status show ok';
       }catch(error){

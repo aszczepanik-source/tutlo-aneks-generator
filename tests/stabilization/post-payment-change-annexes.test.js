@@ -4,7 +4,6 @@ import { readFile } from 'node:fs/promises';
 import { getAvailableAnnexCards, getPostPaymentChangeAnnexCards } from '../../src/annexes/availability.js';
 import { prepareAnnex29 } from '../../src/annexes/29/generator.js';
 import { prepareAnnex29a } from '../../src/annexes/29a/generator.js';
-import { normalizeBankAccountInput } from '../../src/ui/bank-account-input.js';
 
 const base = {
   agreementNumber: 'EL/2026/123', agreementDate: '2026-02-14', customerType: 'person',
@@ -33,7 +32,7 @@ test('29 i 29a są aktywne tylko w dodatkowej sekcji, a 45b i 11a pozostają pla
       assert.equal(card.status, 'tutlo');
       assert.equal(card.enabled, true);
       assert.equal(card.mode, 'post_payment_change');
-      assert.match(card.desc, /Konsultant wpisuje numer rachunku Tutlo/);
+      assert.doesNotMatch(card.desc, /rachunku Tutlo/);
       assert.equal(getAvailableAnnexCards(contract).filter(item => item.no === id).length, 0);
     }
     for (const id of ['45b', '11a']) {
@@ -54,65 +53,48 @@ test('umowy internal zachowują 29 i 29a wyłącznie w standardowej sekcji', () 
   }
 });
 
-test('formularz pokazuje wymagane konto wyłącznie dla jawnego trybu post_payment_change', async () => {
+test('formularze 29 i 29a nie pokazują pola rachunku Tutlo w żadnym trybie', async () => {
   const html = await readFile(new URL('../../index.html', import.meta.url), 'utf8');
   for (const id of ['29', '29a']) {
-    assert.match(html, new RegExp(`id="annex${id}TutloBankAccountField" hidden`));
-    assert.match(html, new RegExp(`accountInput\\.required=postPaymentChange`));
-    assert.match(html, new RegExp(`['"]annex${id}TutloBankAccount['"]`));
+    assert.doesNotMatch(html, new RegExp(`annex${id}TutloBankAccount`));
   }
   assert.match(html, /openGenerator\(item\.no,item\.mode\|\|'standard'\)/);
+  assert.match(html, /const prepared=prepare\(currentContract,\{mode\}\)/);
   assert.doesNotMatch(html, /prepareAnnex(?:29|29a)(?:Credit|PostPaymentChange)/);
 });
 
-test('wspólny ogranicznik pola rachunku zachowuje najwyżej pierwsze 26 cyfr', () => {
-  const account = '12345678901234567890123456';
-  assert.equal(normalizeBankAccountInput(account), account);
-  assert.equal(normalizeBankAccountInput(`${account}7`), account);
-  assert.equal(normalizeBankAccountInput(`${account}7890`), account);
-  assert.equal(normalizeBankAccountInput('12 3456 7890 1234 5678 9012 3456 9999'), account);
-  assert.equal(normalizeBankAccountInput('12ab! 3456-7890/1234.5678_9012+3456'), account);
-});
-
-test('oba pola rachunku aneksów 29 używają wspólnego ogranicznika zdarzenia input', async () => {
-  const html = await readFile(new URL('../../index.html', import.meta.url), 'utf8');
-  assert.match(html, /for\(const id of \['annex29TutloBankAccount','annex29aTutloBankAccount'\]\)/);
-  assert.match(html, /bindBankAccountInput\(document\.getElementById\(id\),'Numer rachunku bankowego Tutlo musi zawierać dokładnie 26 cyfr\.'\)/);
-});
-
 for (const [id, prepare] of [['29', prepareAnnex29], ['29a', prepareAnnex29a]]) {
-  test(`aneks ${id}: konto jest wymagane, walidowane i normalizowane w post_payment_change`, () => {
-    for (const tutloBankAccount of ['', '1'.repeat(25), '1'.repeat(27), 'A'.repeat(26), '1'.repeat(25) + '-']) {
-      assert.throws(() => prepare(credits[0], { mode: 'post_payment_change', tutloBankAccount }),
-        /Numer rachunku bankowego Tutlo musi zawierać dokładnie 26 cyfr/);
-    }
+  test(`aneks ${id}: brak rachunku Tutlo nie blokuje post_payment_change ani nie trafia do wyniku`, () => {
     for (const contract of credits) {
       const snapshot = structuredClone(contract);
-      const prepared = prepare(contract, {
-        mode: 'post_payment_change', tutloBankAccount: '12 3456 7890 1234 5678 9012 3456', today: '2026-07-28'
+      const options = { mode: 'post_payment_change', today: '2026-07-28' };
+      Object.defineProperty(options, 'tutloBankAccount', {
+        get() { throw new Error('generator odczytał nieużywany parametr rachunku'); }
       });
-      assert.equal(prepared.context.mode, 'post_payment_change');
-      assert.equal(prepared.context.tutloBankAccount, '12345678901234567890123456');
+      const prepared = prepare(contract, options);
+      assert.deepEqual(prepared.context, { mode: 'post_payment_change' });
+      assert.equal('tutloBankAccount' in prepared.values, false);
+      assert.equal('tutloBankAccount' in prepared.context, false);
       assert.deepEqual(contract, snapshot);
     }
   });
 
-  test(`aneks ${id}: dokładnie 26 cyfr pozwala generować, a krótszy numer nadal blokuje`, () => {
-    const account = '12345678901234567890123456';
-    assert.throws(() => prepare(credits[0], { mode: 'post_payment_change', tutloBankAccount: account.slice(0, 25) }),
-      /Numer rachunku bankowego Tutlo musi zawierać dokładnie 26 cyfr/);
-    const prepared = prepare(credits[0], { mode: 'post_payment_change', tutloBankAccount: account });
-    assert.equal(prepared.context.tutloBankAccount, account);
+  test(`aneks ${id}: wynik finansowy jest identyczny bez nieużywanego rachunku`, () => {
+    const withoutAccount = prepare(credits[0], { mode: 'post_payment_change', today: '2026-07-28' });
+    const withIgnoredAccount = prepare(credits[0], {
+      mode: 'post_payment_change', today: '2026-07-28', tutloBankAccount: 'nie jest przekazywany'
+    });
+    assert.deepEqual(withoutAccount.values, withIgnoredAccount.values);
+    assert.deepEqual(withoutAccount.calculation, withIgnoredAccount.calculation);
   });
 
-  test(`aneks ${id}: limit + kredyt wymaga konta Tutlo w trybie po zmianie płatności`, () => {
-    const limitCredit = credits.find(contract => contract.contractType === 'limit');
-    assert.throws(() => prepare(limitCredit, { mode: 'post_payment_change', tutloBankAccount: '' }),
-      /Numer rachunku bankowego Tutlo musi zawierać dokładnie 26 cyfr/);
-    const prepared = prepare(limitCredit, {
-      mode: 'post_payment_change', tutloBankAccount: '12 3456 7890 1234 5678 9012 3456'
-    });
-    assert.equal(prepared.context.tutloBankAccount, '12345678901234567890123456');
+  test(`aneks ${id}: tryb standardowy pozostaje bez zmian`, () => {
+    const internal = {
+      ...credits[0], paymentType: 'internal', paymentVariant: 'internal_24'
+    };
+    const prepared = prepare(internal, { mode: 'standard', today: '2026-07-28' });
+    assert.deepEqual(prepared.context, { mode: 'standard' });
+    assert.ok(Number.isSafeInteger(prepared.calculation.newCoursePriceCents));
   });
 
   test(`aneks ${id}: kredyt bez post_payment_change pozostaje zablokowany`, () => {

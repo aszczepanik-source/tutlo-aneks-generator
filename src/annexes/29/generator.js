@@ -1,7 +1,6 @@
 import manifest from './manifest.json' with { type: 'json' };
 import { addDays, formatDate, parseDate } from '../../domain/annex-calculations.js';
 import { validateAnnex29Data } from './validator.js';
-import { normalizeTutloBankAccount } from '../shared/validation.js';
 import { getLocalIsoDate } from '../shared/local-date.js';
 
 const amount = cents => `${Math.floor(cents / 100)}`.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
@@ -10,8 +9,6 @@ const amount = cents => `${Math.floor(cents / 100)}`.replace(/\B(?=(\d{3})+(?!\d
 export function prepareAnnex29(currentContract, options = {}) {
   validateAnnex29Data(currentContract, options);
   const mode = options.mode ?? 'standard';
-  const tutloBankAccount = mode === 'post_payment_change'
-    ? normalizeTutloBankAccount(options.tutloBankAccount) : undefined;
   const annexDate = options.today || getLocalIsoDate();
   parseDate(annexDate, 'data aneksu');
   const effectiveDate = addDays(annexDate, 1);
@@ -30,7 +27,7 @@ export function prepareAnnex29(currentContract, options = {}) {
   return { annexId: manifest.id, template: manifest.template, templateVersion: manifest.templateVersion,
     requiredFields: manifest.requiredFields, values,
     calculation: { annexDate, effectiveDate, newCoursePriceCents },
-    context: { mode, ...(tutloBankAccount ? { tutloBankAccount } : {}) } };
+    context: { mode } };
 }
 
 export function createGenerationPlan(input) {

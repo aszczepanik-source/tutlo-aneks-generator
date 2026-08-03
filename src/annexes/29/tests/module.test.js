@@ -28,8 +28,7 @@ test('aneks 29: oblicza cenę i wszystkie placeholdery wyłącznie z currentCont
 test('aneks 29: mapuje wyłącznie PESEL osoby lub NIP firmy w obu trybach', () => {
   const cases = [
     { mode: 'standard', contract, options: {} },
-    { mode: 'post_payment_change', contract: { ...contract, paymentType: 'credit', paymentVariant: 'credit' },
-      options: { tutloBankAccount: '12 3456 7890 1234 5678 9012 3456' } }
+    { mode: 'post_payment_change', contract: { ...contract, paymentType: 'credit', paymentVariant: 'credit' }, options: {} }
   ];
   for (const { mode, contract: modeContract, options } of cases) {
     const person = prepareAnnex29({ ...modeContract, customerType: 'person', personalId: '12345678901' }, { ...options, mode, today: '2026-07-28' });

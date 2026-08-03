@@ -1,5 +1,3 @@
-import { normalizeTutloBankAccount } from '../shared/validation.js';
-
 const required = [
   ['agreementNumber', 'numer umowy'], ['agreementDate', 'data zawarcia umowy'],
   ['customerType', 'typ klienta'], ['customerName', 'dane klienta'],
@@ -16,7 +14,6 @@ export function validateAnnex29aData(currentContract, options = {}) {
   if (!allowedCredit && !allowedStandard) {
     throw new Error('Aneks 29a wymaga umowy flexible z ratami wewnętrznymi internal_24 albo trybu po zmianie płatności dla umowy kredytowej flexible lub limit.');
   }
-  if (postPaymentChange) normalizeTutloBankAccount(options.tutloBankAccount);
   for (const [field, label] of required) {
     if (currentContract[field] === undefined || currentContract[field] === null
       || String(currentContract[field]).trim() === '') throw new Error(`Brak danych umowy: ${label}.`);
