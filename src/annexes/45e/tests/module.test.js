@@ -1,7 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { getAvailableAnnexCards, getPostPaymentChangeAnnexCards } from '../../availability.js';
 import { ANNEX_27_BANKS } from '../../27/validator.js';
+import { renderDocx } from '../../../infrastructure/local-docx-generator.js';
+import { extractDocxPlaceholders } from '../../shared/template-inspection.js';
+import manifest from '../manifest.json' with { type: 'json' };
 import { ANNEX_45E_BANKS, prepareAnnex45E } from '../index.js';
 
 const account = '12345678901234567890123456';
@@ -33,6 +37,60 @@ test('wylicza raty, spłatę, nową cenę i średnią od początku kursu', () =>
   assert.equal(prepared.calculation.newPriceCents, 395000);
   assert.equal(prepared.calculation.newAverageInstallmentCents, 16458);
   assert.equal(prepared.values.DATA_WEJSCIA_W_ZYCIE, '16.07.2026');
+});
+
+test('mapuje istniejące wyniki usedMonths, ratę umowną i spłatę bez symbolu waluty', () => {
+  const prepared = prepare({ courseStartDate: '2026-01-16', monthlyInstallmentCents: 30000 });
+  assert.equal(prepared.calculation.usedMonths, 6);
+  assert.equal(prepared.calculation.currentInstallmentCents, 30000);
+  assert.equal(prepared.calculation.paidToAnnexDateCents, 180000);
+  assert.equal(prepared.values.LICZBA_RAT, '6');
+  assert.equal(prepared.values.OBECNA_RATA, '300,00');
+  assert.equal(prepared.values.SPLACONO_DO_DNIA_ANEKSU, '1800,00');
+});
+
+test('template, prepared.values i manifest mają spójny komplet wymaganych placeholderów', async () => {
+  const template = await readFile(new URL('../template.docx', import.meta.url));
+  const placeholders = extractDocxPlaceholders(template);
+  const prepared = prepare();
+  const rowKeys = new Set(Object.keys(prepared.values.RATY[0]));
+  const valueKeys = new Set(Object.keys(prepared.values));
+  const missingValues = placeholders.filter(key => !key.startsWith('#') && !key.startsWith('/')
+    && !valueKeys.has(key) && !rowKeys.has(key));
+  const requiredTemplateFields = placeholders.filter(key => !key.startsWith('#') && !key.startsWith('/')
+    && !rowKeys.has(key));
+
+  assert.deepEqual(missingValues, []);
+  assert.deepEqual(requiredTemplateFields.filter(key => !manifest.requiredFields.includes(key)), []);
+  assert.ok(['SPLACONO_DO_DNIA_ANEKSU', 'LICZBA_RAT', 'OBECNA_RATA']
+    .every(key => manifest.requiredFields.includes(key)));
+});
+
+test('wynikowy DOCX zastępuje nowe placeholdery i zawiera pojedynczą walutę', async () => {
+  const template = await readFile(new URL('../template.docx', import.meta.url));
+  const prepared = prepare({ courseStartDate: '2026-01-16', monthlyInstallmentCents: 30000 });
+  class FakeZip {
+    constructor() {
+      this.files = { 'word/document.xml': true };
+      this.xml = '{{SPLACONO_DO_DNIA_ANEKSU}} zł | {{LICZBA_RAT}} | {{OBECNA_RATA}} zł';
+    }
+    file() { return { asText: () => this.xml }; }
+    generate() { return new TextEncoder().encode(this.xml); }
+  }
+  class FakeDocxtemplater {
+    constructor(zip) { this.zip = zip; }
+    render(values) {
+      this.zip.xml = this.zip.xml.replace(/\{\{([^{}]+)\}\}/g, (_, key) => values[key]);
+    }
+    getZip() { return this.zip; }
+  }
+  const output = renderDocx(template, prepared, { PizZip: FakeZip, docxtemplater: FakeDocxtemplater });
+  const xml = new TextDecoder().decode(output);
+
+  assert.doesNotMatch(xml, /\{\{(?:SPLACONO_DO_DNIA_ANEKSU|LICZBA_RAT|OBECNA_RATA)\}\}/);
+  assert.match(xml, /1800,00 zł/);
+  assert.match(xml, /300,00 zł/);
+  assert.doesNotMatch(xml, /zł\s*zł/);
 });
 
 test('stosuje regułę 15. dnia istniejącego helpera miesięcy', () => {
