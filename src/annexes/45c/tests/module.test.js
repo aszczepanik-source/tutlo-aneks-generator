@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { getAvailableAnnexCards } from '../../availability.js';
 import { prepareAnnex45C, validateAnnex45CData } from '../index.js';
+import { assertRenderedValues, renderActualTemplate } from '../../shared/tests/docx-rendering.js';
 
 const contract = {
   contractType: 'limit', paymentType: 'internal', paymentVariant: 'internal_24',
@@ -92,4 +93,14 @@ test('walidator odrzuca każdy niedozwolony rodzaj umowy', () => {
   assert.throws(() => validateAnnex45CData({ ...contract, contractType: 'flexible' }), /umowy z limitem/);
   assert.throws(() => validateAnnex45CData({ ...contract, paymentType: 'credit' }), /rat wewnętrznych/);
   assert.throws(() => validateAnnex45CData({ ...contract, paymentVariant: 'internal_2' }), /24 raty/);
+});
+
+test('rzeczywisty DOCX aneksu 45C renderuje komplet danych osoby, firmy, kwot, dat i harmonogramu', async () => {
+  const personText = await renderActualTemplate(new URL('../template.docx', import.meta.url), prepare());
+  assertRenderedValues(personText, ['Jan Kowalski', 'PESEL', '00210100004', '2400,00', '4200,00', '175,00',
+    '30.07.2026', '31.07.2026', '200,00', '15.08.2025', '150,00', '15.07.2027']);
+
+  const company = prepare({ customerType: 'company', customerName: 'Tutlo Test Sp. z o.o.', personalId: '1234567890' });
+  const companyText = await renderActualTemplate(new URL('../template.docx', import.meta.url), company);
+  assertRenderedValues(companyText, ['Tutlo Test Sp. z o.o.', 'NIP', '1234567890']);
 });

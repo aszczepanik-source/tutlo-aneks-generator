@@ -5,6 +5,7 @@ import { getAvailableAnnexCards } from '../../availability.js';
 import { getAnnexRoute } from '../../../../router.js';
 import { prepareAnnex48 } from '../index.js';
 import { calculateCourseMonths } from '../../../domain/annex-calculations.js';
+import { assertRenderedValues, renderActualTemplate } from '../../shared/tests/docx-rendering.js';
 
 test('kanoniczny helper liczy miesiące według reguły 15/16', () => {
   for (const [courseStartDate, usedMonths, remainingMonths] of [
@@ -142,4 +143,16 @@ test('formularz ma tylko jedno pole konsultanta, a karta otwiera generator 48', 
   assert.match(form, /id="annex48UsedLessons"/);
   assert.match(html, /if\(no==='48'\)[\s\S]*?annex48Dialog/);
   assert.match(html, /prepareAnnex48\(currentContract,\{usedLessons:/);
+});
+
+test('rzeczywisty DOCX aneksu 48 renderuje komplet danych osoby, firmy, kwot, dat i puli lekcji', async () => {
+  const person = prepareAnnex48(contract, { usedLessons: '5' }, '2026-07-15');
+  const personText = await renderActualTemplate(new URL('../template.docx', import.meta.url), person);
+  assertRenderedValues(personText, ['Jan Kowalski', 'PESEL', '00210100004', '2100,00', '5', '204',
+    '02.01.2026', '15.07.2026', '01.08.2026']);
+
+  const company = prepareAnnex48({ ...contract, customerType: 'company', customerName: 'Tutlo Test Sp. z o.o.',
+    personalId: '1234567890' }, { usedLessons: '5' }, '2026-07-15');
+  const companyText = await renderActualTemplate(new URL('../template.docx', import.meta.url), company);
+  assertRenderedValues(companyText, ['Tutlo Test Sp. z o.o.', 'NIP', '1234567890']);
 });
