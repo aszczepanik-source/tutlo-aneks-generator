@@ -8,12 +8,12 @@ import { extractDocxPlaceholders } from '../../shared/template-inspection.js';
 import { renderDocx } from '../../../infrastructure/local-docx-generator.js';
 
 const RAW_TEXT = `
-UMOWA ELASTYCZNA nr EL/JF/811/192956/3/9/2025
-DANE NABYWCY Imię i nazwisko: Monika Wójcik Adres: Galileusza 10/13, 67-200 Głogów PESEL: 82111304868
+UMOWA ELASTYCZNA nr EL/TEST/100/200/3/9/2025
+DANE NABYWCY Imię i nazwisko: Jan Testowy Adres: ul. Testowa 1, 00-001 Warszawa PESEL: 00210100004
 SPECYFIKACJA KURSU Liczba Lekcji Indywidualnych: 450 Maksymalna miesięczna liczba Lekcji Indywidualnych do wykorzystania: 57
 ZAWARTOŚĆ KURSU 1. Zajęcia w formie spotkań indywidualnych z Lektorem Polskim, English Expert, Native Speaker
 WARUNKI PŁATNOŚCI Cena kursu: Całkowita cena kursu wynosi 11250,00 zł brutto. Rata miesięczna: 999,99 zł`;
-const contract = extractContractData(RAW_TEXT, 'EL/JF/811/192956/3/9/2025');
+const contract = extractContractData(RAW_TEXT, 'EL/TEST/100/200/3/9/2025');
 const account = '12345678901234567890123456';
 const form = { newInstallment: '400,00', bank: 'Inbank', bankAccount: account };
 
@@ -47,9 +47,9 @@ test('aneks 26 odczytuje stały wzór, datę z numeru i buduje komplet placehold
     teachers: prepared.values.TYPY_LEKTOROW,
     credit: prepared.values.KWOTA_KREDYTU
   }, {
-    number: 'EL/JF/811/192956/3/9/2025', date: '03.09.2025', creditDate: '03.09.2025',
-    name: 'Monika Wójcik', address: 'Galileusza 10/13, 67-200 Głogów',
-    identifierLabel: 'PESEL', identifier: '82111304868',
+    number: 'EL/TEST/100/200/3/9/2025', date: '03.09.2025', creditDate: '03.09.2025',
+    name: 'Jan Testowy', address: 'ul. Testowa 1, 00-001 Warszawa',
+    identifierLabel: 'PESEL', identifier: '00210100004',
     lessons: 414, limit: '57', teachers: 'Lektorem Polskim, English Expert, Native Speakerem', credit: '11250,00 zł'
   });
 });

@@ -13,7 +13,7 @@ const contract = {
   contractEndDate: '2027-12-31',
   customerName: 'Jan Kowalski',
   installments,
-  pesel: '90010112345'
+  pesel: '00210100004'
 };
 
 test('Aneks 11 wylicza datę aneksu i wejścia w życie bez pola formularza', () => {

@@ -9,7 +9,7 @@ import { extractDocxPlaceholders, readZipEntry } from '../../shared/template-ins
 
 const contract = {
   agreementNumber: 'EL/2026/123', agreementDate: '2026-02-14', customerType: 'person',
-  customerName: 'Jan Kowalski', personalId: '90010112345', address: 'Testowa 1, Warszawa',
+  customerName: 'Jan Kowalski', personalId: '00210100004', address: 'Testowa 1, Warszawa',
   coursePriceCents: 1392000, monthlyInstallmentCents: 58000,
   contractType: 'flexible', paymentType: 'internal', paymentVariant: 'internal_24'
 };
@@ -20,7 +20,7 @@ test('aneks 29a: oblicza cenę i wszystkie placeholdery wyłącznie z currentCon
   assert.deepEqual(prepared.values, {
     ADRES: 'Testowa 1, Warszawa', DATA_ANEKSU: '28.07.2026', DATA_WEJSCIA_W_ZYCIE: '29.07.2026',
     DATA_ZAWARCIA_UMOWY: '14.02.2026', IMIE_NAZWISKO: 'Jan Kowalski', NOWA_CENA: '12 760,00',
-    NUMER_UMOWY: 'EL/2026/123', IDENTYFIKATOR_LABEL: 'PESEL', IDENTYFIKATOR: '90010112345'
+    NUMER_UMOWY: 'EL/2026/123', IDENTYFIKATOR_LABEL: 'PESEL', IDENTYFIKATOR: '00210100004'
   });
   assert.deepEqual(Object.keys(prepared.values).sort(), [...manifest.requiredFields].sort());
 });

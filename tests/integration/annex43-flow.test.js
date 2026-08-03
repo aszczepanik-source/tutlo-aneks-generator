@@ -7,7 +7,7 @@ import { annex43TemplateUrl } from '../../src/infrastructure/local-docx-generato
 
 const contract = {
   agreementNumber: 'EL/43/2026', agreementDate: '2026-07-01', customerType: 'person',
-  customerName: 'Jan Kowalski', personalId: '90010112345', address: 'Testowa 1',
+  customerName: 'Jan Kowalski', personalId: '00210100004', address: 'Testowa 1',
   contractType: 'flexible', paymentType: 'credit', paymentVariant: 'credit', familyGroupVariant: 'paid'
 };
 const visible = value => getAvailableAnnexCards({ ...contract, familyGroupVariant: value }).some(card => card.no === '43');

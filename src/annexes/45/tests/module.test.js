@@ -7,8 +7,8 @@ import { prepareAnnex45 } from '../index.js';
 const contract = {
   contractType: 'flexible', paymentType: 'internal', paymentVariant: 'internal_24',
   agreementNumber: 'UE/1/2025', agreementDate: '2025-08-15', courseStartDate: '2025-08-01',
-  customerType: 'person', customerName: 'Jan Kowalski', personalId: '90010112345',
-  address: 'Długa 1, 00-001 Warszawa', coursePriceCents: 480000, monthlyInstallmentCents: 20000,
+  customerType: 'person', customerName: 'Jan Kowalski', personalId: '00210100004',
+  address: 'ul. Testowa 1, 00-001 Warszawa', coursePriceCents: 480000, monthlyInstallmentCents: 20000,
   lessonCount: 240, teacherVariant: 'polish_english_native',
   internalPaymentAccount: '12345678901234567890123456',
   installmentPlan: { paymentCount: 24, firstPaymentDueDate: '2025-08-15', recurringStartDate: '2025-09-15' }

@@ -33,7 +33,7 @@ const contract = {
   contractType: 'limit', paymentType: 'credit', paymentVariant: 'credit',
   agreementNumber: 'UL/1/2026', agreementDate: '2026-01-02', courseStartDate: '2026-01-13',
   customerType: 'person', customerName: 'Jan Kowalski', address: 'ul. Testowa 1, Warszawa',
-  personalId: '90010112345', monthlyInstallmentCents: 30000, monthlyLessonLimit: 12
+  personalId: '00210100004', monthlyInstallmentCents: 30000, monthlyLessonLimit: 12
 };
 
 test('48 jest widoczny dla każdej umowy z limitem niezależnie od płatności', () => {

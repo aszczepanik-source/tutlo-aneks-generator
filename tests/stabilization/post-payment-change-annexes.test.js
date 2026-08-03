@@ -7,7 +7,7 @@ import { prepareAnnex29a } from '../../src/annexes/29a/generator.js';
 
 const base = {
   agreementNumber: 'EL/2026/123', agreementDate: '2026-02-14', customerType: 'person',
-  customerName: 'Jan Kowalski', personalId: '90010112345', address: 'Testowa 1, Warszawa',
+  customerName: 'Jan Kowalski', personalId: '00210100004', address: 'Testowa 1, Warszawa',
   coursePriceCents: 1392000, monthlyInstallmentCents: 58000, paymentVariant: 'credit', paymentType: 'credit'
 };
 const credits = ['flexible', 'limit'].map(contractType => ({ ...base, contractType }));
