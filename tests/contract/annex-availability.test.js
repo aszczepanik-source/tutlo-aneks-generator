@@ -32,16 +32,26 @@ function assertCards(contract, expectedIds, expectedStatuses) {
   assert.deepEqual(contract, before, 'router must not mutate currentContract');
 }
 
+const withAnnex43 = (contract, ids, statuses) => {
+  const available = (contract.contractType === 'flexible' || contract.contractType === 'limit')
+    && contract.familyGroupVariant === 'paid';
+  return [available ? ['43', ...ids] : ids, available ? ['tutlo', ...statuses] : statuses];
+};
+
+function assertMatrix(contract, expectedIds, expectedStatuses) {
+  assertCards(contract, ...withAnnex43(contract, expectedIds, expectedStatuses));
+}
+
 for (const paymentVariant of ['internal_24', 'internal_2', 'internal_13', 'internal_4']) {
   test(`flexible + ${paymentVariant} has the exact card matrix`, () => {
-    assertCards(
+    assertMatrix(
       { contractType: 'flexible', paymentType: 'internal', paymentVariant, rawText: 'ignored' },
       flexibleInternalIds(paymentVariant), flexibleInternalStatuses(paymentVariant)
     );
   });
 
   test(`limit + ${paymentVariant} has the exact card matrix`, () => {
-    assertCards(
+    assertMatrix(
       { contractType: 'limit', paymentType: 'internal', paymentVariant, rawText: 'ignored' },
       limitInternalIds, limitInternalStatuses
     );
@@ -49,7 +59,7 @@ for (const paymentVariant of ['internal_24', 'internal_2', 'internal_13', 'inter
 }
 
 test('flexible + credit has the exact card matrix', () => {
-  assertCards(
+  assertMatrix(
     { contractType: 'flexible', paymentType: 'credit', paymentVariant: 'credit' },
     ['26', 'wydluzenie-dostepu', '20-lekcji-gratis', 'tutlo-premium', '30', '30a', '10', '35'],
     ['tutlo', 'external', 'external', 'external', 'planned', 'planned', 'planned', 'planned']
@@ -57,13 +67,36 @@ test('flexible + credit has the exact card matrix', () => {
 });
 
 test('limit + credit has the exact card matrix', () => {
-  assertCards(
+  assertMatrix(
     { contractType: 'limit', paymentType: 'credit', paymentVariant: 'credit' },
     ['wydluzenie-dostepu', '20-lekcji-gratis', 'tutlo-premium', 'lektorzy-pl',
       '45', '35', '48', '30', '30a'],
     ['external', 'external', 'external', 'external',
       'planned', 'planned', 'planned', 'planned', 'planned']
   );
+});
+
+test('Aneks 43 rozszerza macierz dokładnie dla flexible albo limit z wariantem paid', () => {
+  for (const contractType of ['flexible', 'limit']) {
+    const base = { contractType, paymentType: 'credit', paymentVariant: 'credit' };
+    const standard = getAvailableAnnexCards(base);
+
+    for (const familyGroupVariant of ['included', null, undefined]) {
+      assert.deepEqual(getAvailableAnnexCards({ ...base, familyGroupVariant }), standard);
+    }
+
+    const paid = getAvailableAnnexCards({ ...base, familyGroupVariant: 'paid' });
+    assert.deepEqual(paid.filter(card => card.no !== '43'), standard);
+    assert.deepEqual(paid.filter(card => card.no === '43'), [{
+      no: '43', name: '43 – Grupa Rodzinna', status: 'tutlo',
+      desc: 'Dodanie możliwości korzystania z kursu przez maksymalnie 2 dodatkowych użytkowników bez dodatkowej opłaty.'
+    }]);
+  }
+
+  for (const contractType of ['limited', 'unknown', undefined]) {
+    assert.equal(getAvailableAnnexCards({ contractType, familyGroupVariant: 'paid' })
+      .some(card => card.no === '43'), false);
+  }
 });
 
 test('yellow generators occur only in their exact supported combinations', () => {
