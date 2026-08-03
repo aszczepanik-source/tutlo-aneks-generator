@@ -1,7 +1,7 @@
 import manifest from './manifest.json' with { type: 'json' };
 import { validateCurrentContract } from '../../domain/contract-extraction.js';
 import { validateAnnex27Data } from './validator.js';
-import { calculateUsedMonths } from '../48/generator.js';
+import { calculateCourseMonths } from '../../domain/annex-calculations.js';
 
 const INSTALLMENT_COUNT = 24;
 const iso = date => date.toISOString().slice(0, 10);
@@ -13,14 +13,6 @@ function parseMoney(value) {
   const normalized = String(value ?? '').trim().replace(',', '.');
   if (!/^\d+(?:\.\d{1,2})?$/.test(normalized)) return NaN;
   return Math.round(Number(normalized) * 100);
-}
-
-export function calculatePaidMonths(courseStartDate, annexDate) {
-  if (!courseStartDate) throw new Error('Nie udało się odczytać daty rozpoczęcia kursu.');
-  if (annexDate < courseStartDate) {
-    throw new Error('Data aneksu nie może przypadać przed datą rozpoczęcia kursu.');
-  }
-  return calculateUsedMonths(courseStartDate, annexDate);
 }
 
 const roman = value => {
@@ -39,8 +31,10 @@ export function buildTutloSchedule(annexDate, remainingMonths, newRateCents) {
 }
 
 export function calculateAnnex27(contract, annexDate, newRateCents) {
-  const paidMonths = calculatePaidMonths(contract.courseStartDate, annexDate);
-  const remainingMonths = INSTALLMENT_COUNT - paidMonths;
+  if (!contract.courseStartDate) throw new Error('Nie udało się odczytać daty rozpoczęcia kursu.');
+  const { usedMonths: paidMonths, remainingMonths } = calculateCourseMonths({
+    courseStartDate: contract.courseStartDate, annexDate, totalMonths: INSTALLMENT_COUNT
+  });
   const data = { ...contract, oldCoursePriceCents: contract.coursePriceCents,
     oldRateCents: contract.monthlyInstallmentCents, newRateCents, paidMonths, remainingMonths };
   const paidAmountCents = paidMonths * data.oldRateCents;
@@ -63,11 +57,14 @@ export function prepareAnnex27(currentContract, formData, today = new Date()) {
   validateCurrentContract(currentContract);
   const annexDate = today instanceof Date ? iso(today) : String(today);
   const newRateCents = parseMoney(formData?.newInstallment);
-  const paidMonths = calculatePaidMonths(currentContract.courseStartDate, annexDate);
+  if (!currentContract.courseStartDate) throw new Error('Nie udało się odczytać daty rozpoczęcia kursu.');
+  const { usedMonths: paidMonths, remainingMonths } = calculateCourseMonths({
+    courseStartDate: currentContract.courseStartDate, annexDate, totalMonths: INSTALLMENT_COUNT
+  });
   const data = { ...currentContract, bank: String(formData?.bank ?? '').trim(),
     bankAccount: account(formData?.bankAccount), tutloAccount: account(formData?.tutloAccount),
     oldCoursePriceCents: currentContract.coursePriceCents, oldRateCents: currentContract.monthlyInstallmentCents,
-    newRateCents, paidMonths, remainingMonths: INSTALLMENT_COUNT - paidMonths };
+    newRateCents, paidMonths, remainingMonths };
   validateAnnex27Data(data);
   const calculation = calculateAnnex27(currentContract, annexDate, newRateCents);
   const effective = new Date(`${annexDate}T12:00:00Z`); effective.setUTCDate(effective.getUTCDate() + 1);

@@ -9,6 +9,7 @@ export function validateAnnex45CData(contract) {
   if (contract?.contractType !== 'limit') throw new Error('Aneks 45C wymaga umowy z limitem.');
   if (contract.paymentType !== 'internal') throw new Error('Aneks 45C wymaga rat wewnętrznych.');
   if (contract.paymentVariant !== 'internal_24') throw new Error('Aneks 45C wymaga umowy na 24 raty wewnętrzne.');
+  if (!contract.courseStartDate) throw new Error('Nie udało się odczytać daty rozpoczęcia kursu.');
 
   required(contract.agreementNumber, 'numer umowy');
   required(contract.agreementDate ?? contract.dataZawarciaUmowy ?? contract.contractDate, 'data zawarcia umowy');

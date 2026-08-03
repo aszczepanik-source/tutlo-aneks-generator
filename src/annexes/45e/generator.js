@@ -1,7 +1,8 @@
 import manifest from './manifest.json' with { type: 'json' };
-import { addDays, addMonths, formatDate, parseMoneyToCents } from '../../domain/annex-calculations.js';
-import { calculateUsedMonths, TOTAL_MONTHS } from '../48/generator.js';
+import { addDays, addMonths, calculateCourseMonths, formatDate, parseMoneyToCents } from '../../domain/annex-calculations.js';
 import { validateAnnex45EData } from './validator.js';
+
+const TOTAL_MONTHS = 24;
 
 const formatAmount = cents => (cents / 100).toFixed(2).replace('.', ',');
 const normalizeAccount = value => String(value ?? '').replace(/\D/g, '').slice(0, 26);
@@ -39,8 +40,9 @@ export function prepareAnnex45E(currentContract, inputs = {}, annexDate = new Da
   validateAnnex45EData(data);
   const newInstallmentCents = parseMoneyToCents(inputs.newInstallment, 'nowa rata');
   const limit = weeklyLimit(inputs.weeklyLimit);
-  const usedMonths = calculateUsedMonths(data.courseStartDate, annexDate);
-  const remainingMonths = TOTAL_MONTHS - usedMonths;
+  const { usedMonths, remainingMonths } = calculateCourseMonths({
+    courseStartDate: data.courseStartDate, annexDate, totalMonths: TOTAL_MONTHS
+  });
   if (remainingMonths <= 0) throw new Error('Brak pozostałych rat Tutlo do umieszczenia w harmonogramie.');
   const paidToAnnexDateCents = usedMonths * data.monthlyInstallmentCents;
   const remainingTutloCents = newInstallmentCents * remainingMonths;

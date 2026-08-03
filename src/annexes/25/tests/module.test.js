@@ -13,7 +13,7 @@ const installments = Array.from({ length: 24 }, (_, index) => ({
 }));
 const contract = {
   contractType: 'flexible', paymentType: 'internal', paymentVariant: 'internal_24',
-  coursePriceCents: 957600, installments, agreementNumber: 'EL/1/1/2025', agreementDate: '01.01.2025',
+  coursePriceCents: 957600, installments, agreementNumber: 'EL/1/1/2025', agreementDate: '01.01.2025', courseStartDate: '2025-09-01',
   customerType: 'person', customerName: 'Jan Kowalski', address: 'Testowa 1', personalId: '12345678901', lessonCount: 192,
   monthlyLessonLimit: 24, monthlyInstallmentCents: 39900,
   internalPaymentAccount: '12345678901234567890123456', teacherVariant: 'polish_english_native',
@@ -57,6 +57,16 @@ test('obliczenia używają groszy, następnego miesiąca i pełnego harmonogramu
   assert.equal(result.installments.reduce((sum, item) => sum + item.amountCents, 0), result.newPriceCents);
 });
 
+test('termin pierwszej raty zmienia tylko terminy, nie podział rat według ceny', () => {
+  const shifted = { ...contract, installmentPlan: { ...contract.installmentPlan,
+    firstPaymentDueDate: '2025-09-30', recurringStartDate: '2025-10-30' } };
+  const first = calculateAnnex25(contract, '2026-01-20', 30000);
+  const second = calculateAnnex25(shifted, '2026-01-20', 30000);
+  assert.deepEqual([first.paidInstallments, first.remainingInstallments],
+    [second.paidInstallments, second.remainingInstallments]);
+  assert.notDeepEqual(first.installments.map(item => item.dueDate), second.installments.map(item => item.dueDate));
+});
+
 test('blokuje ratę równą lub wyższą, brak ceny i niepełny harmonogram', () => {
   assert.throws(() => calculateAnnex25(contract, '2026-01-20', 39900), /niższa.*399,00 zł/);
   assert.throws(() => calculateAnnex25(contract, '2026-01-20', 40000), /niższa.*399,00 zł/);
@@ -87,13 +97,13 @@ test('prepareAnnex25 mapuje identyfikator osoby i firmy z currentContract', () =
 });
 
 test('data wejścia w życie przypada dzień po dacie aneksu', () => {
-  for (const [annexDate, expectedAnnexDate, expectedEffectiveDate] of [
+  for (const [annexDate, expectedAnnexDate, expectedEffectiveDate, courseStartDate = contract.courseStartDate] of [
     ['2026-07-28', '28.07.2026', '29.07.2026'],
     ['2026-07-31', '31.07.2026', '01.08.2026'],
     ['2026-12-31', '31.12.2026', '01.01.2027'],
-    ['2028-02-28', '28.02.2028', '29.02.2028']
+    ['2028-02-28', '28.02.2028', '29.02.2028', '2027-01-01']
   ]) {
-    const prepared = prepareAnnex25(contract, { newInstallment: '300' }, annexDate);
+    const prepared = prepareAnnex25({ ...contract, courseStartDate }, { newInstallment: '300' }, annexDate);
     assert.equal(prepared.values.DATA_ANEKSU, expectedAnnexDate);
     assert.equal(prepared.values.DATA_WEJSCIA_W_ZYCIE, expectedEffectiveDate);
   }

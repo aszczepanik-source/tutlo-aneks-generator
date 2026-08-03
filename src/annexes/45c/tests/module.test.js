@@ -5,7 +5,7 @@ import { prepareAnnex45C, validateAnnex45CData } from '../index.js';
 
 const contract = {
   contractType: 'limit', paymentType: 'internal', paymentVariant: 'internal_24',
-  agreementNumber: 'UL/1/2025', agreementDate: '2025-08-15', customerType: 'person',
+  agreementNumber: 'UL/1/2025', agreementDate: '2025-08-15', courseStartDate: '2025-08-01', customerType: 'person',
   customerName: 'Jan Kowalski', personalId: '90010112345', address: 'Długa 1, 00-001 Warszawa',
   coursePriceCents: 480000, monthlyInstallmentCents: 20000, lessonCount: 240,
   teacherVariant: 'polish_english_native', internalPaymentAccount: '12345678901234567890123456',
@@ -42,6 +42,15 @@ test('zmiana od 13. raty dzieli pełny harmonogram i wylicza ceny', () => {
   assert.equal(values.NOWA_SREDNIA_RATA, '175,00');
   assert.equal(values.LIMIT_TYGODNIOWY, '5');
   assert.equal(values.LICZBA_LEKCJI, '240');
+});
+
+test('termin pierwszej raty nie zmienia liczby rat po starej i nowej stawce', () => {
+  const first = prepare().calculation;
+  const second = prepare({ installmentPlan: { paymentCount: 24, firstPaymentDueDate: '2025-08-30',
+    recurringStartDate: '2025-09-30' } }).calculation;
+  assert.deepEqual([first.paidInstallments, first.remainingInstallments],
+    [second.paidInstallments, second.remainingInstallments]);
+  assert.notDeepEqual(first.installments.map(item => item.dueDate), second.installments.map(item => item.dueDate));
 });
 
 test('uzupełnia 24 kwoty i terminy bez waluty, dopisku roku ani pustych wartości', () => {
