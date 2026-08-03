@@ -72,6 +72,35 @@ test('zmiana początku kursu zmienia wyniki miesięczne zgodnie z dotychczasowym
   assert.notEqual(february.calculation.newCoursePriceCents, march.calculation.newCoursePriceCents);
 });
 
+test('aneks 27 stosuje regułę 15/16 także przez granicę roku', () => {
+  for (const [courseStartDate, paidMonths, remainingMonths] of [
+    ['2026-01-13', 7, 17],
+    ['2026-01-15', 7, 17],
+    ['2026-01-16', 6, 18],
+    ['2026-01-20', 6, 18],
+    ['2025-12-15', 8, 16],
+    ['2025-12-16', 7, 17]
+  ]) {
+    const { calculation } = prepareAnnex27({ ...contract, courseStartDate }, form, '2026-07-20');
+    assert.equal(calculation.paidMonths, paidMonths, courseStartDate);
+    assert.equal(calculation.remainingMonths, remainingMonths, courseStartDate);
+  }
+});
+
+test('aneks 27 poprawnie zmienia finanse i harmonogram dla 7 albo 6 wykorzystanych miesięcy', () => {
+  const through15 = prepareAnnex27({ ...contract, courseStartDate: '2026-01-15' }, form, '2026-07-20');
+  const after15 = prepareAnnex27({ ...contract, courseStartDate: '2026-01-16' }, form, '2026-07-20');
+
+  assert.deepEqual({ paid: through15.calculation.paidAmountCents, remaining: through15.calculation.remainingMonths,
+    discount: through15.calculation.discountCents, price: through15.calculation.newCoursePriceCents,
+    rows: through15.values.RATY.length },
+  { paid: 70000, remaining: 17, discount: 85000, price: 155000, rows: 17 });
+  assert.deepEqual({ paid: after15.calculation.paidAmountCents, remaining: after15.calculation.remainingMonths,
+    discount: after15.calculation.discountCents, price: after15.calculation.newCoursePriceCents,
+    rows: after15.values.RATY.length },
+  { paid: 60000, remaining: 18, discount: 90000, price: 150000, rows: 18 });
+});
+
 test('brak początku kursu blokuje generator bez fallbacku do daty umowy', () => {
   assert.throws(() => prepareAnnex27({ ...contract, courseStartDate: null }, form, '2026-07-30'),
     { message: 'Nie udało się odczytać daty rozpoczęcia kursu.' });
@@ -80,6 +109,15 @@ test('brak początku kursu blokuje generator bez fallbacku do daty umowy', () =>
 test('formalna data zawarcia umowy nadal trafia do DATA_ZAWARCIA_UMOWY', () => {
   const prepared = prepareAnnex27({ ...contract, agreementDate: '2025-05-10', courseStartDate: '2025-07-01' }, form, '2026-07-30');
   assert.equal(prepared.values.DATA_ZAWARCIA_UMOWY, '10.05.2025');
+});
+
+test('aneks 27 blokuje datę aneksu przed startem i miesiące poza zakresem bez clampowania', () => {
+  assert.throws(() => prepareAnnex27({ ...contract, courseStartDate: '2026-07-21' }, form, '2026-07-20'),
+    /przed datą rozpoczęcia kursu/);
+  assert.throws(() => prepareAnnex27({ ...contract, courseStartDate: '2026-07-20' }, form, '2026-07-20'),
+    /większa od 0/);
+  assert.throws(() => prepareAnnex27({ ...contract, courseStartDate: '2024-07-15' }, form, '2026-07-20'),
+    /przekroczył 24-miesięczny okres/);
 });
 
 test('waliduje bank, ratę, rabat i oba rachunki', () => {
