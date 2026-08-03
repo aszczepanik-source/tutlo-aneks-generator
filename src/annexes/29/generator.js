@@ -23,7 +23,8 @@ export function prepareAnnex29(currentContract, options = {}) {
     IMIE_NAZWISKO: currentContract.customerName,
     NOWA_CENA: amount(newCoursePriceCents),
     NUMER_UMOWY: currentContract.agreementNumber,
-    PESEL: currentContract.personalId
+    IDENTYFIKATOR_LABEL: currentContract.customerType === 'company' ? 'NIP' : 'PESEL',
+    IDENTYFIKATOR: currentContract.personalId
   };
   return { annexId: manifest.id, template: manifest.template, templateVersion: manifest.templateVersion,
     requiredFields: manifest.requiredFields, values,

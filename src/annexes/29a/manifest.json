@@ -16,7 +16,8 @@
     "IMIE_NAZWISKO",
     "NOWA_CENA",
     "NUMER_UMOWY",
-    "PESEL"
+    "IDENTYFIKATOR_LABEL",
+    "IDENTYFIKATOR"
   ],
   "status": "ready"
 }
