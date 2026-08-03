@@ -1,9 +1,11 @@
+import { isAnnex43Available } from './availability.js';
+
 const unavailable = 'Aneks 43 jest dostępny tylko dla umowy z Grupą Rodzinną za dodatkową opłatą.';
 
 const missing = (value) => value === undefined || value === null || String(value).trim() === '';
 
 export function validateAnnex43Data(currentContract) {
-  if (currentContract?.familyGroupVariant !== 'paid') throw new Error(unavailable);
+  if (!isAnnex43Available(currentContract)) throw new Error(unavailable);
 
   if (missing(currentContract.agreementNumber)) throw new Error('Nie udało się odczytać numeru umowy.');
   const agreementDate = currentContract.agreementDate

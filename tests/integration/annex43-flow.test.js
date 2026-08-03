@@ -24,6 +24,14 @@ test('wariant included i brak wariantu ukrywają Aneks 43', () => {
   assert.equal(visible(null), false);
 });
 
+test('nierozpoznany typ umowy ukrywa kartę i blokuje bezpośrednie przygotowanie Aneksu 43', () => {
+  for (const contractType of [undefined, 'unknown']) {
+    const invalidContract = { ...contract, contractType };
+    assert.equal(getAvailableAnnexCards(invalidContract).some(card => card.no === '43'), false);
+    assert.throws(() => prepareAnnex43(invalidContract), /Aneks 43 jest dostępny tylko/);
+  }
+});
+
 test('kliknięcie karty 43 wywołuje generator i pobieranie Aneksu 43', async () => {
   const html = await readFile(new URL('../../index.html', import.meta.url), 'utf8');
   assert.match(html, /if\(no==='43'\)\{/);

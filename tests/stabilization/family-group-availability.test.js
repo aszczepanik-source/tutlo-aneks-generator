@@ -27,15 +27,16 @@ test('Aneks 43 jest widoczny wyłącznie dla płatnego wariantu grupy rodzinnej'
   }
 });
 
-test('Aneks 43 nie ma dodatkowego warunku typu umowy, limitu ani płatności', () => {
-  const cards = getAvailableAnnexCards({
-    contractType: undefined,
-    paymentType: undefined,
-    paymentVariant: undefined,
-    familyGroupVariant: 'paid'
-  });
+test('Aneks 43 wymaga rozpoznanego typu umowy, ale nie zależy od płatności', () => {
+  for (const contractType of [null, undefined, '', 'unknown']) {
+    const cards = getAvailableAnnexCards({ contractType, familyGroupVariant: 'paid' });
+    assert.equal(cards.some(card => card.no === '43'), false);
+  }
 
-  assert.deepEqual(cards.map(card => card.no), ['43']);
+  for (const contractType of ['flexible', 'limit']) {
+    const cards = getAvailableAnnexCards({ contractType, familyGroupVariant: 'paid' });
+    assert.equal(cards.filter(card => card.no === '43').length, 1);
+  }
 });
 
 test('aktywny runtime rejestruje wyłącznie Aneks 43 dla Grupy Rodzinnej', () => {
@@ -60,5 +61,11 @@ test('router udostępnia Aneks 43 dokładnie raz tylko dla wariantu paid', () =>
       assert.equal(routes.some(route => route.number === '43'), false);
       assert.equal(routes.some(route => route.number === '35'), false);
     }
+  }
+
+  for (const contractType of [undefined, 'unknown']) {
+    const contract = { contractType, familyGroupVariant: 'paid' };
+    assert.equal(getAnnexRoute('43', contract), undefined);
+    assert.equal(getAvailableAnnexRoutes(contract).some(route => route.number === '43'), false);
   }
 });
