@@ -4,6 +4,8 @@ import test from 'node:test';
 import { calculateAnnex11Dates, prepareAnnex11 } from '../generator.js';
 import { validateAnnex11Data } from '../validator.js';
 import { annex11TemplateUrl } from '../../../infrastructure/local-docx-generator.js';
+import manifest from '../manifest.json' with { type: 'json' };
+import { extractDocxPlaceholders, readZipEntry } from '../../shared/template-inspection.js';
 
 const contract = {
   agreementNumber: 'EL/11/2025', agreementDate: '2025-09-15', customerType: 'person',
@@ -39,19 +41,19 @@ for (const expected of [
 }
 
 test('31.12 wyznacza początek zawieszenia w kolejnym roku', () => {
-  assert.deepEqual(calculateAnnex11Dates('2026-12-31', 1, '2027-12-31', '2025-03-21'), {
+  assert.deepEqual(calculateAnnex11Dates('2026-12-31', 1, '2025-03-21'), {
     annexDate: '2026-12-31', effectiveDate: '2027-01-01', suspensionStart: '2027-01-01',
-    suspensionEnd: '2027-01-31', paymentResumeDate: '2027-02-01', oldAgreementEnd: '2027-12-31',
+    suspensionEnd: '2027-01-31', paymentResumeDate: '2027-02-01',
     newAgreementEnd: '2027-04-21'
   });
 });
 
 test('luty roku przestępnego kończy się 29 lutego', () => {
-  assert.equal(calculateAnnex11Dates('2028-01-15', 1, '2028-06-30', '2025-03-21').suspensionEnd, '2028-02-29');
+  assert.equal(calculateAnnex11Dates('2028-01-15', 1, '2025-03-21').suspensionEnd, '2028-02-29');
 });
 
 test('dwa miesiące zawieszenia przechodzą przez koniec roku', () => {
-  const dates = calculateAnnex11Dates('2026-11-30', 2, '2027-11-30', '2025-03-21');
+  const dates = calculateAnnex11Dates('2026-11-30', 2, '2025-03-21');
   assert.deepEqual([dates.suspensionStart, dates.suspensionEnd, dates.paymentResumeDate],
     ['2026-12-01', '2027-01-31', '2027-02-01']);
 });
@@ -66,10 +68,30 @@ test('wylicza NOWY_KONIEC_UMOWY jako 26 pełnych miesięcy od courseStartDate', 
   assert.equal(prepared.values.NOWY_KONIEC_UMOWY, '21.05.2027');
 });
 
-test('zachowuje dzień miesiąca przy dodaniu 25 miesięcy od courseStartDate', () => {
-  const prepared = prepareAnnex11({ ...contract, courseStartDate: '2026-01-01' },
+test('koniec miesiąca jest przewidywalnie ograniczany do ostatniego dnia miesiąca docelowego', () => {
+  const prepared = prepareAnnex11({ ...contract, courseStartDate: '2025-01-31' },
     { suspensionMonths: 1 }, { today: '2026-07-28' });
-  assert.equal(prepared.values.NOWY_KONIEC_UMOWY, '01.02.2028');
+  assert.equal(prepared.values.NOWY_KONIEC_UMOWY, '28.02.2027');
+});
+
+test('agreementDate nie wpływa na NOWY_KONIEC_UMOWY', () => {
+  const first = prepareAnnex11({ ...contract, agreementDate: '2024-01-01' },
+    { suspensionMonths: 1 }, { today: '2026-07-28' });
+  const second = prepareAnnex11({ ...contract, agreementDate: '2026-01-01' },
+    { suspensionMonths: 1 }, { today: '2026-07-28' });
+  assert.equal(first.values.NOWY_KONIEC_UMOWY, second.values.NOWY_KONIEC_UMOWY);
+});
+
+test('contractEndDate i ostatni termin raty nie wpływają na NOWY_KONIEC_UMOWY', () => {
+  const first = prepareAnnex11({ ...contract, contractEndDate: '2027-01-01' },
+    { suspensionMonths: 1 }, { today: '2026-07-28' });
+  const second = prepareAnnex11({
+    ...contract,
+    contractEndDate: '2030-12-31',
+    installmentPlan: { ...contract.installmentPlan, recurringStartDate: '2025-10-06' }
+  }, { suspensionMonths: 1 }, { today: '2026-07-28' });
+  assert.notEqual(dueDates(first.values).at(-1), dueDates(second.values).at(-1));
+  assert.equal(first.values.NOWY_KONIEC_UMOWY, second.values.NOWY_KONIEC_UMOWY);
 });
 
 test('brak courseStartDate zatrzymuje przygotowanie dokumentu z właściwym błędem', () => {
@@ -120,6 +142,17 @@ test('URL i publikacja szablonu pozostają dostępne', async () => {
   assert.equal(annex11TemplateUrl('https://example.github.io/tutlo-aneks-generator/src/infrastructure/local-docx-generator.js'),
     'https://example.github.io/tutlo-aneks-generator/src/annexes/11/template.docx');
   await access(new URL('../../../../dist/src/annexes/11/template.docx', import.meta.url));
+});
+
+test('wynikowy DOCX nie zawiera nierozwiązanego NOWY_KONIEC_UMOWY', async () => {
+  const template = await readFile(new URL('../template.docx', import.meta.url));
+  assert.deepEqual(extractDocxPlaceholders(template), [...manifest.requiredFields
+    .filter(field => field !== 'PESEL'), 'IDENTYFIKATOR', 'IDENTYFIKATOR_LABEL'].sort());
+  const prepared = prepareAnnex11(contract, { suspensionMonths: 1 }, { today: '2026-07-28' });
+  const documentText = readZipEntry(template, 'word/document.xml').toString('utf8').replace(/<[^>]+>/g, '')
+    .replace(/\{\{\s*([^{}]+?)\s*\}\}/g, (_, field) => String(prepared.values[field.trim()] ?? ''));
+  assert.match(documentText, /21\.04\.2027/);
+  assert.doesNotMatch(documentText, /\{\{NOWY_KONIEC_UMOWY\}\}/);
 });
 
 test('formularz zawiera wyłącznie wybór okresu i przycisk pobierania', async () => {

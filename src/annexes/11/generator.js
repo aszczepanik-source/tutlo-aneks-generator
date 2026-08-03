@@ -15,7 +15,7 @@ const firstOfNextMonth = value => {
   return iso(new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1, 12)));
 };
 
-export function calculateAnnex11Dates(annexDate, suspensionMonths, oldAgreementEnd, courseStartDate) {
+export function calculateAnnex11Dates(annexDate, suspensionMonths, courseStartDate) {
   const suspensionStart = firstOfNextMonth(annexDate);
   const paymentResumeDate = addMonths(suspensionStart, suspensionMonths);
   const end = parseDate(paymentResumeDate);
@@ -26,7 +26,6 @@ export function calculateAnnex11Dates(annexDate, suspensionMonths, oldAgreementE
     suspensionStart,
     suspensionEnd: iso(end),
     paymentResumeDate,
-    oldAgreementEnd,
     newAgreementEnd: addMonths(courseStartDate, 24 + suspensionMonths)
   };
 }
@@ -56,16 +55,14 @@ export function prepareAnnex11(currentContract, formData = {}, options = {}) {
   const { months, installments } = validateAnnex11Data({ currentContract, formData });
   const annexDate = options.today || getLocalIsoDate();
   parseDate(annexDate, 'data aneksu');
-  const oldAgreementEnd = currentContract.contractEndDate || installments.at(-1).dueDate;
-  if (!oldAgreementEnd) throw new Error('Nie można wyznaczyć starego końca umowy.');
   if (!currentContract.courseStartDate) {
     throw new Error('Nie udało się odczytać daty rozpoczęcia kursu.');
   }
   let dates;
   try {
-    dates = calculateAnnex11Dates(annexDate, months, oldAgreementEnd, currentContract.courseStartDate);
+    dates = calculateAnnex11Dates(annexDate, months, currentContract.courseStartDate);
   } catch (error) {
-    throw new Error(`Nie można wyznaczyć starego i nowego końca umowy: ${error.message}`);
+    throw new Error(`Nie można wyznaczyć nowego końca umowy: ${error.message}`);
   }
   const schedule = suspendedSchedule(installments, dates, months);
   const values = {
