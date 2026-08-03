@@ -45,7 +45,7 @@ for (const [field, message] of [
 
 for (const overrides of [
   { familyGroupVariant: 'included' }, { familyGroupVariant: null },
-  { contractType: undefined }, { contractType: 'unknown' }
+  { contractType: undefined }, { contractType: 'unknown' }, { contractType: 'limited' }
 ]) test(`niezgodny wariant blokuje generowanie: ${JSON.stringify(overrides)}`, () => {
   assert.throws(() => prepare({ ...person, ...overrides }), /Aneks 43 jest dostępny tylko/);
 });

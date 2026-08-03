@@ -25,7 +25,7 @@ test('wariant included i brak wariantu ukrywają Aneks 43', () => {
 });
 
 test('nierozpoznany typ umowy ukrywa kartę i blokuje bezpośrednie przygotowanie Aneksu 43', () => {
-  for (const contractType of [undefined, 'unknown']) {
+  for (const contractType of [undefined, 'unknown', 'limited']) {
     const invalidContract = { ...contract, contractType };
     assert.equal(getAvailableAnnexCards(invalidContract).some(card => card.no === '43'), false);
     assert.throws(() => prepareAnnex43(invalidContract), /Aneks 43 jest dostępny tylko/);
