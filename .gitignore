@@ -1,8 +1,14 @@
 dist/
 *.zip
-
-# Lokalna konfiguracja frontendu (kopiowana z config.example.js).
-config.js
+node_modules/
+coverage/
+tmp/
+logs/
+*.log
+*.pem
+*.key
+*.p12
+*.pfx
 
 # Pliki środowiskowe i typowe warianty lokalne.
 .env

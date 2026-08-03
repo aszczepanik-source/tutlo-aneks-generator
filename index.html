@@ -772,7 +772,6 @@
     els.lessonCount.textContent=String(contract.lessonCount);
     els.teacherVariant.textContent=contract.teacherVariant;
     els.familyGroupVariant.textContent=contract.familyGroupVariant??'null';
-    console.debug('UI_CURRENT_CONTRACT_FAMILY_GROUP_VARIANT', currentContract?.familyGroupVariant);
     els.internalAccountRow.style.display=contract.paymentType==='internal'?'grid':'none';
     els.internalAccount.textContent=contract.internalPaymentAccount||'—';
     els.confidence.textContent=c.score>=90?'Wysoka':c.score>=60?'Średnia':'Niska';
@@ -780,7 +779,6 @@
 
     const items=getAvailableAnnexCards(contract);
     const postPaymentChangeItems=getPostPaymentChangeAnnexCards(contract);
-    console.debug('UI_ANNEX_43_CARD_VISIBLE', items.some(item=>item.no==='43'));
     if(items.length){
       renderAnnexCards(items,els.annexGrid);
       els.annexSection.style.display='block';

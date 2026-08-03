@@ -27,32 +27,18 @@ Wymagany jest Node.js 20 lub nowszy. Testy uruchamia polecenie:
 npm test
 ```
 
-Przed lokalnym uruchomieniem lub budowaniem skopiuj `config.example.js` jako
-`config.js` i uzupełnij `APPS_SCRIPT_URL`. Lokalny plik jest ignorowany przez
-Git i nie wolno go commitować.
-
 Pakiet lokalny buduje `npm run build`. Gotowy release zawiera klasyczny bundle JavaScript i można go uruchomić przez dwuklik na `index.html`, bez serwera lokalnego i Node.js. Instrukcje znajdują się w
 [`docs/INSTRUKCJA_KONSULTANTA.md`](docs/INSTRUKCJA_KONSULTANTA.md) i
 [`docs/WDROZENIE.md`](docs/WDROZENIE.md).
 
 ## Szybki podgląd na Chromebooku
-Otwórz plik `index.html` w Chrome. To wersja podglądowa działająca bez Apps Script.
-
-## Prywatny backend
-
-Kod i konfiguracja backendu są utrzymywane poza tym publicznym repozytorium,
-w prywatnej przestrzeni organizacji Tutlo. Repozytorium zawiera wyłącznie
-frontend oraz przykładową konfigurację bez rzeczywistych wartości.
+Otwórz plik `index.html` w Chrome. Analiza PDF i generowanie DOCX odbywają się
+lokalnie w przeglądarce.
 
 ## GitHub Pages
 
-W ustawieniach repozytorium dodaj sekret Actions `APPS_SCRIPT_URL`. Workflow
-tworzy z niego ignorowany `config.js` wyłącznie na czas testów, budowania i
-publikacji artefaktu Pages; wartość nie trafia do historii Git.
-
-> Adres używany przez frontend jest możliwy do odczytania w przeglądarce. Nie
-> jest to mechanizm uwierzytelnienia — dostęp musi pozostać ograniczony po
-> stronie prywatnej usługi organizacji.
+Włącz GitHub Pages ze źródłem **GitHub Actions**. Workflow buduje i publikuje
+samowystarczalny frontend bez konfiguracji backendu.
 
 ## Bezpieczeństwo
 Nie dodawaj do repozytorium prawdziwych umów, danych klientów, PESEL/NIP, kluczy, tokenów ani plików z poświadczeniami.

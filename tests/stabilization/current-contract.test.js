@@ -47,7 +47,7 @@ Minimalny czas zobowiązania Nabywcy wynikający z Umowy może występować w in
 DOSTĘPNOŚĆ LEKTORÓW NA PLATFORMIE: Lektor Polski, English Expert, Native Speaker.`;
 
 const expectedA = {
-  rawText: fixtureA, contractType: 'flexible', paymentType: 'internal', paymentVariant: 'internal_24',
+  contractType: 'flexible', paymentType: 'internal', paymentVariant: 'internal_24',
   agreementNumber: 'EL/TESTC/103/203/31/10/2025', agreementDate: '2025-10-31', courseStartDate: null,
   customerType: 'person', customerName: 'Jan Testowy', personalId: '00210100004',
   address: 'ul. Testowa 1, 00-001 Warszawa', coursePriceCents: 1392000,
@@ -58,7 +58,7 @@ const expectedA = {
 };
 
 const expectedB = {
-  rawText: fixtureB, contractType: 'limit', paymentType: 'credit', paymentVariant: 'credit',
+  contractType: 'limit', paymentType: 'credit', paymentVariant: 'credit',
   agreementNumber: 'EL/TESTD/104/204/23/6/2026', agreementDate: '2026-06-23', courseStartDate: null,
   customerType: 'person', customerName: 'Jan Testowy', personalId: '02270812343',
   address: 'ul. Testowa 2, 00-002 Warszawa', coursePriceCents: 957600,

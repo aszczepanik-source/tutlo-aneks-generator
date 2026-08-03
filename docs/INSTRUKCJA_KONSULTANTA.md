@@ -8,4 +8,4 @@
 
 Zamknij aplikację, usuń cały stary folder, rozpakuj nową wersję i ponownie otwórz `index.html`. Nie kopiuj nowych plików na starą wersję.
 
-PDF jest analizowany lokalnie. Do Apps Script wysyłane są wyłącznie zatwierdzone wartości potrzebne w aneksie, nigdy treść PDF.
+PDF jest analizowany lokalnie. Dane umowy nie są wysyłane do backendu, a plik DOCX jest generowany lokalnie w przeglądarce.
