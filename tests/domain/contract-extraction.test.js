@@ -332,7 +332,8 @@ test('analyze odczytuje PDF raz i zapisuje pełny currentContract', async () => 
   const analyze = html.match(/async function analyze\(\)\{([\s\S]*?)\n  \}/)?.[1];
   assert.equal((analyze.match(/extractText\(currentFile\)/g) || []).length, 1);
   assert.match(analyze, /\.\.\.extractContractData\(text,extractAgreementNumber\(text\)\)/);
-  for (const field of ['contractType', 'paymentType', 'paymentVariant', 'rawText']) assert.match(analyze, new RegExp(`${field}:`));
+  for (const field of ['contractType', 'paymentType', 'paymentVariant']) assert.match(analyze, new RegExp(`${field}:`));
+  assert.doesNotMatch(analyze, /rawText:\s*String/);
 });
 
 test('aneksy nie parsują podstawowych danych z rawText ani nie zależą od extractorów aneksów', async () => {

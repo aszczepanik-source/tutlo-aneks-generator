@@ -3,7 +3,7 @@ const normalized = value => String(value || '').normalize('NFC')
   .replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim();
 
 export const CURRENT_CONTRACT_FIELDS = Object.freeze([
-  'rawText', 'contractType', 'paymentType', 'paymentVariant', 'agreementNumber',
+  'contractType', 'paymentType', 'paymentVariant', 'agreementNumber',
   'agreementDate', 'courseStartDate', 'customerType', 'customerName', 'personalId', 'address',
   'coursePriceCents', 'monthlyInstallmentCents', 'lessonCount',
   'monthlyLessonLimit', 'teacherVariant', 'familyGroupVariant', 'internalPaymentAccount', 'installmentPlan'
@@ -218,13 +218,9 @@ export function parseCurrentContract(rawText) {
   const agreementDate = parseAgreementDateFromNumber(agreementNumber);
   const payment = extractPayment(sections.payment, agreementDate);
   const extractedTeacherVariant = extractTeacherVariant(sections.contents);
-  const familyGroupFieldText = extractFamilyGroupFieldText(specification);
   const familyGroupVariant = extractFamilyGroupVariant(specification);
-  console.debug('TEACHER_EXTRACTOR_RESULT', extractedTeacherVariant);
-  console.debug('FAMILY_GROUP_SECTION_TEXT', familyGroupFieldText);
-  console.debug('FAMILY_GROUP_PARSER_RESULT', familyGroupVariant);
   const currentContract = {
-    rawText: String(rawText || ''), contractType, paymentType: payment.paymentType,
+    contractType, paymentType: payment.paymentType,
     paymentVariant: payment.paymentVariant, agreementNumber,
     agreementDate, courseStartDate: extractCourseStartDate(specification),
     ...extractBuyer(sections.buyer),
@@ -234,12 +230,10 @@ export function parseCurrentContract(rawText) {
     familyGroupVariant,
     internalPaymentAccount: payment.internalPaymentAccount, installmentPlan: payment.installmentPlan
   };
-  console.debug('CURRENT_CONTRACT_TEACHER_VARIANT', currentContract.teacherVariant);
   return currentContract;
 }
 
 export function validateCurrentContract(contract) {
-  console.debug('VALIDATION_TEACHER_VARIANT', contract.teacherVariant);
   const errors = [];
   const required = [
     ['contractType', CONTRACT_TYPES.includes(contract?.contractType), 'rodzaju umowy'],

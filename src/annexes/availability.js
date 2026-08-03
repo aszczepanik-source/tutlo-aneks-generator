@@ -104,7 +104,6 @@ export function getAvailableAnnexCards(currentContract) {
   const { contractType, paymentType, paymentVariant, familyGroupVariant } = currentContract ?? {};
   const familyGroupCards = familyGroupVariant === 'paid' ? [PAID_FAMILY_GROUP] : [];
   const annex48Cards = contractType === 'limit' ? [ANNEX_48] : [];
-  console.debug('ANNEX_43_AVAILABILITY', familyGroupVariant === 'paid');
 
   if (contractType === 'flexible' && paymentType === 'internal'
       && INTERNAL_VARIANTS.has(paymentVariant)) {
