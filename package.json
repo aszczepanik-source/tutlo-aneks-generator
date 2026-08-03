@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test tests/stabilization/*.test.js tests/integration/local-docx-generator.test.js tests/integration/local-runtime-libraries.test.js tests/integration/teacher-variant-flow.test.js tests/integration/annex43-flow.test.js src/annexes/11/tests/module.test.js src/annexes/25/tests/module.test.js src/annexes/26/tests/months.test.js src/annexes/27/tests/module.test.js src/annexes/29/tests/module.test.js src/annexes/29a/tests/module.test.js src/annexes/43/tests/module.test.js src/annexes/45/tests/module.test.js src/annexes/45c/tests/module.test.js src/annexes/45e/tests/module.test.js src/annexes/48/tests/module.test.js",
+    "test": "node scripts/run-tests.mjs",
     "build": "node scripts/build-release.mjs",
     "check": "npm run build && npm test && git diff --check"
   },
