@@ -3,6 +3,7 @@
 import * as annex26 from './26/index.js';
 import * as annex27 from './27/index.js';
 import * as annex11 from './11/index.js';
+import * as annex25 from './25/index.js';
 import * as annex29 from './29/index.js';
 import * as annex29a from './29a/index.js';
 import * as annex43 from './43/index.js';
@@ -13,6 +14,7 @@ import * as annex48 from './48/index.js';
 
 export const annexModules = new Map([
   [annex11.manifest.id, annex11],
+  [annex25.manifest.id, annex25],
   [annex26.manifest.id, annex26],
   [annex27.manifest.id, annex27],
   [annex29.manifest.id, annex29],
