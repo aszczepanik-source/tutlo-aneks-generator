@@ -5,7 +5,7 @@ import manifest from '../manifest.json' with { type: 'json' };
 import { prepareAnnex29a } from '../generator.js';
 import { validate } from '../validator.js';
 import { renderDocx } from '../../../infrastructure/local-docx-generator.js';
-import { extractDocxPlaceholders } from '../../shared/template-inspection.js';
+import { extractDocxPlaceholders, readZipEntry } from '../../shared/template-inspection.js';
 
 const contract = {
   agreementNumber: 'EL/2026/123', agreementDate: '2026-02-14', customerType: 'person',
@@ -20,9 +20,27 @@ test('aneks 29a: oblicza cenę i wszystkie placeholdery wyłącznie z currentCon
   assert.deepEqual(prepared.values, {
     ADRES: 'Testowa 1, Warszawa', DATA_ANEKSU: '28.07.2026', DATA_WEJSCIA_W_ZYCIE: '29.07.2026',
     DATA_ZAWARCIA_UMOWY: '14.02.2026', IMIE_NAZWISKO: 'Jan Kowalski', NOWA_CENA: '12 760,00',
-    NUMER_UMOWY: 'EL/2026/123', PESEL: '90010112345'
+    NUMER_UMOWY: 'EL/2026/123', IDENTYFIKATOR_LABEL: 'PESEL', IDENTYFIKATOR: '90010112345'
   });
   assert.deepEqual(Object.keys(prepared.values).sort(), [...manifest.requiredFields].sort());
+});
+
+test('aneks 29a: mapuje wyłącznie PESEL osoby lub NIP firmy w obu trybach', () => {
+  const cases = [
+    { mode: 'standard', contract, options: {} },
+    { mode: 'post_payment_change', contract: { ...contract, paymentType: 'credit', paymentVariant: 'credit' },
+      options: { tutloBankAccount: '12 3456 7890 1234 5678 9012 3456' } }
+  ];
+  for (const { mode, contract: modeContract, options } of cases) {
+    const person = prepareAnnex29a({ ...modeContract, customerType: 'person', personalId: '12345678901' }, { ...options, mode, today: '2026-07-28' });
+    const company = prepareAnnex29a({ ...modeContract, customerType: 'company', personalId: '1234567890' }, { ...options, mode, today: '2026-07-28' });
+    assert.equal(person.values.IDENTYFIKATOR_LABEL, 'PESEL');
+    assert.equal(person.values.IDENTYFIKATOR, '12345678901');
+    assert.equal(company.values.IDENTYFIKATOR_LABEL, 'NIP');
+    assert.equal(company.values.IDENTYFIKATOR, '1234567890');
+    assert.equal('PESEL' in person.values, false);
+    assert.equal('PESEL' in company.values, false);
+  }
 });
 
 test('aneks 29a: jutro uwzględnia koniec miesiąca, roku i rok przestępny', () => {
@@ -57,6 +75,17 @@ test('aneks 29a: rzeczywisty DOCX ma komplet placeholderów i generuje treść b
   const text = new TextDecoder().decode(bytes);
   assert.ok(bytes.byteLength > 0);
   assert.doesNotMatch(text, /{{|zł\s*zł/);
+});
+
+test('aneks 29a: DOCX firmy zawiera wyłącznie etykietę NIP i nie pozostawia PESEL', async () => {
+  const template = await readFile(new URL('../template.docx', import.meta.url));
+  const prepared = prepareAnnex29a({ ...contract, customerType: 'company', personalId: '1234567890' }, { today: '2026-07-28' });
+  const xml = readZipEntry(template, 'word/document.xml').toString('utf8');
+  const text = xml.replace(/<[^>]+>/g, '')
+    .replace('{{IDENTYFIKATOR_LABEL}}', prepared.values.IDENTYFIKATOR_LABEL)
+    .replace('{{IDENTYFIKATOR}}', prepared.values.IDENTYFIKATOR);
+  assert.match(text, /NIP:\s*1234567890/);
+  assert.doesNotMatch(text, /PESEL:|\{\{PESEL\}\}/);
 });
 
 test('aneks 29a: manifest wskazuje istniejący szablon i właściwy wariant', () => {
