@@ -58,6 +58,15 @@ test('zmiana od 13. raty zachowuje numerację i obliczenia Aneksu 25', () => {
   assert.equal(values.LIMIT_TYGODNIOWY, '5');
 });
 
+test('termin pierwszej raty nie zmienia liczby rat po starej i nowej stawce', () => {
+  const first = prepare().calculation;
+  const second = prepare({ installmentPlan: { paymentCount: 24, firstPaymentDueDate: '2025-08-30',
+    recurringStartDate: '2025-09-30' } }).calculation;
+  assert.deepEqual([first.paidInstallments, first.remainingInstallments],
+    [second.paidInstallments, second.remainingInstallments]);
+  assert.notDeepEqual(first.installments.map(item => item.dueDate), second.installments.map(item => item.dueDate));
+});
+
 test('mapuje PESEL i NIP do docelowych placeholderów', () => {
   const person = prepare().values;
   assert.equal(person.IDENTYFIKATOR_LABEL, 'PESEL');

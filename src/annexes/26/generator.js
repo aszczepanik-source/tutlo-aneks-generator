@@ -1,7 +1,7 @@
 import manifest from './manifest.json' with { type: 'json' };
 import { validateAnnex26Data } from './validator.js';
 import { validateCurrentContract } from '../../domain/contract-extraction.js';
-import { calculateUsedMonths } from '../48/generator.js';
+import { calculateCourseMonths } from '../../domain/annex-calculations.js';
 
 const INSTALLMENT_COUNT = 24;
 const annex26Iso = date => date.toISOString().slice(0, 10);
@@ -45,13 +45,9 @@ function assertFiniteCalculation(calculation) {
 }
 
 function calculate(contract, annexDate, newInstallmentCents) {
-  if (!contract.courseStartDate) throw new Error('Nie udało się odczytać daty rozpoczęcia kursu.');
-  if (annexDate < contract.courseStartDate) {
-    throw new Error('Data aneksu nie może przypadać przed datą rozpoczęcia kursu.');
-  }
-  const oldInstallments = calculateUsedMonths(contract.courseStartDate, annexDate);
-
-  const newInstallments = INSTALLMENT_COUNT - oldInstallments;
+  const { usedMonths: oldInstallments, remainingMonths: newInstallments } = calculateCourseMonths({
+    courseStartDate: contract.courseStartDate, annexDate, totalMonths: INSTALLMENT_COUNT
+  });
   const discountCents = newInstallments * (contract.currentInstallmentCents - newInstallmentCents);
   const newPriceCents = contract.coursePriceCents - discountCents;
   return {

@@ -1,5 +1,5 @@
 import manifest from './manifest.json' with { type: 'json' };
-import { formatDate } from '../../domain/annex-calculations.js';
+import { calculateCourseMonths, formatDate } from '../../domain/annex-calculations.js';
 import { validateAnnex48Data } from './validator.js';
 
 export const TOTAL_MONTHS = 24;
@@ -19,17 +19,6 @@ const parseDate = (value, label) => {
   return date;
 };
 
-export function calculateUsedMonths(courseStartDate, annexDate) {
-  const start = parseDate(courseStartDate, 'data rozpoczęcia kursu');
-  const annex = parseDate(annexDate, 'data aneksu');
-  const monthDifference = (annex.getFullYear() - start.getFullYear()) * 12 + annex.getMonth() - start.getMonth();
-  if (monthDifference < 0) throw new Error('Miesiąc aneksu nie może przypadać przed miesiącem rozpoczęcia kursu.');
-  const usedMonths = monthDifference + (start.getDate() <= 15 ? 1 : 0);
-  if (usedMonths <= 0) throw new Error('Liczba wykorzystanych miesięcy musi być większa od 0.');
-  if (usedMonths > TOTAL_MONTHS) throw new Error('Kurs przekroczył 24-miesięczny okres.');
-  return usedMonths;
-}
-
 function usedLessons(value) {
   const text = String(value ?? '').trim();
   if (!/^\d+$/.test(text) || !Number.isSafeInteger(Number(text))) {
@@ -41,8 +30,9 @@ function usedLessons(value) {
 export function prepareAnnex48(currentContract, inputs = {}, annexDate = localIsoDate(new Date())) {
   validateAnnex48Data(currentContract);
   const lessonsUsed = usedLessons(inputs.usedLessons);
-  const usedMonths = calculateUsedMonths(currentContract.courseStartDate, annexDate);
-  const remainingMonths = TOTAL_MONTHS - usedMonths;
+  const { usedMonths, remainingMonths } = calculateCourseMonths({
+    courseStartDate: currentContract.courseStartDate, annexDate, totalMonths: TOTAL_MONTHS
+  });
   const annex = parseDate(annexDate, 'data aneksu');
   const effectiveDate = localIsoDate(new Date(annex.getFullYear(), annex.getMonth() + 1, 1));
   const values = {

@@ -26,6 +26,23 @@ export function parseDate(value, field = 'data') {
 // Kept as an alias for callers that already use the old public name.
 export const parseIsoDate = parseDate;
 
+export function calculateCourseMonths({ courseStartDate, annexDate, totalMonths = 24 }) {
+  if (!Number.isInteger(totalMonths) || totalMonths <= 0) {
+    throw new Error('Liczba miesięcy kursu musi być dodatnią liczbą całkowitą.');
+  }
+  const start = parseDate(courseStartDate, 'data rozpoczęcia kursu');
+  const annex = parseDate(annexDate, 'data aneksu');
+  if (annex < start) {
+    throw new Error('Data aneksu nie może przypadać przed datą rozpoczęcia kursu ani przed miesiącem rozpoczęcia.');
+  }
+  const monthDifference = (annex.getUTCFullYear() - start.getUTCFullYear()) * 12
+    + annex.getUTCMonth() - start.getUTCMonth();
+  const usedMonths = monthDifference + (start.getUTCDate() <= 15 ? 1 : 0);
+  if (usedMonths <= 0) throw new Error('Liczba wykorzystanych miesięcy musi być większa od 0.');
+  if (usedMonths > totalMonths) throw new Error(`Kurs przekroczył ${totalMonths}-miesięczny okres.`);
+  return { usedMonths, remainingMonths: totalMonths - usedMonths };
+}
+
 export function iso(date) { return date.toISOString().slice(0, 10); }
 export function formatDate(value, field) {
   return new Intl.DateTimeFormat('pl-PL', {
@@ -86,8 +103,9 @@ export function calculateAnnex25(contract, annexDate, newInstallmentCents) {
   const effectiveDate = firstOfNextMonth(annexDate);
   const dueDates = annex25DueDates(contract);
   if (dueDates.length !== ANNEX_25_INSTALLMENTS || dueDates.some(date => !date)) throw new Error('Harmonogram musi zawierać dokładnie 24 raty z terminami.');
-  const paidInstallments = dueDates.filter(date => date < effectiveDate).length;
-  const remainingInstallments = ANNEX_25_INSTALLMENTS - paidInstallments;
+  const { usedMonths: paidInstallments, remainingMonths: remainingInstallments } = calculateCourseMonths({
+    courseStartDate: contract.courseStartDate, annexDate, totalMonths: ANNEX_25_INSTALLMENTS
+  });
   const installments = dueDates.map((dueDate, index) => ({
     nr: index + 1, dueDate, amountCents: index < paidInstallments ? oldInstallmentCents : newInstallmentCents
   }));

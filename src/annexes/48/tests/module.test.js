@@ -3,7 +3,31 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { getAvailableAnnexCards } from '../../availability.js';
 import { getAnnexRoute } from '../../../../router.js';
-import { calculateUsedMonths, prepareAnnex48 } from '../index.js';
+import { prepareAnnex48 } from '../index.js';
+import { calculateCourseMonths } from '../../../domain/annex-calculations.js';
+
+test('kanoniczny helper liczy miesiące według reguły 15/16', () => {
+  for (const [courseStartDate, usedMonths, remainingMonths] of [
+    ['2026-01-13', 7, 17], ['2026-01-15', 7, 17], ['2026-01-16', 6, 18],
+    ['2026-01-20', 6, 18], ['2025-12-15', 8, 16], ['2025-12-16', 7, 17]
+  ]) {
+    assert.deepEqual(calculateCourseMonths({ courseStartDate, annexDate: '2026-07-20' }),
+      { usedMonths, remainingMonths });
+  }
+});
+
+test('kanoniczny helper waliduje dane i nie przyjmuje daty umowy', () => {
+  const dates = { courseStartDate: '2026-01-20', annexDate: '2026-07-20' };
+  assert.deepEqual(calculateCourseMonths({ ...dates, agreementDate: '2020-01-01' }),
+    calculateCourseMonths({ ...dates, agreementDate: '2026-07-20' }));
+  assert.throws(() => calculateCourseMonths({ courseStartDate: '2026-07-21', annexDate: '2026-07-20' }), /przed datą rozpoczęcia/);
+  assert.throws(() => calculateCourseMonths({ annexDate: '2026-07-20' }), /Nieprawidłowa data rozpoczęcia/);
+  assert.throws(() => calculateCourseMonths({ courseStartDate: '2026-01-01' }), /Nieprawidłowa data aneksu/);
+  assert.throws(() => calculateCourseMonths({ courseStartDate: 'x', annexDate: '2026-07-20' }), /Nieprawidłowa/);
+  assert.throws(() => calculateCourseMonths({ courseStartDate: '2024-01-01', annexDate: '2026-07-20' }), /przekroczył/);
+  assert.throws(() => calculateCourseMonths({ ...dates, totalMonths: 0 }), /dodatnią liczbą całkowitą/);
+  assert.throws(() => calculateCourseMonths({ ...dates, totalMonths: 1.5 }), /dodatnią liczbą całkowitą/);
+});
 
 const contract = {
   contractType: 'limit', paymentType: 'credit', paymentVariant: 'credit',
@@ -40,20 +64,20 @@ test('wlicza miesiąc rozpoczęcia kursu wyłącznie dla startu do 15. dnia wł�
     ['2026-01-20', 6],
     ['2026-01-31', 6]
   ]) {
-    assert.equal(calculateUsedMonths(courseStartDate, '2026-07-15'), expected);
+    assert.equal(calculateCourseMonths({ courseStartDate, annexDate: '2026-07-15' }).usedMonths, expected);
   }
 });
 
 test('dzień podpisania aneksu nie wpływa na liczbę wykorzystanych miesięcy', () => {
   for (const annexDate of ['2026-07-01', '2026-07-15', '2026-07-31']) {
-    assert.equal(calculateUsedMonths('2026-01-13', annexDate), 7);
-    assert.equal(calculateUsedMonths('2026-01-20', annexDate), 6);
+    assert.equal(calculateCourseMonths({ courseStartDate: '2026-01-13', annexDate }).usedMonths, 7);
+    assert.equal(calculateCourseMonths({ courseStartDate: '2026-01-20', annexDate }).usedMonths, 6);
   }
 });
 
 test('liczy miesiące przez granicę roku według zasady do 15. dnia', () => {
-  assert.equal(calculateUsedMonths('2025-12-20', '2026-07-15'), 7);
-  assert.equal(calculateUsedMonths('2025-12-15', '2026-07-15'), 8);
+  assert.equal(calculateCourseMonths({ courseStartDate: '2025-12-20', annexDate: '2026-07-15' }).usedMonths, 7);
+  assert.equal(calculateCourseMonths({ courseStartDate: '2025-12-15', annexDate: '2026-07-15' }).usedMonths, 8);
 });
 
 test('wylicza wartości finansowe, lekcje i pierwszy dzień następnego miesiąca', () => {
