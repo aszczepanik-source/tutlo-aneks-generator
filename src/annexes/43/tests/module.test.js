@@ -44,12 +44,13 @@ for (const [field, message] of [
 });
 
 for (const overrides of [
-  { familyGroupVariant: 'included' }, { familyGroupVariant: null }
+  { familyGroupVariant: 'included' }, { familyGroupVariant: null },
+  { contractType: undefined }, { contractType: 'unknown' }
 ]) test(`niezgodny wariant blokuje generowanie: ${JSON.stringify(overrides)}`, () => {
   assert.throws(() => prepare({ ...person, ...overrides }), /Aneks 43 jest dostępny tylko/);
 });
 
-test('płatny wariant pozwala generować aneks niezależnie od typu umowy i płatności', () => {
+test('płatny wariant pozwala generować aneks dla umowy z limitem niezależnie od płatności', () => {
   assert.doesNotThrow(() => prepare({
     ...person, contractType: 'limit', paymentType: 'internal', paymentVariant: 'internal_24'
   }));

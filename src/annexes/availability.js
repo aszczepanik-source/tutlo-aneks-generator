@@ -1,3 +1,5 @@
+import { isAnnex43Available } from './43/availability.js';
+
 export const ANNEX_STATUSES = Object.freeze({
   tutlo: Object.freeze({ label: 'Generator Tutlo', className: 'generator-tutlo' }),
   external: Object.freeze({ label: 'Aneks w Team Tutlo', className: 'external-generator' }),
@@ -102,7 +104,8 @@ export function getPostPaymentChangeAnnexCards(currentContract) {
  */
 export function getAvailableAnnexCards(currentContract) {
   const { contractType, paymentType, paymentVariant, familyGroupVariant } = currentContract ?? {};
-  const familyGroupCards = familyGroupVariant === 'paid' ? [PAID_FAMILY_GROUP] : [];
+  const familyGroupCards = isAnnex43Available({ contractType, familyGroupVariant })
+    ? [PAID_FAMILY_GROUP] : [];
   const annex48Cards = contractType === 'limit' ? [ANNEX_48] : [];
 
   if (contractType === 'flexible' && paymentType === 'internal'
