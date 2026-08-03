@@ -1,7 +1,8 @@
 import manifest from './manifest.json' with { type: 'json' };
-import { addDays, formatDate, iso, parseDate } from '../../domain/annex-calculations.js';
+import { addDays, formatDate, parseDate } from '../../domain/annex-calculations.js';
 import { validateAnnex29aData } from './validator.js';
 import { normalizeTutloBankAccount } from '../shared/validation.js';
+import { getLocalIsoDate } from '../shared/local-date.js';
 
 const amount = cents => `${Math.floor(cents / 100)}`.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
   + `,${String(cents % 100).padStart(2, '0')}`;
@@ -11,7 +12,7 @@ export function prepareAnnex29a(currentContract, options = {}) {
   const mode = options.mode ?? 'standard';
   const tutloBankAccount = mode === 'post_payment_change'
     ? normalizeTutloBankAccount(options.tutloBankAccount) : undefined;
-  const annexDate = options.today || iso(new Date());
+  const annexDate = options.today || getLocalIsoDate();
   parseDate(annexDate, 'data aneksu');
   const effectiveDate = addDays(annexDate, 1);
   const newCoursePriceCents = currentContract.coursePriceCents - 2 * currentContract.monthlyInstallmentCents;

@@ -1,6 +1,7 @@
 import manifest from './manifest.json' with { type: 'json' };
 import { addDays, addMonths, formatDate, iso, parseDate } from '../../domain/annex-calculations.js';
 import { validateAnnex11Data } from './validator.js';
+import { getLocalIsoDate } from '../shared/local-date.js';
 
 const required = (value, label) => {
   if (value === undefined || value === null || String(value).trim() === '') {
@@ -53,7 +54,7 @@ function installmentValues(installments) {
 
 export function prepareAnnex11(currentContract, formData = {}, options = {}) {
   const { months, installments } = validateAnnex11Data({ currentContract, formData });
-  const annexDate = options.today || iso(new Date());
+  const annexDate = options.today || getLocalIsoDate();
   parseDate(annexDate, 'data aneksu');
   const oldAgreementEnd = currentContract.contractEndDate || installments.at(-1).dueDate;
   if (!oldAgreementEnd) throw new Error('Nie można wyznaczyć starego końca umowy.');

@@ -1,6 +1,7 @@
 import manifest from './manifest.json' with { type: 'json' };
 import { addDays, calculateAnnex25, formatDate, parseMoneyToCents } from '../../domain/annex-calculations.js';
 import { validateAnnex25Data } from './validator.js';
+import { getLocalIsoDate } from '../shared/local-date.js';
 
 const required = (value, label) => {
   if (value === undefined || value === null || String(value).trim() === '') throw new Error(`Brak danych umowy: ${label}.`);
@@ -23,7 +24,7 @@ const teacherTypes = variant => {
   return variant;
 };
 
-export function prepareAnnex25(currentContract, inputs = {}, annexDate = new Date().toISOString().slice(0, 10)) {
+export function prepareAnnex25(currentContract, inputs = {}, annexDate = getLocalIsoDate()) {
   validateAnnex25Data(currentContract);
   const calculation = calculateAnnex25(currentContract, annexDate, parseMoneyToCents(inputs.newInstallment, 'nowa rata'));
   const lessonCount = Number(required(currentContract.lessonCount, 'liczba lekcji'));

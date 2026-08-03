@@ -2,6 +2,7 @@ import manifest from './manifest.json' with { type: 'json' };
 import { validateAnnex26Data } from './validator.js';
 import { validateCurrentContract } from '../../domain/contract-extraction.js';
 import { calculateCourseMonths } from '../../domain/annex-calculations.js';
+import { getLocalIsoDate } from '../shared/local-date.js';
 
 const INSTALLMENT_COUNT = 24;
 const annex26Iso = date => date.toISOString().slice(0, 10);
@@ -85,7 +86,7 @@ export function prepareAnnex26(contract, formData, today = new Date()) {
   };
   validateAnnex26Data(data);
 
-  const annexDate = annex26Iso(today);
+  const annexDate = getLocalIsoDate(today);
   const calculation = calculate(data, annexDate, data.newInstallmentCents);
   assertFiniteCalculation(calculation);
   const agreementDate = data.agreementDate;
