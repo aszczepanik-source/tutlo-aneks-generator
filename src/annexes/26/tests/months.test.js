@@ -4,7 +4,7 @@ import { prepareAnnex26 } from '../index.js';
 
 const contract = {
   agreementNumber: 'EL/1/1/1/1/1/2025', agreementDate: '2025-12-01', customerType: 'person',
-  courseStartDate: '2026-01-15', customerName: 'Jan Kowalski', personalId: '90010112345', address: 'Testowa 1',
+  courseStartDate: '2026-01-15', customerName: 'Jan Kowalski', personalId: '00210100004', address: 'Testowa 1',
   coursePriceCents: 1125000, monthlyInstallmentCents: 46875, lessonCount: 450, monthlyLessonLimit: 57,
   teacherVariant: 'polish_english_native', contractType: 'flexible', paymentType: 'credit', paymentVariant: 'credit'
 };

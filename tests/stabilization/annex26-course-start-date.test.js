@@ -4,7 +4,7 @@ import { parseCurrentContract } from '../../src/domain/contract-extraction.js';
 import { prepareAnnex26 } from '../../src/annexes/26/index.js';
 
 const specification = value => `
-UMOWA nr EL/JF/811/192956/15/1/2026
+UMOWA nr EL/TEST/100/200/15/1/2026
 DANE NABYWCY IMIĘ I NAZWISKO: Jan Kowalski ADRES: Testowa 1 PESEL: 84040810706
 § 1 SPECYFIKACJA KURSU Minimalny czas zobowiązania Nabywcy wynikający z Umowy: 12 miesięcy
 ${value}

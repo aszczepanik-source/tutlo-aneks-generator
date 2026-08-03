@@ -8,7 +8,7 @@ import { annex43Filename } from '../../../infrastructure/local-docx-generator.js
 
 const person = {
   agreementNumber: 'EL/2026/43', agreementDate: '2026-07-10', customerType: 'person',
-  customerName: 'Jan Kowalski', personalId: '90010112345', address: 'ul. Testowa 1, Warszawa',
+  customerName: 'Jan Kowalski', personalId: '00210100004', address: 'ul. Testowa 1, Warszawa',
   contractType: 'flexible', paymentType: 'credit', paymentVariant: 'credit', familyGroupVariant: 'paid'
 };
 const prepare = (contract = person, today = '2026-07-29') => prepareAnnex43(contract, { today });
@@ -17,7 +17,7 @@ test('przygotowuje dokładny komplet wartości dla osoby fizycznej', () => {
   assert.deepEqual(prepare().values, {
     NUMER_UMOWY: 'EL/2026/43', DATA_ZAWARCIA_UMOWY: '10.07.2026', DATA_ANEKSU: '29.07.2026',
     IMIE_NAZWISKO: 'Jan Kowalski', ADRES: 'ul. Testowa 1, Warszawa',
-    IDENTYFIKATOR_LABEL: 'PESEL', IDENTYFIKATOR: '90010112345', DATA_WEJSCIA_W_ZYCIE: '30.07.2026'
+    IDENTYFIKATOR_LABEL: 'PESEL', IDENTYFIKATOR: '00210100004', DATA_WEJSCIA_W_ZYCIE: '30.07.2026'
   });
 });
 

@@ -6,7 +6,7 @@ import { annexModules } from '../../src/annexes/catalog.js';
 import { getAvailableAnnexCards } from '../../src/annexes/availability.js';
 import { readFile } from 'node:fs/promises';
 
-const raw = buyer => `UMOWA nr EL/JF/811/192956/3/9/2025
+const raw = buyer => `UMOWA nr EL/TEST/100/200/3/9/2025
 DANE NABYWCY ${buyer} ADRES: Testowa 1 TELEFON: 500500500
 § 1 SPECYFIKACJA KURSU Okres trwania kursu: 24 miesiące Data rozpoczęcia kursu: 03.09.2025 Minimalny czas zobowiązania Nabywcy wynikający z Umowy: 12 miesięcy Liczba Lekcji Indywidualnych: 192 Maksymalna miesięczna liczba lekcji indywidualnych do wykorzystania: 12
 ZAWARTOŚĆ KURSU 192 Lekcji Indywidualnych o długości 20 minut każda w formie spotkań indywidualnych z Lektorem Polskim, English Expert, Native Speakerem realizowanych w platformie internetowej. § 2 WARUNKI PŁATNOŚCI
@@ -14,7 +14,7 @@ Całkowita cena kursu wynosi 7 176,00 zł. Opłata miesięczna za każdy miesią
 const form = { newInstallment: '250,00', bank: 'Inbank', bankAccount: '12345678901234567890123456' };
 
 const expectedValues = identity => ({
-  NUMER_UMOWY: 'EL/JF/811/192956/3/9/2025', DATA_ANEKSU: '24.07.2026',
+  NUMER_UMOWY: 'EL/TEST/100/200/3/9/2025', DATA_ANEKSU: '24.07.2026',
   IMIE_NAZWISKO: identity.name, ADRES: 'Testowa 1',
   IDENTYFIKATOR_LABEL: identity.identifierLabel, IDENTYFIKATOR: identity.id,
   DATA_ZAWARCIA_UMOWY: '03.09.2025', NOWA_LICZBA_LEKCJI: '175',

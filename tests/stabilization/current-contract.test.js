@@ -2,12 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { CURRENT_CONTRACT_FIELDS, parseCurrentContract, validateCurrentContract } from '../../src/domain/contract-extraction.js';
 
-const fixtureA = `UMOWA O ŚWIADCZENIE USŁUG nr EL/JT/787/161827/31/10/2025
+const fixtureA = `UMOWA O ŚWIADCZENIE USŁUG nr EL/TESTC/103/203/31/10/2025
 Tutlo sp. z o.o., NIP: 7010701530
 DANE NABYWCY
-IMIĘ I NAZWISKO: Anna Kowalska
-ADRES: Długa 1, 00-001 Warszawa TELEFON: 500 500 500
-PESEL: 90010112345
+IMIĘ I NAZWISKO: Jan Testowy
+ADRES: ul. Testowa 1, 00-001 Warszawa TELEFON: 500 500 500
+PESEL: 00210100004
 DANE UŻYTKOWNIKA
 § 1 SPECYFIKACJA KURSU
 Okres trwania kursu: 24 miesiące
@@ -26,11 +26,11 @@ na następujący rachunek bankowy Tutlo: mBank S.A. - 47114010104903526761000000
 § 3 WARUNKI UMOWY
 Załącznik: FINANSOWANIE KURSU — dostępny jest także kredyt konsumencki.`;
 
-const fixtureB = `UMOWA O ŚWIADCZENIE USŁUG EL/PD/147/115351/23/6/2026
+const fixtureB = `UMOWA O ŚWIADCZENIE USŁUG EL/TESTD/104/204/23/6/2026
 Tutlo sp. z o.o., NIP: 7010701530
 DANE NABYWCY
-IMIĘ I NAZWISKO: Piotr Nowak PESEL: 85050512345
-ADRES: Polna 2, 30-001 Kraków
+IMIĘ I NAZWISKO: Jan Testowy PESEL: 02270812343
+ADRES: ul. Testowa 2, 00-002 Warszawa
 DANE UŻYTKOWNIKA
 § 1 SPECYFIKACJA KURSU
 Okres trwania kursu: 24 miesiące
@@ -48,9 +48,9 @@ DOSTĘPNOŚĆ LEKTORÓW NA PLATFORMIE: Lektor Polski, English Expert, Native Spe
 
 const expectedA = {
   rawText: fixtureA, contractType: 'flexible', paymentType: 'internal', paymentVariant: 'internal_24',
-  agreementNumber: 'EL/JT/787/161827/31/10/2025', agreementDate: '2025-10-31', courseStartDate: null,
-  customerType: 'person', customerName: 'Anna Kowalska', personalId: '90010112345',
-  address: 'Długa 1, 00-001 Warszawa', coursePriceCents: 1392000,
+  agreementNumber: 'EL/TESTC/103/203/31/10/2025', agreementDate: '2025-10-31', courseStartDate: null,
+  customerType: 'person', customerName: 'Jan Testowy', personalId: '00210100004',
+  address: 'ul. Testowa 1, 00-001 Warszawa', coursePriceCents: 1392000,
   monthlyInstallmentCents: 58000, lessonCount: 480, monthlyLessonLimit: 60,
   teacherVariant: 'polish_english_native', familyGroupVariant: null, internalPaymentAccount: '47114010104903526761000000',
   installmentPlan: { paymentCount: 24, firstPaymentAmountCents: 58000,
@@ -59,9 +59,9 @@ const expectedA = {
 
 const expectedB = {
   rawText: fixtureB, contractType: 'limit', paymentType: 'credit', paymentVariant: 'credit',
-  agreementNumber: 'EL/PD/147/115351/23/6/2026', agreementDate: '2026-06-23', courseStartDate: null,
-  customerType: 'person', customerName: 'Piotr Nowak', personalId: '85050512345',
-  address: 'Polna 2, 30-001 Kraków', coursePriceCents: 957600,
+  agreementNumber: 'EL/TESTD/104/204/23/6/2026', agreementDate: '2026-06-23', courseStartDate: null,
+  customerType: 'person', customerName: 'Jan Testowy', personalId: '02270812343',
+  address: 'ul. Testowa 2, 00-002 Warszawa', coursePriceCents: 957600,
   monthlyInstallmentCents: 39900, lessonCount: 288, monthlyLessonLimit: 12,
   teacherVariant: 'polish_english_native', familyGroupVariant: null, internalPaymentAccount: null, installmentPlan: undefined
 };
@@ -159,7 +159,7 @@ test('teacherVariant ignoruje listę wszystkich lektorów w załączniku', () =>
 });
 
 test('NIP Tutlo w nagłówku nie jest identyfikatorem klienta', () => {
-  const result = parseCurrentContract(fixtureB.replace('PESEL: 85050512345', ''));
+  const result = parseCurrentContract(fixtureB.replace('PESEL: 02270812343', ''));
   assert.equal(result.customerType, undefined);
   assert.equal(result.personalId, undefined);
 });

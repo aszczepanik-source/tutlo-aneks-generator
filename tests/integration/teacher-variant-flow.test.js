@@ -2,10 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { parseCurrentContract, validateCurrentContract } from '../../src/domain/contract-extraction.js';
 
-const rawText = `UMOWA O ŚWIADCZENIE USŁUG EL/PD/147/115351/23/6/2026
+const rawText = `UMOWA O ŚWIADCZENIE USŁUG EL/TESTD/104/204/23/6/2026
 DANE NABYWCY
-IMIĘ I NAZWISKO: Piotr Nowak PESEL: 85050512345
-ADRES: Polna 2, 30-001 Kraków
+IMIĘ I NAZWISKO: Jan Testowy PESEL: 02270812343
+ADRES: ul. Testowa 2, 00-002 Warszawa
 DANE UŻYTKOWNIKA
 § 1 SPECYFIKACJA KURSU
 Okres trwania kursu: 24 miesiące

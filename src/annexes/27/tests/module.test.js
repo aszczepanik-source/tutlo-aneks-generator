@@ -9,7 +9,7 @@ const account = '12345678901234567890123456';
 const contract = {
   agreementNumber: 'EL/1/1/1/1/1/2025', agreementDate: '2025-07-15', customerType: 'person',
   courseStartDate: '2025-07-15',
-  customerName: 'Jan Kowalski', personalId: '90010112345', address: 'Testowa 1',
+  customerName: 'Jan Kowalski', personalId: '00210100004', address: 'Testowa 1',
   coursePriceCents: 240000, monthlyInstallmentCents: 10000, lessonCount: 240,
   monthlyLessonLimit: 20, teacherVariant: 'polish_english_native', contractType: 'flexible',
   paymentType: 'credit', paymentVariant: 'credit', installmentPlan: undefined

@@ -6,7 +6,7 @@ import { renderDocx } from '../../src/infrastructure/local-docx-generator.js';
 
 const buyerPdfText = buyerItems => [
   'Tutlo Sp. z o.o. NIP: 5272600188 reprezentant sprzedawcy Firma finansująca',
-  'UMOWA ELASTYCZNA nr EL/JF/811/192956/3/9/2025',
+  'UMOWA ELASTYCZNA nr EL/TEST/100/200/3/9/2025',
   'DANE\u00a0NABYWCY', ...buyerItems,
   'SPECYFIKACJA KURSU', 'Liczba Lekcji Indywidualnych: 450',
   'Maksymalna miesięczna liczba Lekcji Indywidualnych do wykorzystania: 57',
@@ -17,12 +17,12 @@ const buyerPdfText = buyerItems => [
 test('aneks 26 integracyjnie rozpoznaje osobę i firmę z komórek PDF oraz generuje oba DOCX', async () => {
   const cases = [
     {
-      items: ['IMIĘ I NAZWISKO:', 'Jan Żółć', 'ADRES:', 'Polna 1', 'PESEL:', '123 456\u00a0789 01'],
-      type: 'person', name: 'Jan Żółć', id: '12345678901'
+      items: ['IMIĘ I NAZWISKO:', 'Jan Testowy', 'ADRES:', 'ul. Testowa 1, 00-001 Warszawa', 'PESEL:', '123 456\u00a0789 01'],
+      type: 'person', name: 'Jan Testowy', id: '12345678901'
     },
     {
-      items: ['FIRMA:', 'Przykład sp. z o.o.', 'ADRES:', 'Firmowa 2', 'NIP:', '692-245-39 48'],
-      type: 'company', name: 'Przykład sp. z o.o.', id: '6922453948'
+      items: ['FIRMA:', 'Przykład sp. z o.o.', 'ADRES:', 'Firmowa 2', 'NIP:', '123-456-32 18'],
+      type: 'company', name: 'Przykład sp. z o.o.', id: '1234563218'
     }
   ];
   class TestZip {
@@ -57,7 +57,7 @@ test('aneks 26 integracyjnie rozpoznaje osobę i firmę z komórek PDF oraz gene
 
 test('aneks 26 oblicza sześć pól z rzeczywistego kształtu currentContract parsera', () => {
   const pdfText = `
-    UMOWA ELASTYCZNA nr EL/JF/811/192956/3/9/2025
+    UMOWA ELASTYCZNA nr EL/TEST/100/200/3/9/2025
     DANE NABYWCY Imię i nazwisko: Test Testowy Adres: Testowa 1 PESEL: 00000000000
     SPECYFIKACJA KURSU Liczba Lekcji Indywidualnych: 450
     Maksymalna miesięczna liczba Lekcji Indywidualnych do wykorzystania: 57
@@ -65,7 +65,7 @@ test('aneks 26 oblicza sześć pól z rzeczywistego kształtu currentContract pa
     Całkowita cena kursu wynosi 11 250,00 zł brutto`;
   const currentContract = extractContractData(pdfText);
 
-  assert.equal(currentContract.agreementNumber, 'EL/JF/811/192956/3/9/2025');
+  assert.equal(currentContract.agreementNumber, 'EL/TEST/100/200/3/9/2025');
 
   assert.deepEqual(
     {
@@ -114,7 +114,7 @@ test('aneks 26 zgłasza błąd, gdy numer umowy nie zawiera poprawnej daty', t =
   t.mock.method(console, 'warn', () => {});
   t.mock.method(console, 'info', () => {});
   const currentContract = extractContractData(`
-    UMOWA ELASTYCZNA nr EL/JF/811/192956/31/2/2025
+    UMOWA ELASTYCZNA nr EL/TEST/100/200/31/2/2025
     DANE NABYWCY Imię i nazwisko: Test Testowy Adres: Testowa 1 PESEL: 00000000000
     SPECYFIKACJA KURSU Liczba Lekcji Indywidualnych: 450
     Maksymalna miesięczna liczba Lekcji Indywidualnych do wykorzystania: 57
@@ -129,8 +129,8 @@ test('aneks 26 zgłasza błąd, gdy numer umowy nie zawiera poprawnej daty', t =
 
 test('aneks 26 przekazuje nazwę firmy i NIP przez istniejące placeholdery', () => {
   const currentContract = extractContractData(`
-    UMOWA ELASTYCZNA nr EL/JF/811/192956/3/9/2025
-    DANE NABYWCY FIRMA: Agnieszka Paprotna ADRES: Żerkówek 28 NIP: 6922453948
+    UMOWA ELASTYCZNA nr EL/TEST/100/200/3/9/2025
+    DANE NABYWCY FIRMA: Firma Testowa Sp. z o.o. ADRES: ul. Przykładowa 2, 00-002 Warszawa NIP: 1234563218
     SPECYFIKACJA KURSU Liczba Lekcji Indywidualnych: 450
     Maksymalna miesięczna liczba Lekcji Indywidualnych do wykorzystania: 57
     ZAWARTOŚĆ KURSU spotkania z Lektorem Polskim, English Expert, Native Speaker WARUNKI PŁATNOŚCI
@@ -139,14 +139,14 @@ test('aneks 26 przekazuje nazwę firmy i NIP przez istniejące placeholdery', ()
     newInstallment: '400,00', bank: 'Inbank', bankAccount: '12345678901234567890123456'
   });
 
-  assert.equal(values.IMIE_NAZWISKO, 'Agnieszka Paprotna');
-  assert.equal(values.PESEL, '6922453948');
+  assert.equal(values.IMIE_NAZWISKO, 'Firma Testowa Sp. z o.o.');
+  assert.equal(values.PESEL, '1234563218');
 });
 
 test('sama etykieta firmy nie ustawia rodzaju, a brak NIP zgłasza czytelny błąd', () => {
   const currentContract = extractContractData(`
-    UMOWA ELASTYCZNA nr EL/JF/811/192956/3/9/2025
-    DANE NABYWCY FIRMA: Agnieszka Paprotna ADRES: Żerkówek 28
+    UMOWA ELASTYCZNA nr EL/TEST/100/200/3/9/2025
+    DANE NABYWCY FIRMA: Firma Testowa Sp. z o.o. ADRES: ul. Przykładowa 2, 00-002 Warszawa
     SPECYFIKACJA KURSU Liczba Lekcji Indywidualnych: 450
     Maksymalna miesięczna liczba Lekcji Indywidualnych do wykorzystania: 57
     ZAWARTOŚĆ KURSU spotkania z Lektorem Polskim WARUNKI PŁATNOŚCI

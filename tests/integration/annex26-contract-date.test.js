@@ -8,12 +8,12 @@ import {
 } from '../../src/domain/contract-extraction.js';
 
 test('parser daty odczytuje pełny numer umowy', () => {
-  assert.equal(parseAgreementDateFromNumber('EL/JF/811/192956/3/9/2025'), '03.09.2025');
+  assert.equal(parseAgreementDateFromNumber('EL/TEST/100/200/3/9/2025'), '03.09.2025');
 });
 
 test('odczytuje końcową datę niezależnie od treści wcześniejszych segmentów', () => {
   for (const agreementNumber of [
-    'EL/JF/811/192956/3/9/2025',
+    'EL/TEST/100/200/3/9/2025',
     'ŻÓŁĆ/ĄĘ/811/192956/3/9/2025',
     'Umowa-Łódź/wersja specjalna/3/9/2025',
     'Umowa\u00a0Łódź /3/9/2025',
@@ -47,14 +47,14 @@ test('diagnostyka braku daty pokazuje znormalizowany numer, jego końcówkę i w
 });
 
 test('odczytuje ostatnią datę, gdy PDF dokleił niewidoczne znaki i następną linię', () => {
-  const agreementNumber = 'EL/JF/811/192956/3/9/2025\u00a0\t\nDANE NABYWCY';
+  const agreementNumber = 'EL/TEST/100/200/3/9/2025\u00a0\t\nDANE NABYWCY';
 
-  assert.equal(normalizeAgreementNumber(agreementNumber), 'EL/JF/811/192956/3/9/2025 DANE NABYWCY');
+  assert.equal(normalizeAgreementNumber(agreementNumber), 'EL/TEST/100/200/3/9/2025 DANE NABYWCY');
   assert.equal(extractAgreementDate(agreementNumber), '03.09.2025');
   assert.deepEqual(getAgreementDateDiagnostic(agreementNumber), {
     last60Characters: JSON.stringify(agreementNumber),
     endingDatePatternFound: true,
-    normalizedAgreementNumber: 'EL/JF/811/192956/3/9/2025 DANE NABYWCY'
+    normalizedAgreementNumber: 'EL/TEST/100/200/3/9/2025 DANE NABYWCY'
   });
 });
 

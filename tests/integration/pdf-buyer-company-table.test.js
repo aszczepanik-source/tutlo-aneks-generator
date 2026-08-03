@@ -13,7 +13,7 @@ test('integracja: odczytuje NIP z układu tabeli DANE NABYWCY wyciągniętego z 
     'ADRES:', 'Testowa 1',
     'TELEFON:', '123 456 789',
     'E-MAIL:', 'klient@example.test',
-    'NIP:', '6922453948',
+    'NIP:', '1234563218',
     'SPECYFIKACJA KURSU',
     'ZAWARTOŚĆ KURSU',
     'WARUNKI PŁATNOŚCI'
@@ -23,6 +23,6 @@ test('integracja: odczytuje NIP z układu tabeli DANE NABYWCY wyciągniętego z 
 
   assert.deepEqual(
     { customerName: contract.customerName, personalId: contract.personalId, customerType: contract.customerType },
-    { customerName: 'Klient Firmowy', personalId: '6922453948', customerType: 'company' }
+    { customerName: 'Klient Firmowy', personalId: '1234563218', customerType: 'company' }
   );
 });
