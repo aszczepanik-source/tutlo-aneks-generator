@@ -10,7 +10,7 @@ export const CURRENT_CONTRACT_FIELDS = Object.freeze([
 ]);
 export const CONTRACT_TYPES = Object.freeze(['flexible', 'limit']);
 export const PAYMENT_TYPES = Object.freeze(['credit', 'internal']);
-export const PAYMENT_VARIANTS = Object.freeze(['credit', 'internal_24', 'internal_2', 'internal_13', 'internal_4']);
+export const PAYMENT_VARIANTS = Object.freeze(['credit', 'internal_24', 'internal_2', 'internal_13', 'internal_4', 'internal_1']);
 export const TEACHER_VARIANTS = Object.freeze(['polish_english_native', 'english_native']);
 export const INTERNAL_INSTALLMENT_ACCOUNT_LABEL = 'na następujący rachunek bankowy Tutlo';
 
@@ -195,8 +195,9 @@ function extractPayment(payment, agreementDate) {
   if (!paymentCount && /pierwsz\p{L}*\s+rok\p{L}*.{0,100}(?:z\s+góry|jednorazow\p{L}*).{0,220}drugi\p{L}*\s+rok\p{L}*.{0,100}(?:12|dwanaście)\s+(?:miesięcznych\s+)?rat/iu.test(payment)) {
     followingPaymentsCount = 12; paymentCount = 13;
   }
+  if (!paymentCount && /\bpłatność\s+następuje\s+jednorazowo\b/iu.test(payment)) paymentCount = 1;
   if (!paymentCount) paymentCount = Number(payment.match(/\b(?:w|łącznie)\s+(2|4|13|24)\s+(?:równych\s+|miesięcznych\s+)?(?:ratach|rat|płatnościach|płatności)/iu)?.[1]);
-  const paymentVariant = [2, 4, 13, 24].includes(paymentCount) ? `internal_${paymentCount}` : undefined;
+  const paymentVariant = [1, 2, 4, 13, 24].includes(paymentCount) ? `internal_${paymentCount}` : undefined;
   const firstPaymentAmountCents = money(payment.match(/pierwsz(?:a|ej)\s+rat(?:a|y)\b.{0,80}?(\d+(?:[ .]\d{3})*(?:[,.]\d{1,2})?)\s*zł/iu)?.[1]);
   const recurringPaymentAmountCents = money(payment.match(/kolejn(?:ych|e)\s+\d+\s+rat\p{L}*.{0,80}?(\d+(?:[ .]\d{3})*(?:[,.]\d{1,2})?)\s*zł/iu)?.[1]);
   return { paymentType: 'internal', paymentVariant,

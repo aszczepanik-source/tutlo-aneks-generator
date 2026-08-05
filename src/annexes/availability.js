@@ -67,7 +67,27 @@ const LIMIT_CREDIT = Object.freeze([
   card('30a', 'Aneks 30a — Spłata dwóch rat kredytowych', 'planned')
 ]);
 
-const INTERNAL_VARIANTS = new Set(['internal_24', 'internal_2', 'internal_13', 'internal_4']);
+const INTERNAL_VARIANTS = new Set(['internal_24', 'internal_2', 'internal_13', 'internal_4', 'internal_1']);
+const NON_STANDARD_INTERNAL_VARIANTS = Object.freeze(['internal_1', 'internal_2', 'internal_4', 'internal_13']);
+
+export const SCHEDULE_CHANGE_ANNEXES = Object.freeze([
+  card('29', '29 – Spłata jednej raty wewnętrznej', 'tutlo', {
+    desc: 'Dostępny dla rat wewnętrznych poza standardowym harmonogramem 24 rat.',
+    enabled: true, mode: 'post_schedule_change'
+  }),
+  card('29a', '29a – Spłata dwóch rat wewnętrznych', 'tutlo', {
+    desc: 'Dostępny dla rat wewnętrznych poza standardowym harmonogramem 24 rat.',
+    enabled: true, mode: 'post_schedule_change'
+  })
+]);
+
+/** Jednorazowa wpłata oraz raty 2/4/13 dla umów elastyk/limit płatnych bezpośrednio do Tutlo. */
+export function getScheduleChangeAnnexCards(currentContract) {
+  if (currentContract?.paymentType !== 'internal') return [];
+  if (!NON_STANDARD_INTERNAL_VARIANTS.includes(currentContract?.paymentVariant)) return [];
+  if (!['flexible', 'limit'].includes(currentContract?.contractType)) return [];
+  return SCHEDULE_CHANGE_ANNEXES;
+}
 
 export const POST_PAYMENT_CHANGE_ANNEXES = Object.freeze([
   card('45b', '45b – Kurs z limitem tygodniowym', 'planned', {
@@ -133,6 +153,7 @@ export function getAvailableAnnexCards(currentContract) {
 /** The single availability predicate shared by routing and card-based UI flows. */
 export function isAnnexAvailable(annexId, currentContract) {
   const id = String(annexId);
-  return [...getAvailableAnnexCards(currentContract), ...getPostPaymentChangeAnnexCards(currentContract)]
+  return [...getAvailableAnnexCards(currentContract), ...getPostPaymentChangeAnnexCards(currentContract),
+    ...getScheduleChangeAnnexCards(currentContract)]
     .some(item => item.no === id && item.status === 'tutlo' && item.enabled !== false);
 }

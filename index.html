@@ -390,6 +390,11 @@
       <p>Poniższe aneksy mogą zostać przygotowane po zmianie płatności z kredytu na raty wewnętrzne.</p>
       <div id="postPaymentChangeAnnexGrid" class="annex-grid"></div>
     </div>
+    <div id="scheduleChangeSection" class="post-payment-change-section">
+      <h3>Po zmianie harmonogramu</h3>
+      <p>Poniższe aneksy są dostępne dla umów płatnych bezpośrednio do Tutlo w harmonogramie innym niż standardowe 24 raty (jednorazowo, 2, 4 lub 13 rat).</p>
+      <div id="scheduleChangeAnnexGrid" class="annex-grid"></div>
+    </div>
   </section>
 
   <div class="lower-tools">
@@ -600,7 +605,8 @@
   import {
     ANNEX_STATUSES,
     getAvailableAnnexCards,
-    getPostPaymentChangeAnnexCards
+    getPostPaymentChangeAnnexCards,
+    getScheduleChangeAnnexCards
   } from './src/annexes/availability.js';
   import { downloadAnnex11, downloadAnnex25, downloadAnnex26, downloadAnnex27, downloadAnnex29, downloadAnnex29a, downloadAnnex43, downloadAnnex45, downloadAnnex45C, downloadAnnex45E, downloadAnnex48 } from './src/infrastructure/local-docx-generator.js';
   import { prepareAnnex11 } from './src/annexes/11/index.js';
@@ -647,7 +653,9 @@
     annexSection:document.getElementById('annexSection'),
     annexGrid:document.getElementById('annexGrid'),
     postPaymentChangeSection:document.getElementById('postPaymentChangeSection'),
-    postPaymentChangeAnnexGrid:document.getElementById('postPaymentChangeAnnexGrid')
+    postPaymentChangeAnnexGrid:document.getElementById('postPaymentChangeAnnexGrid'),
+    scheduleChangeSection:document.getElementById('scheduleChangeSection'),
+    scheduleChangeAnnexGrid:document.getElementById('scheduleChangeAnnexGrid')
   };
 
   let currentFile=null,currentContract=null,currentClassification=null;
@@ -779,6 +787,7 @@
 
     const items=getAvailableAnnexCards(contract);
     const postPaymentChangeItems=getPostPaymentChangeAnnexCards(contract);
+    const scheduleChangeItems=getScheduleChangeAnnexCards(contract);
     if(items.length){
       renderAnnexCards(items,els.annexGrid);
       els.annexSection.style.display='block';
@@ -791,6 +800,13 @@
     }else{
       els.postPaymentChangeAnnexGrid.innerHTML='';
       els.postPaymentChangeSection.style.display='none';
+    }
+    if(scheduleChangeItems.length){
+      renderAnnexCards(scheduleChangeItems,els.scheduleChangeAnnexGrid);
+      els.scheduleChangeSection.style.display='block';
+    }else{
+      els.scheduleChangeAnnexGrid.innerHTML='';
+      els.scheduleChangeSection.style.display='none';
     }
   }
 

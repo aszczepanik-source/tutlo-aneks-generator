@@ -7,15 +7,22 @@ const required = [
   ['address', 'adres']
 ];
 
+const SCHEDULE_CHANGE_VARIANTS = ['internal_1', 'internal_2', 'internal_4', 'internal_13'];
+
 export function validateAnnex29Data(currentContract, options = {}) {
   const postPaymentChange = options.mode === 'post_payment_change';
+  const scheduleChange = options.mode === 'post_schedule_change';
   const allowedCredit = postPaymentChange
     && ['flexible', 'limit'].includes(currentContract?.contractType)
     && currentContract?.paymentType === 'credit' && currentContract?.paymentVariant === 'credit';
-  const allowedStandard = !postPaymentChange && currentContract?.contractType === 'flexible'
+  const allowedStandard = !postPaymentChange && !scheduleChange && currentContract?.contractType === 'flexible'
     && currentContract?.paymentType === 'internal' && currentContract?.paymentVariant === 'internal_24';
-  if (!allowedCredit && !allowedStandard) {
-    throw new Error('Aneks 29 wymaga umowy flexible z ratami wewnętrznymi internal_24 albo trybu po zmianie płatności dla umowy kredytowej flexible lub limit.');
+  const allowedSchedule = scheduleChange
+    && ['flexible', 'limit'].includes(currentContract?.contractType)
+    && currentContract?.paymentType === 'internal'
+    && SCHEDULE_CHANGE_VARIANTS.includes(currentContract?.paymentVariant);
+  if (!allowedCredit && !allowedStandard && !allowedSchedule) {
+    throw new Error('Aneks 29 wymaga umowy flexible z ratami wewnętrznymi internal_24, umowy flexible lub limit z ratami wewnętrznymi w innym harmonogramie (jednorazowo, 2, 4 lub 13 rat) w trybie po zmianie harmonogramu, albo trybu po zmianie płatności dla umowy kredytowej flexible lub limit.');
   }
   for (const [field, label] of required) {
     if (currentContract[field] === undefined || currentContract[field] === null
