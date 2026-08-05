@@ -1,0 +1,337 @@
+From ad090527c626e9ebe397539a336383b77c8e44d9 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 5 Aug 2026 15:29:45 +0000
+Subject: [PATCH] Add "Po zmianie harmonogramu" section for non-standard
+ internal schedules
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- Recognize a one-time internal payment ("Płatność następuje jednorazowo")
+  as a new paymentVariant internal_1, alongside existing internal_2/4/13.
+- Add getScheduleChangeAnnexCards(): exposes Annex 29/29a for flexible or
+  limit contracts paid directly to Tutlo (internal) in a schedule other
+  than the standard 24 installments (jednorazowo, 2, 4 or 13 rat).
+- Extend Annex 29/29a validators with a post_schedule_change mode that
+  accepts flexible/limit + internal + internal_1/2/4/13. Calculation rules
+  are unchanged (new price = current price - 1 or 2 installments).
+- Wire a new "Po zmianie harmonogramu" section into index.html, mirroring
+  the existing "Po zmianie formy płatności" section.
+- Add regression tests, including a real jednorazowa payment fixture.
+---
+ index.html                                    |  20 +++-
+ src/annexes/29/validator.js                   |  13 +-
+ src/annexes/29a/validator.js                  |  13 +-
+ src/annexes/availability.js                   |  25 +++-
+ src/domain/contract-extraction.js             |   5 +-
+ .../schedule-change-annexes.test.js           | 113 ++++++++++++++++++
+ 6 files changed, 177 insertions(+), 12 deletions(-)
+ create mode 100644 tests/stabilization/schedule-change-annexes.test.js
+
+diff --git a/index.html b/index.html
+index 9cb009c..1c20c7c 100644
+--- a/index.html
++++ b/index.html
+@@ -390,6 +390,11 @@
+       <p>Poniższe aneksy mogą zostać przygotowane po zmianie płatności z kredytu na raty wewnętrzne.</p>
+       <div id="postPaymentChangeAnnexGrid" class="annex-grid"></div>
+     </div>
++    <div id="scheduleChangeSection" class="post-payment-change-section">
++      <h3>Po zmianie harmonogramu</h3>
++      <p>Poniższe aneksy są dostępne dla umów płatnych bezpośrednio do Tutlo w harmonogramie innym niż standardowe 24 raty (jednorazowo, 2, 4 lub 13 rat).</p>
++      <div id="scheduleChangeAnnexGrid" class="annex-grid"></div>
++    </div>
+   </section>
+ 
+   <div class="lower-tools">
+@@ -600,7 +605,8 @@
+   import {
+     ANNEX_STATUSES,
+     getAvailableAnnexCards,
+-    getPostPaymentChangeAnnexCards
++    getPostPaymentChangeAnnexCards,
++    getScheduleChangeAnnexCards
+   } from './src/annexes/availability.js';
+   import { downloadAnnex11, downloadAnnex25, downloadAnnex26, downloadAnnex27, downloadAnnex29, downloadAnnex29a, downloadAnnex43, downloadAnnex45, downloadAnnex45C, downloadAnnex45E, downloadAnnex48 } from './src/infrastructure/local-docx-generator.js';
+   import { prepareAnnex11 } from './src/annexes/11/index.js';
+@@ -647,7 +653,9 @@
+     annexSection:document.getElementById('annexSection'),
+     annexGrid:document.getElementById('annexGrid'),
+     postPaymentChangeSection:document.getElementById('postPaymentChangeSection'),
+-    postPaymentChangeAnnexGrid:document.getElementById('postPaymentChangeAnnexGrid')
++    postPaymentChangeAnnexGrid:document.getElementById('postPaymentChangeAnnexGrid'),
++    scheduleChangeSection:document.getElementById('scheduleChangeSection'),
++    scheduleChangeAnnexGrid:document.getElementById('scheduleChangeAnnexGrid')
+   };
+ 
+   let currentFile=null,currentContract=null,currentClassification=null;
+@@ -779,6 +787,7 @@
+ 
+     const items=getAvailableAnnexCards(contract);
+     const postPaymentChangeItems=getPostPaymentChangeAnnexCards(contract);
++    const scheduleChangeItems=getScheduleChangeAnnexCards(contract);
+     if(items.length){
+       renderAnnexCards(items,els.annexGrid);
+       els.annexSection.style.display='block';
+@@ -792,6 +801,13 @@
+       els.postPaymentChangeAnnexGrid.innerHTML='';
+       els.postPaymentChangeSection.style.display='none';
+     }
++    if(scheduleChangeItems.length){
++      renderAnnexCards(scheduleChangeItems,els.scheduleChangeAnnexGrid);
++      els.scheduleChangeSection.style.display='block';
++    }else{
++      els.scheduleChangeAnnexGrid.innerHTML='';
++      els.scheduleChangeSection.style.display='none';
++    }
+   }
+ 
+   async function analyze(){
+diff --git a/src/annexes/29/validator.js b/src/annexes/29/validator.js
+index f191317..ddc363a 100644
+--- a/src/annexes/29/validator.js
++++ b/src/annexes/29/validator.js
+@@ -7,15 +7,22 @@ const required = [
+   ['address', 'adres']
+ ];
+ 
++const SCHEDULE_CHANGE_VARIANTS = ['internal_1', 'internal_2', 'internal_4', 'internal_13'];
++
+ export function validateAnnex29Data(currentContract, options = {}) {
+   const postPaymentChange = options.mode === 'post_payment_change';
++  const scheduleChange = options.mode === 'post_schedule_change';
+   const allowedCredit = postPaymentChange
+     && ['flexible', 'limit'].includes(currentContract?.contractType)
+     && currentContract?.paymentType === 'credit' && currentContract?.paymentVariant === 'credit';
+-  const allowedStandard = !postPaymentChange && currentContract?.contractType === 'flexible'
++  const allowedStandard = !postPaymentChange && !scheduleChange && currentContract?.contractType === 'flexible'
+     && currentContract?.paymentType === 'internal' && currentContract?.paymentVariant === 'internal_24';
+-  if (!allowedCredit && !allowedStandard) {
+-    throw new Error('Aneks 29 wymaga umowy flexible z ratami wewnętrznymi internal_24 albo trybu po zmianie płatności dla umowy kredytowej flexible lub limit.');
++  const allowedSchedule = scheduleChange
++    && ['flexible', 'limit'].includes(currentContract?.contractType)
++    && currentContract?.paymentType === 'internal'
++    && SCHEDULE_CHANGE_VARIANTS.includes(currentContract?.paymentVariant);
++  if (!allowedCredit && !allowedStandard && !allowedSchedule) {
++    throw new Error('Aneks 29 wymaga umowy flexible z ratami wewnętrznymi internal_24, umowy flexible lub limit z ratami wewnętrznymi w innym harmonogramie (jednorazowo, 2, 4 lub 13 rat) w trybie po zmianie harmonogramu, albo trybu po zmianie płatności dla umowy kredytowej flexible lub limit.');
+   }
+   for (const [field, label] of required) {
+     if (currentContract[field] === undefined || currentContract[field] === null
+diff --git a/src/annexes/29a/validator.js b/src/annexes/29a/validator.js
+index b92bd1a..9f65045 100644
+--- a/src/annexes/29a/validator.js
++++ b/src/annexes/29a/validator.js
+@@ -4,15 +4,22 @@ const required = [
+   ['personalId', 'PESEL/NIP'], ['address', 'adres']
+ ];
+ 
++const SCHEDULE_CHANGE_VARIANTS = ['internal_1', 'internal_2', 'internal_4', 'internal_13'];
++
+ export function validateAnnex29aData(currentContract, options = {}) {
+   const postPaymentChange = options.mode === 'post_payment_change';
++  const scheduleChange = options.mode === 'post_schedule_change';
+   const allowedCredit = postPaymentChange
+     && ['flexible', 'limit'].includes(currentContract?.contractType)
+     && currentContract?.paymentType === 'credit' && currentContract?.paymentVariant === 'credit';
+-  const allowedStandard = !postPaymentChange && currentContract?.contractType === 'flexible'
++  const allowedStandard = !postPaymentChange && !scheduleChange && currentContract?.contractType === 'flexible'
+     && currentContract?.paymentType === 'internal' && currentContract?.paymentVariant === 'internal_24';
+-  if (!allowedCredit && !allowedStandard) {
+-    throw new Error('Aneks 29a wymaga umowy flexible z ratami wewnętrznymi internal_24 albo trybu po zmianie płatności dla umowy kredytowej flexible lub limit.');
++  const allowedSchedule = scheduleChange
++    && ['flexible', 'limit'].includes(currentContract?.contractType)
++    && currentContract?.paymentType === 'internal'
++    && SCHEDULE_CHANGE_VARIANTS.includes(currentContract?.paymentVariant);
++  if (!allowedCredit && !allowedStandard && !allowedSchedule) {
++    throw new Error('Aneks 29a wymaga umowy flexible z ratami wewnętrznymi internal_24, umowy flexible lub limit z ratami wewnętrznymi w innym harmonogramie (jednorazowo, 2, 4 lub 13 rat) w trybie po zmianie harmonogramu, albo trybu po zmianie płatności dla umowy kredytowej flexible lub limit.');
+   }
+   for (const [field, label] of required) {
+     if (currentContract[field] === undefined || currentContract[field] === null
+diff --git a/src/annexes/availability.js b/src/annexes/availability.js
+index e5d4068..8f9c2f9 100644
+--- a/src/annexes/availability.js
++++ b/src/annexes/availability.js
+@@ -67,7 +67,27 @@ const LIMIT_CREDIT = Object.freeze([
+   card('30a', 'Aneks 30a — Spłata dwóch rat kredytowych', 'planned')
+ ]);
+ 
+-const INTERNAL_VARIANTS = new Set(['internal_24', 'internal_2', 'internal_13', 'internal_4']);
++const INTERNAL_VARIANTS = new Set(['internal_24', 'internal_2', 'internal_13', 'internal_4', 'internal_1']);
++const NON_STANDARD_INTERNAL_VARIANTS = Object.freeze(['internal_1', 'internal_2', 'internal_4', 'internal_13']);
++
++export const SCHEDULE_CHANGE_ANNEXES = Object.freeze([
++  card('29', '29 – Spłata jednej raty wewnętrznej', 'tutlo', {
++    desc: 'Dostępny dla rat wewnętrznych poza standardowym harmonogramem 24 rat.',
++    enabled: true, mode: 'post_schedule_change'
++  }),
++  card('29a', '29a – Spłata dwóch rat wewnętrznych', 'tutlo', {
++    desc: 'Dostępny dla rat wewnętrznych poza standardowym harmonogramem 24 rat.',
++    enabled: true, mode: 'post_schedule_change'
++  })
++]);
++
++/** Jednorazowa wpłata oraz raty 2/4/13 dla umów elastyk/limit płatnych bezpośrednio do Tutlo. */
++export function getScheduleChangeAnnexCards(currentContract) {
++  if (currentContract?.paymentType !== 'internal') return [];
++  if (!NON_STANDARD_INTERNAL_VARIANTS.includes(currentContract?.paymentVariant)) return [];
++  if (!['flexible', 'limit'].includes(currentContract?.contractType)) return [];
++  return SCHEDULE_CHANGE_ANNEXES;
++}
+ 
+ export const POST_PAYMENT_CHANGE_ANNEXES = Object.freeze([
+   card('45b', '45b – Kurs z limitem tygodniowym', 'planned', {
+@@ -133,6 +153,7 @@ export function getAvailableAnnexCards(currentContract) {
+ /** The single availability predicate shared by routing and card-based UI flows. */
+ export function isAnnexAvailable(annexId, currentContract) {
+   const id = String(annexId);
+-  return [...getAvailableAnnexCards(currentContract), ...getPostPaymentChangeAnnexCards(currentContract)]
++  return [...getAvailableAnnexCards(currentContract), ...getPostPaymentChangeAnnexCards(currentContract),
++    ...getScheduleChangeAnnexCards(currentContract)]
+     .some(item => item.no === id && item.status === 'tutlo' && item.enabled !== false);
+ }
+diff --git a/src/domain/contract-extraction.js b/src/domain/contract-extraction.js
+index 12264c3..7873f5a 100644
+--- a/src/domain/contract-extraction.js
++++ b/src/domain/contract-extraction.js
+@@ -10,7 +10,7 @@ export const CURRENT_CONTRACT_FIELDS = Object.freeze([
+ ]);
+ export const CONTRACT_TYPES = Object.freeze(['flexible', 'limit']);
+ export const PAYMENT_TYPES = Object.freeze(['credit', 'internal']);
+-export const PAYMENT_VARIANTS = Object.freeze(['credit', 'internal_24', 'internal_2', 'internal_13', 'internal_4']);
++export const PAYMENT_VARIANTS = Object.freeze(['credit', 'internal_24', 'internal_2', 'internal_13', 'internal_4', 'internal_1']);
+ export const TEACHER_VARIANTS = Object.freeze(['polish_english_native', 'english_native']);
+ export const INTERNAL_INSTALLMENT_ACCOUNT_LABEL = 'na następujący rachunek bankowy Tutlo';
+ 
+@@ -195,8 +195,9 @@ function extractPayment(payment, agreementDate) {
+   if (!paymentCount && /pierwsz\p{L}*\s+rok\p{L}*.{0,100}(?:z\s+góry|jednorazow\p{L}*).{0,220}drugi\p{L}*\s+rok\p{L}*.{0,100}(?:12|dwanaście)\s+(?:miesięcznych\s+)?rat/iu.test(payment)) {
+     followingPaymentsCount = 12; paymentCount = 13;
+   }
++  if (!paymentCount && /\bpłatność\s+następuje\s+jednorazowo\b/iu.test(payment)) paymentCount = 1;
+   if (!paymentCount) paymentCount = Number(payment.match(/\b(?:w|łącznie)\s+(2|4|13|24)\s+(?:równych\s+|miesięcznych\s+)?(?:ratach|rat|płatnościach|płatności)/iu)?.[1]);
+-  const paymentVariant = [2, 4, 13, 24].includes(paymentCount) ? `internal_${paymentCount}` : undefined;
++  const paymentVariant = [1, 2, 4, 13, 24].includes(paymentCount) ? `internal_${paymentCount}` : undefined;
+   const firstPaymentAmountCents = money(payment.match(/pierwsz(?:a|ej)\s+rat(?:a|y)\b.{0,80}?(\d+(?:[ .]\d{3})*(?:[,.]\d{1,2})?)\s*zł/iu)?.[1]);
+   const recurringPaymentAmountCents = money(payment.match(/kolejn(?:ych|e)\s+\d+\s+rat\p{L}*.{0,80}?(\d+(?:[ .]\d{3})*(?:[,.]\d{1,2})?)\s*zł/iu)?.[1]);
+   return { paymentType: 'internal', paymentVariant,
+diff --git a/tests/stabilization/schedule-change-annexes.test.js b/tests/stabilization/schedule-change-annexes.test.js
+new file mode 100644
+index 0000000..e2bf8f4
+--- /dev/null
++++ b/tests/stabilization/schedule-change-annexes.test.js
+@@ -0,0 +1,113 @@
++import assert from 'node:assert/strict';
++import test from 'node:test';
++import { parseCurrentContract } from '../../src/domain/contract-extraction.js';
++import {
++  getAvailableAnnexCards, getScheduleChangeAnnexCards, getPostPaymentChangeAnnexCards, isAnnexAvailable
++} from '../../src/annexes/availability.js';
++import { prepareAnnex29 } from '../../src/annexes/29/generator.js';
++import { prepareAnnex29a } from '../../src/annexes/29a/generator.js';
++
++const fixtureOneTime = `UMOWA O ŚWIADCZENIE USŁUG EL/TESTE/105/205/12/1/2026
++Tutlo sp. z o.o., NIP: 7010701530
++DANE NABYWCY
++IMIĘ I NAZWISKO: Jan Testowy PESEL: 00210100004
++ADRES: ul. Testowa 3, 00-003 Warszawa
++DANE UŻYTKOWNIKA
++§ 1 SPECYFIKACJA KURSU
++Okres trwania kursu: 12 miesięcy
++Liczba Lekcji Indywidualnych: 144
++Maksymalna miesięczna liczba Lekcji Indywidualnych do wykorzystania: 12
++ZAWARTOŚĆ KURSU
++144 Lekcji Indywidualnych o długości 20 minut każda w formie spotkań indywidualnych z Lektorem Polskim, English Expert oraz Native Speakerem realizowanych w platformie internetowej.
++§ 2 WARUNKI PŁATNOŚCI
++Całkowita cena pakietu kursu wynosi: 5460.6 zł brutto, co oznacza, że wynagrodzenie przysługujące Tutlo za każdy miesiąc trwania
++Umowy wynosi 455.05 zł brutto.
++Płatność następuje jednorazowo w terminie do 1 dnia po podpisaniu umowy, przelewem elektronicznym za pośrednictwem Autopay S.A. z
++siedzibą w Sopocie lub przelewem bankowym na następujący rachunek bankowy Tutlo: mBank S.A.- 70114010104903574502000000.
++Płatność uznaje się za dokonaną po zaksięgowaniu przelewu na ww. rachunku bankowym Tutlo.
++§ 3 WARUNKI UMOWY`;
++
++test('parser rozpoznaje jednorazową wpłatę wewnętrzną jako internal_1 dla umowy z limitem', () => {
++  const contract = parseCurrentContract(fixtureOneTime);
++  assert.equal(contract.contractType, 'limit');
++  assert.equal(contract.paymentType, 'internal');
++  assert.equal(contract.paymentVariant, 'internal_1');
++  assert.equal(contract.internalPaymentAccount, '70114010104903574502000000');
++  assert.equal(contract.coursePriceCents, 546060);
++  assert.equal(contract.monthlyInstallmentCents, 45505);
++  assert.equal(contract.installmentPlan.paymentCount, 1);
++  assert.equal(contract.installmentPlan.followingPaymentsCount, 0);
++  assert.equal(contract.installmentPlan.paymentVariant, 'internal_1');
++});
++
++const base = {
++  agreementNumber: 'EL/2026/123', agreementDate: '2026-02-14', customerType: 'person',
++  customerName: 'Jan Kowalski', personalId: '00210100004', address: 'Testowa 1, Warszawa',
++  coursePriceCents: 546060, monthlyInstallmentCents: 45505, paymentType: 'internal'
++};
++
++test('sekcja po zmianie harmonogramu obejmuje jednorazową wpłatę oraz 2/4/13 rat dla flexible i limit', () => {
++  for (const contractType of ['flexible', 'limit']) {
++    for (const paymentVariant of ['internal_1', 'internal_2', 'internal_4', 'internal_13']) {
++      const contract = { ...base, contractType, paymentVariant };
++      const cards = getScheduleChangeAnnexCards(contract);
++      assert.deepEqual(cards.map(card => card.no), ['29', '29a']);
++      for (const card of cards) {
++        assert.equal(card.status, 'tutlo');
++        assert.equal(card.enabled, true);
++        assert.equal(card.mode, 'post_schedule_change');
++      }
++      assert.equal(getAvailableAnnexCards(contract)
++        .filter(item => ['29', '29a'].includes(item.no) && item.status === 'tutlo').length, 0);
++    }
++  }
++});
++
++test('sekcja po zmianie harmonogramu nie obejmuje standardowych 24 rat, kredytu ani nieobsługiwanych typów', () => {
++  assert.deepEqual(getScheduleChangeAnnexCards({ ...base, contractType: 'flexible', paymentVariant: 'internal_24' }), []);
++  assert.deepEqual(getScheduleChangeAnnexCards({ ...base, contractType: 'limit', paymentVariant: 'internal_24' }), []);
++  assert.deepEqual(getScheduleChangeAnnexCards({ ...base, contractType: 'flexible', paymentType: 'credit', paymentVariant: 'credit' }), []);
++  assert.deepEqual(getScheduleChangeAnnexCards({ ...base, contractType: 'unknown', paymentVariant: 'internal_2' }), []);
++  assert.deepEqual(getScheduleChangeAnnexCards(undefined), []);
++});
++
++test('isAnnexAvailable zwraca true dla 29/29a w trybie po zmianie harmonogramu', () => {
++  for (const contractType of ['flexible', 'limit']) {
++    for (const paymentVariant of ['internal_1', 'internal_2', 'internal_4', 'internal_13']) {
++      const contract = { ...base, contractType, paymentVariant };
++      assert.equal(isAnnexAvailable('29', contract), true);
++      assert.equal(isAnnexAvailable('29a', contract), true);
++    }
++  }
++  assert.equal(isAnnexAvailable('29', { ...base, contractType: 'flexible', paymentVariant: 'internal_24' }), true);
++  assert.deepEqual(getPostPaymentChangeAnnexCards({ ...base, contractType: 'flexible', paymentVariant: 'internal_1' }), []);
++});
++
++for (const [id, prepare] of [['29', prepareAnnex29], ['29a', prepareAnnex29a]]) {
++  test(`aneks ${id}: tryb post_schedule_change działa dla flexible i limit z jednorazową wpłatą oraz 2/4/13 ratami`, () => {
++    for (const contractType of ['flexible', 'limit']) {
++      for (const paymentVariant of ['internal_1', 'internal_2', 'internal_4', 'internal_13']) {
++        const contract = { ...base, contractType, paymentVariant };
++        const prepared = prepare(contract, { mode: 'post_schedule_change', today: '2026-07-28' });
++        assert.deepEqual(prepared.context, { mode: 'post_schedule_change' });
++        assert.ok(Number.isSafeInteger(prepared.calculation.newCoursePriceCents));
++      }
++    }
++  });
++
++  test(`aneks ${id}: tryb post_schedule_change odrzuca internal_24 i kredyt`, () => {
++    assert.throws(() => prepare({ ...base, contractType: 'flexible', paymentVariant: 'internal_24' },
++      { mode: 'post_schedule_change', today: '2026-07-28' }), /wymaga umowy flexible z ratami wewnętrznymi internal_24/);
++    assert.throws(() => prepare({ ...base, contractType: 'flexible', paymentType: 'credit', paymentVariant: 'credit' },
++      { mode: 'post_schedule_change', today: '2026-07-28' }), /wymaga umowy flexible z ratami wewnętrznymi internal_24/);
++  });
++
++  test(`aneks ${id}: bez trybu post_schedule_change warianty 1/2/4/13 pozostają zablokowane`, () => {
++    for (const paymentVariant of ['internal_1', 'internal_2', 'internal_4', 'internal_13']) {
++      assert.throws(() => prepare({ ...base, contractType: 'flexible', paymentVariant }),
++        /wymaga umowy flexible z ratami wewnętrznymi internal_24/);
++      assert.throws(() => prepare({ ...base, contractType: 'limit', paymentVariant }),
++        /wymaga umowy flexible z ratami wewnętrznymi internal_24/);
++    }
++  });
++}
+-- 
+2.43.0
+
