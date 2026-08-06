@@ -4,7 +4,7 @@ import { getAnnexRoute } from '../../router.js';
 import { prepareAnnex26 } from '../../src/annexes/26/index.js';
 
 test('router zachowuje aktywne aneksy, w tym identyfikatory literowe', () => {
-  for (const id of ['11','25','26','27','29','29a','43','45','45c','45e','48']) assert.equal(getAnnexRoute(id, id==='43'?{contractType:'flexible',familyGroupVariant:'paid'}:id==='45'?{contractType:'flexible',paymentType:'internal',paymentVariant:'internal_24'}:id==='45c'?{contractType:'limit',paymentType:'internal',paymentVariant:'internal_24'}:id==='48'?{contractType:'limit'}:undefined)?.number,id);
+  for (const id of ['11','25','25a','26','27','29','29a','43','45','45c','45e','48']) assert.equal(getAnnexRoute(id, id==='43'?{contractType:'flexible',familyGroupVariant:'paid'}:id==='45'?{contractType:'flexible',paymentType:'internal',paymentVariant:'internal_24'}:id==='45c'?{contractType:'limit',paymentType:'internal',paymentVariant:'internal_24'}:id==='48'?{contractType:'limit'}:undefined)?.number,id);
   assert.equal(typeof getAnnexRoute('29a').number,'string');
 });
 

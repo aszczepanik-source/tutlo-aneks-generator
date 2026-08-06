@@ -5,7 +5,7 @@ import { getAnnexRoute } from '../../router.js';
 import { getAvailableAnnexCards } from '../../src/annexes/availability.js';
 import { annexModules, getAnnexModule } from '../../src/annexes/catalog.js';
 
-const ACTIVE_IDS = ['11', '25', '26', '27', '29', '29a', '43', '45', '45c', '45e', '48'];
+const ACTIVE_IDS = ['11', '25', '25a', '26', '27', '29', '29a', '43', '45', '45c', '45e', '48'];
 
 const annex25Contracts = [
   [{ contractType: 'flexible', paymentType: 'internal', paymentVariant: 'internal_24' }, true],

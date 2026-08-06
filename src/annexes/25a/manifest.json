@@ -1,0 +1,30 @@
+{
+  "id": "25a",
+  "label": "25a – Zmniejszenie rat wewnętrznych po zmianie harmonogramu",
+  "available": true,
+  "policy": "internal-installment-reduction-schedule-change",
+  "template": "template.docx",
+  "templateVersion": "1.0.0",
+  "allowedContractVariants": [
+    "flexible/internal/internal_2",
+    "flexible/internal/internal_4"
+  ],
+  "requiredFields": [
+    "ADRES",
+    "DATA_ANEKSU",
+    "DATA_WEJSCIA_W_ZYCIE",
+    "DATA_ZAWARCIA_UMOWY",
+    "IDENTYFIKATOR_LABEL",
+    "IDENTYFIKATOR",
+    "IMIE_NAZWISKO",
+    "LIMIT_MIESIECZNY",
+    "NOWA_CENA",
+    "NOWA_LICZBA_LEKCJI",
+    "NOWA_SREDNIA_RATA",
+    "NUMER_KONTA",
+    "NUMER_UMOWY",
+    "RATY",
+    "TYPY_LEKTOROW"
+  ],
+  "status": "ready"
+}

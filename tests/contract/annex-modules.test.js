@@ -4,7 +4,7 @@ import test from 'node:test';
 import { annexModules, getAnnexModule } from '../../src/annexes/catalog.js';
 import { extractDocxPlaceholders } from '../../src/annexes/shared/template-inspection.js';
 
-const EXPECTED_IDS=['11','25','26','27','29','29a','43','45','45c','45e','48'];
+const EXPECTED_IDS=['11','25','25a','26','27','29','29a','43','45','45c','45e','48'];
 
 test('katalog udostępnia dokładnie aktywne generatory',()=>{
   assert.deepEqual([...annexModules.keys()],EXPECTED_IDS);

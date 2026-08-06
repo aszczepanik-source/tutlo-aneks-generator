@@ -80,13 +80,22 @@ export const SCHEDULE_CHANGE_ANNEXES = Object.freeze([
     enabled: true, mode: 'post_schedule_change'
   })
 ]);
+const ANNEX_25A = card('25a', '25a – Zmniejszenie rat wewnętrznych po zmianie harmonogramu', 'tutlo', {
+  desc: 'Dostępny wyłącznie dla umów elastycznych z harmonogramem 2 lub 4 rat wewnętrznych.',
+  enabled: true
+});
+const LUMP_SCHEDULE_VARIANTS = Object.freeze(['internal_2', 'internal_4']);
 
 /** Jednorazowa wpłata oraz raty 2/4/13 dla umów elastyk/limit płatnych bezpośrednio do Tutlo. */
 export function getScheduleChangeAnnexCards(currentContract) {
   if (currentContract?.paymentType !== 'internal') return [];
   if (!NON_STANDARD_INTERNAL_VARIANTS.includes(currentContract?.paymentVariant)) return [];
   if (!['flexible', 'limit'].includes(currentContract?.contractType)) return [];
-  return SCHEDULE_CHANGE_ANNEXES;
+  const cards = [...SCHEDULE_CHANGE_ANNEXES];
+  if (currentContract.contractType === 'flexible' && LUMP_SCHEDULE_VARIANTS.includes(currentContract.paymentVariant)) {
+    cards.push(ANNEX_25A);
+  }
+  return cards;
 }
 
 export const POST_PAYMENT_CHANGE_ANNEXES = Object.freeze([

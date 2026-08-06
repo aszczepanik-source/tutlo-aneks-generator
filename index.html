@@ -449,6 +449,20 @@
   </div>
 </dialog>
 
+<dialog id="annex25aDialog">
+  <div class="modal-head">
+    <h3>Aneks 25a – Zmniejszenie rat wewnętrznych po zmianie harmonogramu</h3>
+    <button class="close" data-close="annex25aDialog" type="button">×</button>
+  </div>
+  <div class="modal-body">
+    <form id="annex25aForm" class="annex-form">
+      <label>Nowa rata miesięczna (zł)<input id="annex25aNewInstallment" inputmode="decimal" required></label>
+      <div class="actions"><button class="btn" type="submit">Pobierz aneks</button></div>
+      <div id="annex25aStatus" class="status"></div>
+    </form>
+  </div>
+</dialog>
+
 <dialog id="annex11Dialog">
   <div class="modal-head">
     <h3>Aneks 11 – Zawieszenie dostępu</h3>
@@ -608,9 +622,10 @@
     getPostPaymentChangeAnnexCards,
     getScheduleChangeAnnexCards
   } from './src/annexes/availability.js';
-  import { downloadAnnex11, downloadAnnex25, downloadAnnex26, downloadAnnex27, downloadAnnex29, downloadAnnex29a, downloadAnnex43, downloadAnnex45, downloadAnnex45C, downloadAnnex45E, downloadAnnex48 } from './src/infrastructure/local-docx-generator.js';
+  import { downloadAnnex11, downloadAnnex25, downloadAnnex25a, downloadAnnex26, downloadAnnex27, downloadAnnex29, downloadAnnex29a, downloadAnnex43, downloadAnnex45, downloadAnnex45C, downloadAnnex45E, downloadAnnex48 } from './src/infrastructure/local-docx-generator.js';
   import { prepareAnnex11 } from './src/annexes/11/index.js';
   import { prepareAnnex25 } from './src/annexes/25/index.js';
+  import { prepareAnnex25a } from './src/annexes/25a/index.js';
   import { prepareAnnex26 } from './src/annexes/26/index.js';
   import { prepareAnnex27 } from './src/annexes/27/index.js';
   import { prepareAnnex29 } from './src/annexes/29/index.js';
@@ -705,6 +720,11 @@
     if(no==='25'){
       if(!currentContract){ alert('Najpierw wczytaj i rozpoznaj umowę.'); return; }
       document.getElementById('annex25Dialog').showModal();
+      return;
+    }
+    if(no==='25a'){
+      if(!currentContract){ alert('Najpierw wczytaj i rozpoznaj umowę.'); return; }
+      document.getElementById('annex25aDialog').showModal();
       return;
     }
     if(no==='45'){
@@ -897,6 +917,21 @@
         newInstallment:document.getElementById('annex25NewInstallment').value
       });
       await downloadAnnex25(prepared,{requiredFields:prepared.requiredFields});
+      status.textContent='Aneks został pobrany';status.className='status show ok';
+    }catch(error){
+      status.textContent=error.message;status.className='status show error';
+    }
+  });
+
+  document.getElementById('annex25aForm').addEventListener('submit',async event=>{
+    event.preventDefault();
+    const status=document.getElementById('annex25aStatus');
+    status.textContent='Tworzę dokument…';status.className='status show warn';
+    try{
+      const prepared=prepareAnnex25a(currentContract,{
+        newInstallment:document.getElementById('annex25aNewInstallment').value
+      });
+      await downloadAnnex25a(prepared,{requiredFields:prepared.requiredFields});
       status.textContent='Aneks został pobrany';status.className='status show ok';
     }catch(error){
       status.textContent=error.message;status.className='status show error';

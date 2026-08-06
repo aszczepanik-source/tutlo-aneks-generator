@@ -51,14 +51,18 @@ test('sekcja po zmianie harmonogramu obejmuje jednorazową wpłatę oraz 2/4/13 
     for (const paymentVariant of ['internal_1', 'internal_2', 'internal_4', 'internal_13']) {
       const contract = { ...base, contractType, paymentVariant };
       const cards = getScheduleChangeAnnexCards(contract);
-      assert.deepEqual(cards.map(card => card.no), ['29', '29a']);
-      for (const card of cards) {
+      const expectedIds = contractType === 'flexible' && ['internal_2', 'internal_4'].includes(paymentVariant)
+        ? ['29', '29a', '25a'] : ['29', '29a'];
+      assert.deepEqual(cards.map(card => card.no), expectedIds);
+      for (const card of cards.filter(item => ['29', '29a'].includes(item.no))) {
         assert.equal(card.status, 'tutlo');
         assert.equal(card.enabled, true);
         assert.equal(card.mode, 'post_schedule_change');
       }
+      const annex25a = cards.find(item => item.no === '25a');
+      if (annex25a) { assert.equal(annex25a.status, 'tutlo'); assert.equal(annex25a.enabled, true); }
       assert.equal(getAvailableAnnexCards(contract)
-        .filter(item => ['29', '29a'].includes(item.no) && item.status === 'tutlo').length, 0);
+        .filter(item => ['29', '29a', '25a'].includes(item.no) && item.status === 'tutlo').length, 0);
     }
   }
 });

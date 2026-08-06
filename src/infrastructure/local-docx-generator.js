@@ -34,6 +34,10 @@ export function annex25Filename(values) {
   return `Aneks_25_${sanitizeFilenamePart(values.NUMER_UMOWY)}_${sanitizeFilenamePart(values.IMIE_NAZWISKO)}.docx`;
 }
 
+export function annex25aFilename(values) {
+  return `Aneks_25a_${sanitizeFilenamePart(values.NUMER_UMOWY)}_${sanitizeFilenamePart(values.IMIE_NAZWISKO)}.docx`;
+}
+
 export function annex11Filename(values) {
   return `Aneks_11_${sanitizeFilenamePart(values.NUMER_UMOWY)}_${sanitizeFilenamePart(values.IMIE_NAZWISKO)}.docx`;
 }
@@ -114,6 +118,10 @@ export function annex27TemplateUrl(moduleUrl = import.meta.url) {
 
 export function annex25TemplateUrl(moduleUrl = import.meta.url) {
   return new URL('../annexes/25/template.docx', moduleUrl).href;
+}
+
+export function annex25aTemplateUrl(moduleUrl = import.meta.url) {
+  return new URL('../annexes/25a/template.docx', moduleUrl).href;
 }
 
 export function annex11TemplateUrl(moduleUrl = import.meta.url) {
@@ -262,4 +270,8 @@ export function downloadAnnex45(prepared, options = {}) {
 
 export function downloadAnnex48(prepared, options = {}) {
   return downloadAutomaticAnnex(prepared, options, annex48TemplateUrl(), annex48Filename);
+}
+
+export function downloadAnnex25a(prepared, options = {}) {
+  return downloadAutomaticAnnex(prepared, options, annex25aTemplateUrl(), annex25aFilename);
 }

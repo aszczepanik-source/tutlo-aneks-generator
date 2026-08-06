@@ -118,6 +118,72 @@ export function calculateAnnex25(contract, annexDate, newInstallmentCents) {
     newAverageInstallmentCents: Math.round(newPriceCents / ANNEX_25_INSTALLMENTS), installments };
 }
 
+const ANNEX_25A_LUMP_VARIANTS = Object.freeze({ internal_2: 2, internal_4: 4 });
+
+/**
+ * Same reduction as Aneks 25, but for contracts whose original schedule is a
+ * fixed number of equal lump installments (2 or 4) instead of 24 monthly
+ * ones. Rata 1 is always kept unchanged (it is settled almost immediately
+ * after signing); everything from rata 2 onward is unrolled into one
+ * continuous monthly run through month 24, starting at rata 2's own due
+ * date, with the same "already-used months stay at the old rate" split as
+ * calculateAnnex25.
+ */
+export function calculateAnnex25a(contract, annexDate, newInstallmentCents) {
+  const coursePriceCents = contract.coursePriceCents;
+  if (!Number.isSafeInteger(coursePriceCents) || coursePriceCents <= 0) throw new Error('Cena kursu jest nieprawidłowa.');
+  const monthlyInstallmentCents = contract.monthlyInstallmentCents;
+  if (!Number.isSafeInteger(monthlyInstallmentCents) || monthlyInstallmentCents <= 0) throw new Error('Miesięczna opłata jest nieprawidłowa.');
+  const totalMonths = 24;
+  const paymentCount = ANNEX_25A_LUMP_VARIANTS[contract.paymentVariant];
+  if (!paymentCount) throw new Error('Aneks 25a wymaga umowy z harmonogramem 2 lub 4 rat wewnętrznych.');
+  const scheduleInstallments = contract.installmentPlan?.installments;
+  if (!Array.isArray(scheduleInstallments) || scheduleInstallments.length !== paymentCount) {
+    throw new Error('Brak pełnego harmonogramu oryginalnych rat w danych umowy.');
+  }
+  if (!Number.isSafeInteger(newInstallmentCents) || newInstallmentCents <= 0) throw new Error('Nowa rata musi być dodatnią kwotą.');
+  if (newInstallmentCents >= monthlyInstallmentCents) {
+    throw new Error(`Nowa rata musi być niższa od obecnej miesięcznej opłaty wynoszącej ${money(monthlyInstallmentCents)}.`);
+  }
+
+  const monthsPerInstallment = totalMonths / paymentCount;
+  const keptInstallment = scheduleInstallments[0];
+  const runStartInstallment = scheduleInstallments[1];
+  if (!keptInstallment || !runStartInstallment) throw new Error('Brak pełnego harmonogramu oryginalnych rat w danych umowy.');
+
+  const { usedMonths } = calculateCourseMonths({ courseStartDate: contract.courseStartDate, annexDate, totalMonths });
+  const runMonths = totalMonths - monthsPerInstallment;
+  const paidWithinRun = Math.max(0, Math.min(runMonths, usedMonths - monthsPerInstallment));
+  const remainingWithinRun = runMonths - paidWithinRun;
+  const runStartDate = iso(parseDate(runStartInstallment.dueDate, 'termin drugiej raty'));
+
+  const runInstallments = Array.from({ length: runMonths }, (_, index) => ({
+    nr: index + 2,
+    dueDate: addMonths(runStartDate, index),
+    amountCents: index < paidWithinRun ? monthlyInstallmentCents : newInstallmentCents
+  }));
+  const installments = [
+    { nr: 1, dueDate: keptInstallment.dueDate, amountCents: keptInstallment.amountCents },
+    ...runInstallments
+  ];
+
+  const discountCents = (monthlyInstallmentCents - newInstallmentCents) * remainingWithinRun;
+  const newPriceCents = coursePriceCents - discountCents;
+  if (installments.reduce((sum, item) => sum + item.amountCents, 0) !== newPriceCents) {
+    throw new Error('Suma harmonogramu nie odpowiada nowej cenie.');
+  }
+  const effectiveDate = firstOfNextMonth(annexDate);
+
+  return {
+    annexDate, effectiveDate, oldInstallmentCents: monthlyInstallmentCents, newInstallmentCents,
+    paidInstallments: 1 + paidWithinRun, remainingInstallments: remainingWithinRun,
+    discountCents, newPriceCents,
+    paidToAnnexDateCents: keptInstallment.amountCents + monthlyInstallmentCents * paidWithinRun,
+    newAverageInstallmentCents: Math.round(newPriceCents / totalMonths),
+    installments
+  };
+}
+
 function requireInstallments(contract, minimum, annexDate) {
   const installments = (contract.installments || [])
     .map(item => ({ dueDate: item.dueDate, amountCents: Number(item.amountCents) }))

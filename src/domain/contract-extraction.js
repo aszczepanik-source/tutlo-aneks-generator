@@ -185,6 +185,55 @@ function extractInstallmentDates(payment, agreementDate) {
     ...(recurringStartDate && { recurringStartDate, recurringDayOfMonth }) };
 }
 
+/** Business-day addition (Sat/Sun skipped only — no public-holiday calendar). */
+function addBusinessDays(dateIso, days) {
+  const date = new Date(`${dateIso}T12:00:00Z`);
+  let remaining = days;
+  while (remaining > 0) {
+    date.setUTCDate(date.getUTCDate() + 1);
+    const weekday = date.getUTCDay();
+    if (weekday !== 0 && weekday !== 6) remaining -= 1;
+  }
+  return date.toISOString().slice(0, 10);
+}
+
+const LUMP_INSTALLMENT_ORDINALS = Object.freeze({ drug: 2, trzeci: 3, czwart: 4 });
+
+/**
+ * Reads the fixed per-installment schedule of "N równych ratach" contracts
+ * (2 or 4 lump payments spread across the 24-month course) straight from the
+ * contract text: rata 1's amount/delay is explicit, ratas 2..N have literal
+ * calendar due dates ("druga rata płatna do dnia DD-MM-YYYY").
+ */
+function extractLumpInstallments(payment, agreementDate, paymentCount) {
+  if (![2, 4].includes(paymentCount) || !agreementDate) return undefined;
+  const amountCents = money(payment.match(
+    /w\s+\d+\s+równych\s+ratach\s+po\s+(\d+(?:[ .]\d{3})*(?:[,.]\d{1,2})?)\s*zł/iu
+  )?.[1]);
+  const delayDays = Number(payment.match(
+    /w\s+terminie\s+(\d+)\s+dni?a?\s+roboc\p{L}*\s+od\s+daty\s+zawarcia\s+Umowy/iu
+  )?.[1]);
+  if (!Number.isInteger(amountCents) || !Number.isInteger(delayDays)) return undefined;
+
+  const ordinalDates = {};
+  const ordinalPattern = /\b(drug|trzeci|czwart)\p{L}*\s+rat\p{L}*\b[\s\S]{0,150}?do\s+dnia\s+(\d{2})-(\d{2})-(\d{4})/giu;
+  for (const match of payment.matchAll(ordinalPattern)) {
+    const [, stem, day, month, year] = match;
+    const nr = LUMP_INSTALLMENT_ORDINALS[stem];
+    if (!nr || ordinalDates[nr]) continue;
+    const date = new Date(Date.UTC(+year, +month - 1, +day));
+    if (date.getUTCFullYear() !== +year || date.getUTCMonth() !== +month - 1 || date.getUTCDate() !== +day) continue;
+    ordinalDates[nr] = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  }
+  const expectedOrdinals = Array.from({ length: paymentCount - 1 }, (_, index) => index + 2);
+  if (!expectedOrdinals.every(nr => ordinalDates[nr])) return undefined;
+
+  return [
+    { nr: 1, dueDate: addBusinessDays(agreementDate, delayDays), amountCents },
+    ...expectedOrdinals.map(nr => ({ nr, dueDate: ordinalDates[nr], amountCents }))
+  ];
+}
+
 function extractPayment(payment, agreementDate) {
   const credit = /Forma\s+płatności\s*:\s*raty\s*0\s*%\s*przy\s+wykorzystaniu\s+kredytu\s+konsumenckiego\s+udzielonego/iu.test(payment);
   const internal = !credit && /(?:bezpośrednio\s+)?na\s+następujący\s+rachunek\s+bankowy\s+Tutlo/iu.test(payment);
@@ -200,10 +249,12 @@ function extractPayment(payment, agreementDate) {
   const paymentVariant = [1, 2, 4, 13, 24].includes(paymentCount) ? `internal_${paymentCount}` : undefined;
   const firstPaymentAmountCents = money(payment.match(/pierwsz(?:a|ej)\s+rat(?:a|y)\b.{0,80}?(\d+(?:[ .]\d{3})*(?:[,.]\d{1,2})?)\s*zł/iu)?.[1]);
   const recurringPaymentAmountCents = money(payment.match(/kolejn(?:ych|e)\s+\d+\s+rat\p{L}*.{0,80}?(\d+(?:[ .]\d{3})*(?:[,.]\d{1,2})?)\s*zł/iu)?.[1]);
+  const lumpInstallments = extractLumpInstallments(payment, agreementDate, paymentCount);
   return { paymentType: 'internal', paymentVariant,
     internalPaymentAccount: extractInternalInstallmentAccount(payment),
     installmentPlan: paymentCount ? { paymentCount, firstPaymentAmountCents,
       recurringPaymentAmountCents, followingPaymentsCount: followingPaymentsCount || Math.max(0, paymentCount - 1), paymentVariant,
+      ...(lumpInstallments && { installments: lumpInstallments }),
       ...extractInstallmentDates(payment, agreementDate) } : undefined };
 }
 

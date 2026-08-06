@@ -14,7 +14,7 @@ test('lokalna data kalendarzowa uzupełnia jednocyfrowy miesiąc i dzień zerami
 test('aktywne generatory nie używają toISOString do ustalania bieżącej daty aneksu', async () => {
   const files = [
     'src/application/prepare-annex.js',
-    ...['11', '25', '26', '27', '29', '29a', '43', '45', '45c', '45e', '48']
+    ...['11', '25', '25a', '26', '27', '29', '29a', '43', '45', '45c', '45e', '48']
       .map(id => `src/annexes/${id}/generator.js`)
   ];
   const sources = await Promise.all(files.map(file => readFile(file, 'utf8')));
